@@ -1,0 +1,368 @@
+{% doc %}
+  @prompt
+    Create an avatar with text section that can be added under a button. The section should include a circular avatar image with accompanying text content that can be customized., I need more than one image. One must be half covering the other 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-avatar-text-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    gap: {{ block.settings.spacing }}px;
+    padding: {{ block.settings.padding }}px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+    {% if block.settings.alignment == 'center' %}
+      justify-content: center;
+    {% elsif block.settings.alignment == 'right' %}
+      justify-content: flex-end;
+    {% else %}
+      justify-content: flex-start;
+    {% endif %}
+  }
+
+  .ai-avatar-text__avatars-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    flex-shrink: 0;
+    width: {{ block.settings.avatar_size | plus: block.settings.overlap_offset }}px;
+    height: {{ block.settings.avatar_size }}px;
+  }
+
+  .ai-avatar-text__avatar-{{ ai_gen_id }} {
+    position: absolute;
+    width: {{ block.settings.avatar_size }}px;
+    height: {{ block.settings.avatar_size }}px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: {{ block.settings.avatar_border_width }}px solid {{ block.settings.avatar_border_color }};
+    background-color: #ffffff;
+  }
+
+  .ai-avatar-text__avatar-{{ ai_gen_id }}--primary {
+    left: 0;
+    z-index: 2;
+  }
+
+  .ai-avatar-text__avatar-{{ ai_gen_id }}--secondary {
+    left: {{ block.settings.overlap_offset }}px;
+    z-index: 1;
+  }
+
+  .ai-avatar-text__avatar-placeholder-{{ ai_gen_id }} {
+    position: absolute;
+    width: {{ block.settings.avatar_size }}px;
+    height: {{ block.settings.avatar_size }}px;
+    border-radius: 50%;
+    background-color: #f4f4f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: {{ block.settings.avatar_border_width }}px solid {{ block.settings.avatar_border_color }};
+    overflow: hidden;
+  }
+
+  .ai-avatar-text__avatar-placeholder-{{ ai_gen_id }}--primary {
+    left: 0;
+    z-index: 2;
+  }
+
+  .ai-avatar-text__avatar-placeholder-{{ ai_gen_id }}--secondary {
+    left: {{ block.settings.overlap_offset }}px;
+    z-index: 1;
+  }
+
+  .ai-avatar-text__avatar-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-avatar-text__content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .ai-avatar-text__name-{{ ai_gen_id }} {
+    font-size: {{ block.settings.name_font_size }}px;
+    font-weight: {{ block.settings.name_font_weight }};
+    color: {{ block.settings.name_color }};
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .ai-avatar-text__description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.description_font_size }}px;
+    color: {{ block.settings.description_color }};
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-avatar-text-{{ ai_gen_id }} {
+      gap: {{ block.settings.spacing | times: 0.8 }}px;
+      padding: {{ block.settings.padding | times: 0.8 }}px;
+    }
+
+    .ai-avatar-text__avatars-wrapper-{{ ai_gen_id }} {
+      width: {{ block.settings.avatar_size | times: 0.8 | plus: block.settings.overlap_offset | times: 0.8 }}px;
+      height: {{ block.settings.avatar_size | times: 0.8 }}px;
+    }
+
+    .ai-avatar-text__avatar-{{ ai_gen_id }},
+    .ai-avatar-text__avatar-placeholder-{{ ai_gen_id }} {
+      width: {{ block.settings.avatar_size | times: 0.8 }}px;
+      height: {{ block.settings.avatar_size | times: 0.8 }}px;
+    }
+
+    .ai-avatar-text__avatar-{{ ai_gen_id }}--secondary,
+    .ai-avatar-text__avatar-placeholder-{{ ai_gen_id }}--secondary {
+      left: {{ block.settings.overlap_offset | times: 0.8 }}px;
+    }
+
+    .ai-avatar-text__name-{{ ai_gen_id }} {
+      font-size: {{ block.settings.name_font_size | times: 0.9 }}px;
+    }
+
+    .ai-avatar-text__description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.description_font_size | times: 0.9 }}px;
+    }
+  }
+{% endstyle %}
+
+<div class="ai-avatar-text-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-avatar-text__avatars-wrapper-{{ ai_gen_id }}">
+    {% if block.settings.avatar_image_primary %}
+      <img
+        src="{{ block.settings.avatar_image_primary | image_url: width: 200 }}"
+        alt="{{ block.settings.name | escape }}"
+        class="ai-avatar-text__avatar-{{ ai_gen_id }} ai-avatar-text__avatar-{{ ai_gen_id }}--primary"
+        loading="lazy"
+        width="200"
+        height="200"
+      >
+    {% else %}
+      <div class="ai-avatar-text__avatar-placeholder-{{ ai_gen_id }} ai-avatar-text__avatar-placeholder-{{ ai_gen_id }}--primary">
+        {{ 'image' | placeholder_svg_tag }}
+      </div>
+    {% endif %}
+
+    {% if block.settings.avatar_image_secondary %}
+      <img
+        src="{{ block.settings.avatar_image_secondary | image_url: width: 200 }}"
+        alt="{{ block.settings.name | escape }}"
+        class="ai-avatar-text__avatar-{{ ai_gen_id }} ai-avatar-text__avatar-{{ ai_gen_id }}--secondary"
+        loading="lazy"
+        width="200"
+        height="200"
+      >
+    {% else %}
+      <div class="ai-avatar-text__avatar-placeholder-{{ ai_gen_id }} ai-avatar-text__avatar-placeholder-{{ ai_gen_id }}--secondary">
+        {{ 'image' | placeholder_svg_tag }}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="ai-avatar-text__content-{{ ai_gen_id }}">
+    {% if block.settings.name != blank %}
+      <h3 class="ai-avatar-text__name-{{ ai_gen_id }}">{{ block.settings.name }}</h3>
+    {% endif %}
+
+    {% if block.settings.description != blank %}
+      <div class="ai-avatar-text__description-{{ ai_gen_id }}">{{ block.settings.description }}</div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Avatar with text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Avatars"
+    },
+    {
+      "type": "image_picker",
+      "id": "avatar_image_primary",
+      "label": "Primary avatar image"
+    },
+    {
+      "type": "image_picker",
+      "id": "avatar_image_secondary",
+      "label": "Secondary avatar image"
+    },
+    {
+      "type": "range",
+      "id": "avatar_size",
+      "min": 40,
+      "max": 120,
+      "step": 10,
+      "unit": "px",
+      "label": "Avatar size",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "overlap_offset",
+      "min": 20,
+      "max": 80,
+      "step": 10,
+      "unit": "px",
+      "label": "Overlap amount",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "avatar_border_width",
+      "min": 0,
+      "max": 6,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 2
+    },
+    {
+      "type": "color",
+      "id": "avatar_border_color",
+      "label": "Border color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "name",
+      "label": "Name",
+      "default": "John Smith"
+    },
+    {
+      "type": "range",
+      "id": "name_font_size",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Name font size",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "name_font_weight",
+      "label": "Name font weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "name_color",
+      "label": "Name color",
+      "default": "#000000"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Product specialist"
+    },
+    {
+      "type": "range",
+      "id": "description_font_size",
+      "min": 10,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Description font size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Space between avatars and text",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Padding",
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Border radius",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Avatar with text"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,558 @@
+{% doc %}
+  @prompt
+    Create an avatar with text block that can be added to product information sections. Include a circular avatar image with customizable text content below it. Make it compatible with product templates., Image on the left and text on the right , Need two images. One overlaps the other , Both images same size, I want this to look the same as my other avatar with text section , The images cover the writing. I need the writing further to the right 
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-avatar-text-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: row;
+    align-items: {{ block.settings.vertical_alignment }};
+    gap: {{ block.settings.spacing }}px;
+    padding: {{ block.settings.padding }}px;
+    background-color: {{ block.settings.background_color }};
+    border-radius: {{ block.settings.border_radius }}px;
+  }
+
+  .ai-avatar-images-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    width: calc({{ block.settings.avatar_size }}px + {{ block.settings.overlap_offset }}px);
+    height: calc({{ block.settings.avatar_size }}px + {{ block.settings.overlap_offset }}px);
+    flex-shrink: 0;
+  }
+
+  .ai-avatar-main-{{ ai_gen_id }} {
+    position: absolute;
+    width: {{ block.settings.avatar_size }}px;
+    height: {{ block.settings.avatar_size }}px;
+    top: 0;
+    left: 0;
+    z-index: 1;
+  }
+
+  .ai-avatar-main-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: {{ block.settings.main_border_width }}px solid {{ block.settings.main_border_color }};
+  }
+
+  .ai-avatar-main-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: {{ block.settings.placeholder_bg_color }};
+    border-radius: 50%;
+    border: {{ block.settings.main_border_width }}px solid {{ block.settings.main_border_color }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .ai-avatar-main-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-avatar-secondary-{{ ai_gen_id }} {
+    position: absolute;
+    width: {{ block.settings.avatar_size }}px;
+    height: {{ block.settings.avatar_size }}px;
+    z-index: 2;
+    {% if block.settings.overlap_position == 'bottom-right' %}
+      bottom: 0;
+      right: 0;
+    {% elsif block.settings.overlap_position == 'bottom-left' %}
+      bottom: 0;
+      left: 0;
+    {% elsif block.settings.overlap_position == 'top-right' %}
+      top: 0;
+      right: 0;
+    {% else %}
+      top: 0;
+      left: 0;
+    {% endif %}
+  }
+
+  .ai-avatar-secondary-image-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: {{ block.settings.secondary_border_width }}px solid {{ block.settings.secondary_border_color }};
+    background-color: {{ block.settings.secondary_border_color }};
+  }
+
+  .ai-avatar-secondary-placeholder-{{ ai_gen_id }} {
+    width: 100%;
+    height: 100%;
+    background-color: {{ block.settings.placeholder_bg_color }};
+    border-radius: 50%;
+    border: {{ block.settings.secondary_border_width }}px solid {{ block.settings.secondary_border_color }};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .ai-avatar-secondary-placeholder-{{ ai_gen_id }} svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.3;
+  }
+
+  .ai-avatar-content-{{ ai_gen_id }} {
+    display: flex;
+    flex-direction: column;
+    gap: {{ block.settings.text_spacing }}px;
+    text-align: {{ block.settings.text_alignment }};
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ai-avatar-title-{{ ai_gen_id }} {
+    font-size: {{ block.settings.title_size }}px;
+    font-weight: {{ block.settings.title_weight }};
+    color: {{ block.settings.title_color }};
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .ai-avatar-description-{{ ai_gen_id }} {
+    font-size: {{ block.settings.description_size }}px;
+    color: {{ block.settings.description_color }};
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-avatar-text-{{ ai_gen_id }} {
+      flex-direction: {{ block.settings.mobile_layout }};
+      align-items: {% if block.settings.mobile_layout == 'column' %}{{ block.settings.mobile_alignment }}{% else %}{{ block.settings.vertical_alignment }}{% endif %};
+    }
+
+    .ai-avatar-images-wrapper-{{ ai_gen_id }} {
+      width: calc({{ block.settings.avatar_size | times: 0.8 }}px + {{ block.settings.overlap_offset }}px);
+      height: calc({{ block.settings.avatar_size | times: 0.8 }}px + {{ block.settings.overlap_offset }}px);
+    }
+
+    .ai-avatar-main-{{ ai_gen_id }} {
+      width: {{ block.settings.avatar_size | times: 0.8 }}px;
+      height: {{ block.settings.avatar_size | times: 0.8 }}px;
+    }
+
+    .ai-avatar-secondary-{{ ai_gen_id }} {
+      width: {{ block.settings.avatar_size | times: 0.8 }}px;
+      height: {{ block.settings.avatar_size | times: 0.8 }}px;
+    }
+
+    .ai-avatar-title-{{ ai_gen_id }} {
+      font-size: {{ block.settings.title_size | times: 0.9 }}px;
+    }
+
+    .ai-avatar-description-{{ ai_gen_id }} {
+      font-size: {{ block.settings.description_size | times: 0.9 }}px;
+    }
+
+    .ai-avatar-content-{{ ai_gen_id }} {
+      text-align: {% if block.settings.mobile_layout == 'column' %}{{ block.settings.mobile_text_alignment }}{% else %}{{ block.settings.text_alignment }}{% endif %};
+    }
+  }
+{% endstyle %}
+
+<div class="ai-avatar-text-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  <div class="ai-avatar-images-wrapper-{{ ai_gen_id }}">
+    <div class="ai-avatar-main-{{ ai_gen_id }}">
+      {% if block.settings.main_avatar_image %}
+        <img
+          src="{{ block.settings.main_avatar_image | image_url: width: 400 }}"
+          alt="{{ block.settings.main_avatar_image.alt | escape }}"
+          class="ai-avatar-main-image-{{ ai_gen_id }}"
+          loading="lazy"
+          width="400"
+          height="400"
+        >
+      {% else %}
+        <div class="ai-avatar-main-placeholder-{{ ai_gen_id }}">
+          {{ 'image' | placeholder_svg_tag }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="ai-avatar-secondary-{{ ai_gen_id }}">
+      {% if block.settings.secondary_avatar_image %}
+        <img
+          src="{{ block.settings.secondary_avatar_image | image_url: width: 400 }}"
+          alt="{{ block.settings.secondary_avatar_image.alt | escape }}"
+          class="ai-avatar-secondary-image-{{ ai_gen_id }}"
+          loading="lazy"
+          width="400"
+          height="400"
+        >
+      {% else %}
+        <div class="ai-avatar-secondary-placeholder-{{ ai_gen_id }}">
+          {{ 'image' | placeholder_svg_tag }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ai-avatar-content-{{ ai_gen_id }}">
+    {% if block.settings.title != blank %}
+      <h3 class="ai-avatar-title-{{ ai_gen_id }}">{{ block.settings.title }}</h3>
+    {% endif %}
+
+    {% if block.settings.description != blank %}
+      <div class="ai-avatar-description-{{ ai_gen_id }}">
+        {{ block.settings.description }}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Avatar with text",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Main avatar"
+    },
+    {
+      "type": "image_picker",
+      "id": "main_avatar_image",
+      "label": "Image"
+    },
+    {
+      "type": "range",
+      "id": "main_border_width",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 2
+    },
+    {
+      "type": "color",
+      "id": "main_border_color",
+      "label": "Border color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Secondary avatar"
+    },
+    {
+      "type": "image_picker",
+      "id": "secondary_avatar_image",
+      "label": "Image"
+    },
+    {
+      "type": "select",
+      "id": "overlap_position",
+      "label": "Position",
+      "options": [
+        {
+          "value": "bottom-right",
+          "label": "Bottom right"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bottom left"
+        },
+        {
+          "value": "top-right",
+          "label": "Top right"
+        },
+        {
+          "value": "top-left",
+          "label": "Top left"
+        }
+      ],
+      "default": "bottom-right"
+    },
+    {
+      "type": "range",
+      "id": "overlap_offset",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Overlap amount",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "secondary_border_width",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 3
+    },
+    {
+      "type": "color",
+      "id": "secondary_border_color",
+      "label": "Border color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Avatar size"
+    },
+    {
+      "type": "range",
+      "id": "avatar_size",
+      "min": 60,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Size",
+      "default": 100
+    },
+    {
+      "type": "color",
+      "id": "placeholder_bg_color",
+      "label": "Placeholder background",
+      "default": "#f4f4f4"
+    },
+    {
+      "type": "header",
+      "content": "Text content"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Expert advice"
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description",
+      "default": "<p>Get personalized recommendations from our team of specialists</p>"
+    },
+    {
+      "type": "header",
+      "content": "Text style"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Title size",
+      "default": 18
+    },
+    {
+      "type": "select",
+      "id": "title_weight",
+      "label": "Title weight",
+      "options": [
+        {
+          "value": "400",
+          "label": "Normal"
+        },
+        {
+          "value": "500",
+          "label": "Medium"
+        },
+        {
+          "value": "600",
+          "label": "Semi-bold"
+        },
+        {
+          "value": "700",
+          "label": "Bold"
+        }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "description_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Description size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Description color",
+      "default": "#666666"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "vertical_alignment",
+      "label": "Vertical alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Bottom"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "min": 8,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Space between avatar and text",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "text_spacing",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Space between title and description",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "Block padding",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Block border radius",
+      "default": 0
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Mobile layout"
+    },
+    {
+      "type": "select",
+      "id": "mobile_layout",
+      "label": "Layout",
+      "options": [
+        {
+          "value": "row",
+          "label": "Horizontal"
+        },
+        {
+          "value": "column",
+          "label": "Vertical"
+        }
+      ],
+      "default": "column"
+    },
+    {
+      "type": "select",
+      "id": "mobile_alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "mobile_text_alignment",
+      "label": "Text alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "right",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Avatar with text"
+    }
+  ]
+}
+{% endschema %}

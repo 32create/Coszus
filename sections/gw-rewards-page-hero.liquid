@@ -1,0 +1,302 @@
+{% schema %}
+{
+  "name": "Gw Rewards Page Hero",
+  "tag": "section",
+  "class": "gw-rp-hero",
+  "max_blocks": 5,
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Slideshow"
+    }
+  ],
+  "blocks": [
+     {
+       "name": "Hero",
+       "type": "slide",
+       "settings": [
+         {
+           "type": "image_picker",
+           "id": "image",
+           "label": "Image"
+         }
+       ]
+     }
+   ],
+  "presets": [
+    {
+      "name": "Gw Rewards Page Hero",
+      "settings": {
+        "title": "Slideshow gw"
+      },
+      "blocks": [
+        {
+          "type": "slide"
+        },
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% comment %}
+{% for block in section.blocks %}
+  {% case block.type %}
+    {% when 'slide' %}
+      <div class="slide" {{ block.shopify_attributes }}>
+        {{ block.settings.image | image_url: width: 2048 | image_tag }}
+      </div>
+  {% endcase %}
+{% endfor %}
+{% endcomment %}
+
+{% for block in section.blocks %}
+<div class="gw-rpl-hero">
+  <div class="gw-rpl-hero__container">
+    <div class="gw-rpl-hero__left">
+      <h2 class="gw-rpl-hero__title">
+        Join the club, get&nbsp;rewarded
+      </h2>
+      <h3 class="gw-rpl-hero__description">
+        Explore our rewards program for exclusive benefits and discounts, and start earning points to unlock personalized rewards!
+      </h3>
+      <ul class="gw-rpl-hero__card-list">
+        <li class="gw-rpl-hero__card-item">
+          <div class="gw-rpl-hero__card-item-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0_38_437)">
+              <path d="M11.0044 11.5039C8.02015 11.5039 5.592 9.10222 5.592 6.15055C5.592 5.64639 6.00904 5.23389 6.51877 5.23389C7.0285 5.23389 7.44555 5.64639 7.44555 6.15055C7.44555 8.09389 9.03961 9.67055 11.0044 9.67055C12.9691 9.67055 14.5632 8.09389 14.5632 6.15055C14.5632 5.64639 14.9802 5.23389 15.49 5.23389C15.9997 5.23389 16.4167 5.64639 16.4167 6.15055C16.4167 9.10222 13.9886 11.5039 11.0044 11.5039Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M17.481 21.0832H4.53392C3.54227 21.0832 2.58769 20.6707 1.91114 19.9649C1.2346 19.259 0.873152 18.2782 0.938026 17.3065C0.96583 16.8024 1.40141 16.4082 1.92041 16.4449C2.43014 16.4724 2.81938 16.9124 2.79158 17.4165C2.76378 17.9024 2.9306 18.3607 3.26424 18.709C3.58861 19.0574 4.04273 19.2499 4.53392 19.2499H17.481C17.9722 19.2499 18.4263 19.0574 18.7599 18.6999C19.0936 18.3515 19.2604 17.884 19.2326 17.4074L18.4541 4.38154C18.4263 3.93237 18.2317 3.51987 17.898 3.21737C17.5273 2.86904 17.5088 2.29154 17.8517 1.92487C18.2039 1.5582 18.7878 1.53987 19.1585 1.87904C19.835 2.51154 20.2428 3.35487 20.2984 4.2807L21.0769 17.3065C21.1325 18.2874 20.7803 19.2499 20.1038 19.9649C19.4272 20.6799 18.4634 21.0832 17.481 21.0832Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M2.13597 13.6123C2.11744 13.6123 2.0989 13.6123 2.08037 13.6123C1.57064 13.5848 1.18139 13.1448 1.2092 12.6407L1.70966 4.28067C1.82087 2.39234 3.40566 0.916504 5.31482 0.916504H16.7049C17.6224 0.916504 18.5029 1.25567 19.1701 1.879C19.5408 2.22734 19.5594 2.80484 19.2165 3.1715C18.8643 3.53817 18.2804 3.5565 17.9097 3.21734C17.5761 2.91484 17.1498 2.74984 16.6956 2.74984H5.31482C4.38804 2.74984 3.61882 3.46484 3.56321 4.3815L3.05348 12.7507C3.02568 13.2365 2.6179 13.6123 2.13597 13.6123Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              </g>
+              <defs>
+              <clipPath id="clip0_38_437">
+              <rect width="22" height="22" fill="white" style="fill:white;fill-opacity:1;"/>
+              </clipPath>
+              </defs>
+            </svg>
+          </div>
+          <span class="gw-rpl-hero__card-item-text">Checkout faster</span>
+        </li>
+        <li class="gw-rpl-hero__card-item">
+          <div class="gw-rpl-hero__card-item-icon">
+            <svg width="23" height="22" viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11.4984 20.1668C11.0768 20.1668 10.6918 20.004 10.3984 19.6975L7.03428 16.3067C6.66761 15.9427 6.65845 15.3297 7.00678 14.9561C7.35511 14.573 7.94178 14.5634 8.29928 14.9274L11.4984 18.1458L17.6859 11.9197C19.0518 10.4925 19.7484 9.09403 19.7484 7.79135C19.7484 6.47909 19.4093 5.50208 18.7218 4.80284C18.0343 4.09403 17.0626 3.7492 15.7793 3.7492C15.4584 3.7492 15.1193 3.80668 14.7801 3.9312C14.5234 4.0174 14.2759 4.13235 14.0468 4.26645C13.6068 4.52507 13.0476 4.35265 12.8001 3.89288C12.5526 3.43311 12.7176 2.84882 13.1576 2.5902C13.4876 2.39863 13.8359 2.23579 14.2026 2.11127C14.7251 1.92928 15.2568 1.8335 15.7793 1.8335C17.5484 1.8335 18.9693 2.36989 20.0143 3.43311C21.0501 4.49633 21.5818 5.96185 21.5818 7.79135C21.5818 9.62085 20.7018 11.4695 18.9693 13.2799L12.5801 19.7071C12.2959 20.004 11.9201 20.1668 11.4984 20.1668Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M7.67523 16.5749C7.44607 16.5749 7.2169 16.4887 7.04274 16.3067L4.03607 13.2703C4.00857 13.2511 3.8894 13.1362 3.73357 12.9733C3.60524 12.8297 3.3944 12.571 3.11024 12.2071C2.8169 11.8335 2.56024 11.4504 2.33107 11.0576C2.09274 10.6362 1.8819 10.1381 1.69857 9.57296C1.51524 8.96951 1.4144 8.37564 1.4144 7.79135C1.4144 5.96185 1.94607 4.49633 2.99107 3.43311C4.0269 2.36989 5.4569 1.8335 7.2169 1.8335C7.7394 1.8335 8.27107 1.92928 8.80274 2.11127C9.31607 2.29327 9.8019 2.53273 10.2419 2.83924C10.6452 3.11702 10.9936 3.37564 11.2869 3.62468C11.6169 3.90246 12.6436 4.94652 12.8361 5.15725C13.1936 5.53081 13.1936 6.13426 12.8361 6.50783C12.4786 6.88139 11.9011 6.88139 11.5436 6.50783C11.2411 6.19173 10.3519 5.30093 10.1411 5.11894C9.89357 4.90821 9.59107 4.6879 9.24273 4.43886C8.93107 4.22813 8.5919 4.05572 8.22523 3.9312C7.8769 3.80668 7.5469 3.7492 7.2169 3.7492C5.93357 3.7492 4.9619 4.09403 4.2744 4.80284C3.5869 5.50208 3.24774 6.47909 3.24774 7.79135C3.24774 8.16491 3.3119 8.55763 3.44024 8.96951C3.57774 9.40055 3.73357 9.77411 3.90774 10.071C4.09107 10.3871 4.3019 10.7032 4.53107 11.0097C4.76024 11.3163 4.9344 11.527 5.0444 11.6419C5.1269 11.7281 5.19107 11.7952 5.2369 11.8431L8.3169 14.9369C8.68357 15.3009 8.69274 15.914 8.3444 16.2875C8.1519 16.4791 7.91357 16.5749 7.67523 16.5749Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            </svg>
+          </div>
+          <span class="gw-rpl-hero__card-item-text">Wishlists</span>
+        </li>
+        <li class="gw-rpl-hero__card-item">
+          <div class="gw-rpl-hero__card-item-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0_38_445)">
+              <path d="M10.9986 21.0833C9.05522 21.0833 7.16689 20.5333 5.54439 19.4791C5.12272 19.2041 4.99439 18.6358 5.26939 18.2141C5.54439 17.7924 6.11272 17.6641 6.53439 17.9391C7.86355 18.8008 9.41272 19.2499 10.9986 19.2499C15.5452 19.2499 19.2486 15.5466 19.2486 10.9999C19.2486 8.70828 18.2861 6.49912 16.5994 4.94078C16.2236 4.59245 16.2052 4.01495 16.5536 3.64828C16.9019 3.27245 17.4794 3.25412 17.8461 3.60245C19.8994 5.49995 21.0819 8.19495 21.0819 10.9999C21.0819 16.5641 16.5627 21.0833 10.9986 21.0833Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M3.29773 16.8848C2.99523 16.8848 2.7019 16.7382 2.52773 16.4632C1.47356 14.8407 0.914398 12.9523 0.914398 10.9998C0.914398 5.43567 5.43356 0.916504 10.9977 0.916504C13.5461 0.916504 15.9752 1.86984 17.8452 3.60234C18.2211 3.95067 18.2394 4.52817 17.8911 4.89484C17.5427 5.2615 16.9652 5.289 16.5986 4.94067C15.0677 3.529 13.0786 2.74984 10.9977 2.74984C6.45106 2.74984 2.74773 6.45317 2.74773 10.9998C2.74773 12.5948 3.20606 14.144 4.06773 15.4732C4.34273 15.8948 4.22356 16.4632 3.79273 16.7382C3.6369 16.839 3.46273 16.8848 3.29773 16.8848Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M7.88874 9.72575C8.90126 9.72575 9.72207 8.90494 9.72207 7.89242C9.72207 6.87989 8.90126 6.05908 7.88874 6.05908C6.87622 6.05908 6.0554 6.87989 6.0554 7.89242C6.0554 8.90494 6.87622 9.72575 7.88874 9.72575Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M14.0402 15.8766C15.0527 15.8766 15.8735 15.0558 15.8735 14.0433C15.8735 13.0308 15.0527 12.21 14.0402 12.21C13.0277 12.21 12.2069 13.0308 12.2069 14.0433C12.2069 15.0558 13.0277 15.8766 14.0402 15.8766Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              <path d="M7.20318 15.684C6.96485 15.684 6.73568 15.5923 6.55235 15.4182C6.19485 15.0607 6.19485 14.4832 6.55235 14.1257L14.124 6.55401C14.4815 6.19651 15.059 6.19651 15.4165 6.55401C15.774 6.91151 15.774 7.48901 15.4165 7.84651L7.84485 15.4182C7.67068 15.6015 7.43235 15.684 7.20318 15.684Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+              </g>
+              <defs>
+              <clipPath id="clip0_38_445">
+              <rect width="22" height="22" fill="white" style="fill:white;fill-opacity:1;"/>
+              </clipPath>
+              </defs>
+            </svg>
+          </div>
+          <span class="gw-rpl-hero__card-item-text">Receive 10% off your first order</span>
+        </li>
+      </ul>
+
+    {% if customer %}
+      <div style="height: 100px"></div>
+    {% else %}
+       <ul class="gw-rpl-hero__actions">
+        <li><a href="/account/register" class="gw-rpl-hero__button gw-rpl-hero__primary-action">Join now</a></li>
+        <li><a href="/account/login" class="gw-rpl-hero__button gw-rpl-hero__secondary-action">Log in</a></li>
+      </ul>
+    {% endif %}
+  
+      
+    </div>
+    <div class="gw-rpl-hero__right">
+      <img src="https://cdn.shopify.com/s/files/1/0269/4287/files/rw-landing-hero-image.png?v=1720000551" width="100%" height="481"/>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+{% stylesheet %}
+  /* .gw-widget-placeholder-BR {
+    display: none;
+  } */
+  
+  .gw-rpl-hero {
+    padding: 80px;
+    background-color: rgba(36, 50, 81, 0.03);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .gw-rpl-hero__container {
+    max-width: 1640px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 40px;
+  }
+
+  .gw-rpl-hero__left, .gw-rpl-hero__right {
+    width: 50%;
+  }
+
+  .gw-rpl-hero__left {
+    padding-right: 24px;
+  }
+
+  .gw-rpl-hero__right img {
+    border-radius: 16px;
+    height: 481px;
+    object-fit: cover;
+  }
+
+  .gw-rpl-hero__title {
+    padding-top: 60px;
+    font-size: 52px;
+    line-height: 48px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .gw-rpl-hero__description {
+    padding-top: 26px;
+    font-size: 20px;
+    line-height: 32px;
+    font-weight: 400;
+    padding-right: 124px;
+    text-transform: uppercase;
+  }
+
+  .gw-rpl-hero__card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-top: 26px;
+    display: flex;
+    gap: 5.5px;
+    flex-wrap: wrap;
+    list-style: none;
+  }
+
+  .gw-rpl-hero__card-item {
+    padding: 10px 14px;
+    background-color: #FFFFFF;
+    border: 1px solid #EDEDED;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .gw-rpl-hero__card-item-text {
+    font-size: 14px;
+    line-height: 16.94px;
+    font-weight: 400;
+    color: #12141D;
+    text-transform: uppercase;
+  }
+
+  .gw-rpl-hero__actions {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-top: 50px;
+    display: flex;
+    gap: 30px;
+  }
+
+  .gw-rpl-hero__button {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    padding: 15px 30px;
+    border-radius: 8px;
+    min-width: 200px;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+  }
+
+  .gw-rpl-hero__primary-action {
+    background-color: rgb(2, 0, 0);
+    color: #FFFFFF;
+  }
+
+  .gw-rpl-hero__secondary-action {
+    border: 1px solid #0B1E47;
+    color: #0B1E47;
+  }
+
+  .gw-rpl-hero__secondary-action:hover {
+    background-color: rgb(2, 0, 0);
+    color: #FFFFFF;
+    -webkit-transition: background-color 100ms linear;
+    -ms-transition: background-color 100ms linear;
+    transition: background-color 100ms linear;
+  }
+
+   @media screen and (max-width: 1000px){
+    .gw-rpl-hero__left {
+      width: 100%;
+    }
+
+    .gw-rpl-hero__right {
+      display: none;
+    }
+
+    .gw-rpl-hero {
+      padding: 40px;
+    }
+
+    .gw-rpl-hero__left {
+      padding-right: 0;
+    }
+
+    .gw-rpl-hero__title {
+      padding-top: 20px;
+      font-size: 32px;
+      line-height: 36px;
+    }
+
+    .gw-rpl-hero__description {
+      padding-top: 20px;
+      padding-right: 16px;
+      line-height: 24px;
+    }
+
+    .gw-rpl-hero__button {
+      min-width: 140px;
+    }
+
+    .gw-rpl-hero__actions {
+      gap: 24px;
+    }
+  }
+
+  @media screen and (max-width: 800px) {
+    .gw-rpl-hero__right img {
+      height: 180px;
+    }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  const placeholderBR = document.querySelector(".gw-widget-placeholder-BR");
+  if (placeholderBR && (location.pathname.includes("rewards") || location.pathname.includes("loyalty"))){
+    placeholderBR.style.display = "none";
+  }
+{% endjavascript %}
+
+

@@ -1,0 +1,175 @@
+{% schema %}
+{
+  "name": "Gw Rw Page How It Works",
+  "tag": "section",
+  "class": "gw-rp-how-it-works",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Slideshow"
+    }
+  ],
+  "blocks": [
+     {
+       "name": "How it works card",
+       "type": "card",
+       "settings": [
+         {
+           "type": "image_picker",
+           "id": "image",
+           "label": "Image"
+         }
+       ]
+     }
+   ],
+  "presets": [
+    {
+      "name": "Gw Rw Page How It Works",
+      "settings": {
+        "title": "Slideshow gw"
+      },
+      "blocks": [
+        {
+          "type": "card"
+        },
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% comment %}
+{% for block in section.blocks %}
+  {% case block.type %}
+    {% when 'slide' %}
+      <div class="slide" {{ block.shopify_attributes }}>
+        {{ block.settings.image | image_url: width: 2048 | image_tag }}
+      </div>
+  {% endcase %}
+{% endfor %}
+{% endcomment %}
+
+<div class="gw-rpl-how-it-works">
+  <div class="gw-rpl-how-it-works__container">
+    <h2 class="gw-rpl-how-it-works__title">How it works</h2>
+    <ul class="gw-rpl-how-it-works__cards">
+      <li class="gw-rpl-how-it-works__card-item">
+        <div class="gw-rpl-how-it-works__card-icon">
+          <svg width="61" height="60" viewBox="0 0 61 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.666672" width="60" height="60" rx="30" fill="#C1C7D0" fill-opacity="0.2" style="fill:#C1C7D0;fill:color(display-p3 0.7569 0.7804 0.8157);fill-opacity:0.2;"/>
+            <path d="M28.5003 31.2348C25.0378 31.2348 22.2128 28.4301 22.2128 24.9924C22.2128 21.5547 25.0378 18.75 28.5003 18.75C31.9628 18.75 34.7878 21.5547 34.7878 24.9924C34.7878 28.4301 31.9753 31.2348 28.5003 31.2348ZM28.5003 21.2321C26.4128 21.2321 24.7128 22.9199 24.7128 24.9924C24.7128 27.0649 26.4128 28.7528 28.5003 28.7528C30.5878 28.7528 32.2878 27.0649 32.2878 24.9924C32.2878 22.9199 30.5878 21.2321 28.5003 21.2321Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M28.5011 38.768H19.9761C20.4761 34.536 24.1011 31.2349 28.5011 31.2349C29.1886 31.2349 29.7511 30.6764 29.7511 29.9938C29.7511 29.3113 29.1886 28.7528 28.5011 28.7528C22.3886 28.7528 17.4136 33.6921 17.4136 39.7732C17.4136 39.8229 17.4136 39.9718 17.4136 40.0214C17.4136 40.704 17.9761 41.2625 18.6636 41.2625H28.5011C29.1886 41.2625 29.7511 40.704 29.7511 40.0214C29.7511 39.3389 29.1886 38.768 28.5011 38.768Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M43.6653 36.683H32.6278C31.9403 36.683 31.3778 36.1245 31.3778 35.442C31.3778 34.7594 31.9403 34.2009 32.6278 34.2009H43.6653C44.3528 34.2009 44.9153 34.7594 44.9153 35.442C44.9153 36.1245 44.3528 36.683 43.6653 36.683Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M42.4404 31.8926H36.1529C35.4654 31.8926 34.9029 31.3341 34.9029 30.6516C34.9029 29.969 35.4654 29.4105 36.1529 29.4105H42.4404C43.1279 29.4105 43.6904 29.969 43.6904 30.6516C43.6904 31.3341 43.1279 31.8926 42.4404 31.8926Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M38.8411 41.2501H32.8036C32.1161 41.2501 31.5536 40.6917 31.5536 40.0091C31.5536 39.3265 32.1161 38.7681 32.8036 38.7681H38.8411C39.5286 38.7681 40.0911 39.3265 40.0911 40.0091C40.0911 40.6917 39.5286 41.2501 38.8411 41.2501Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+          </svg>
+        </div>
+        <h4 class="gw-rpl-how-it-works__card-title">Join us</h4>
+        <p class="gw-rpl-how-it-works__card-text">Create a free account on our store</p>
+      </li>
+      <li class="gw-rpl-how-it-works__card-item">
+        <div class="gw-rpl-how-it-works__card-icon">
+          <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="60" height="60" rx="30" fill="white" style="fill:white;fill-opacity:1;"/>
+            <path d="M34.3743 43.7498C34.0452 43.7498 33.7288 43.6248 33.4757 43.3873L21.681 31.7248C21.4532 31.4998 21.3266 31.2123 21.314 30.8998L21.0735 25.8998C21.0356 25.2123 21.5797 24.6248 22.2758 24.5873C22.9592 24.5623 23.5666 25.0873 23.6046 25.7748L23.8197 30.2998L34.3869 40.7373L42.094 33.1248C42.5876 32.6373 43.3848 32.6373 43.8784 33.1248C44.372 33.6123 44.372 34.3998 43.8784 34.8873L35.2728 43.3873C35.0197 43.6248 34.7033 43.7498 34.3743 43.7498Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M40.1461 31.6999C39.8171 31.6999 39.5007 31.5749 39.2476 31.3374L31.009 23.1999L22.0237 22.7749C21.7073 22.7624 21.4162 22.6249 21.1884 22.4124L17.1134 18.3874C16.6199 17.8999 16.6199 17.1124 17.1134 16.6249C17.607 16.1374 18.4043 16.1374 18.8978 16.6249L22.6311 20.3124L31.6164 20.7374C31.9328 20.7499 32.2239 20.8874 32.4517 21.0999L41.0446 29.5874C41.5382 30.0749 41.5382 30.8624 41.0446 31.3499C40.7915 31.5749 40.4625 31.6999 40.1461 31.6999Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M28.2982 29.225C29.3466 29.225 30.1965 28.3855 30.1965 27.35C30.1965 26.3144 29.3466 25.475 28.2982 25.475C27.2498 25.475 26.3999 26.3144 26.3999 27.35C26.3999 28.3855 27.2498 29.225 28.2982 29.225Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+          </svg>
+        </div>
+        <h4 class="gw-rpl-how-it-works__card-title">Earn Points</h4>
+        <p class="gw-rpl-how-it-works__card-text">Collect points with every purchase</p>
+      </li>
+      <li class="gw-rpl-how-it-works__card-item">
+        <div class="gw-rpl-how-it-works__card-icon">
+          <svg width="61" height="60" viewBox="0 0 61 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.333374" width="60" height="60" rx="30" fill="#C1C7D0" fill-opacity="0.2" style="fill:#C1C7D0;fill:color(display-p3 0.7569 0.7804 0.8157);fill-opacity:0.2;"/>
+            <path d="M42.0558 19.0885C41.4558 18.7438 40.6933 18.9531 40.3433 19.544C39.9933 20.135 40.2058 20.8861 40.8058 21.2308C41.6058 21.674 42.0808 22.2158 42.0808 22.6467C42.0808 23.7425 39.3183 25.3307 35.0058 25.3307C30.6933 25.3307 27.9308 23.7425 27.9308 22.6467C27.9308 21.5509 30.6808 19.9627 35.0058 19.9627C35.6808 19.9627 36.3433 19.9996 36.9808 20.0858C37.6683 20.172 38.2933 19.6918 38.3808 19.0146C38.4683 18.3375 37.9808 17.7219 37.2933 17.6357C36.5433 17.5495 35.7808 17.5002 35.0058 17.5002C29.5433 17.5002 25.4308 19.7164 25.4308 22.6467C25.4308 25.577 29.5433 27.7931 35.0058 27.7931C40.4683 27.7931 44.5808 25.577 44.5808 22.6467C44.5808 21.2801 43.6808 20.0119 42.0558 19.0885Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M43.332 26.8206C42.6445 26.8206 42.082 27.3746 42.082 28.0518C42.082 29.1475 39.3195 30.7358 35.007 30.7358C34.257 30.7358 33.5695 30.6742 32.9195 30.5881C33.1195 31.2652 33.3695 32.3856 33.1945 33.112C33.782 33.1736 34.382 33.1982 35.007 33.1982C40.4695 33.1982 44.582 30.982 44.582 28.0518C44.582 27.3746 44.0195 26.8206 43.332 26.8206Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M43.3322 32.0656C42.6447 32.0656 42.0822 32.6196 42.0822 33.2968C42.0822 34.3925 39.3197 35.9808 35.0072 35.9808C34.0197 35.9808 33.1197 35.8946 32.3072 35.7469C32.0572 36.3255 31.5697 37.2859 30.9197 37.9753C32.1447 38.2708 33.5197 38.4432 35.0072 38.4432C40.4697 38.4432 44.5822 36.227 44.5822 33.2968C44.5822 32.6196 44.0197 32.0656 43.3322 32.0656Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+            <path d="M25.6428 41.2503C24.2928 41.2503 22.9928 40.9424 21.7928 40.3515C21.1803 40.0437 20.9303 39.3049 21.2428 38.7017C21.5553 38.0984 22.3053 37.8521 22.9178 38.1599C23.7678 38.5785 24.6803 38.8001 25.6428 38.8001C28.9803 38.8001 31.7053 36.1284 31.7053 32.8288C31.7053 29.5415 28.9928 26.8574 25.6428 26.8574C22.2928 26.8574 19.5803 29.5415 19.5803 32.8288C19.5803 33.7399 19.7803 34.6017 20.1803 35.4143C20.4803 36.0299 20.2178 36.7687 19.5928 37.0641C18.9678 37.3596 18.2303 37.1011 17.9178 36.4855C17.3678 35.3405 17.0803 34.1092 17.0803 32.8288C17.0803 28.1748 20.9178 24.395 25.6428 24.395C30.3678 24.395 34.2053 28.1748 34.2053 32.8288C34.2053 37.4828 30.3553 41.2503 25.6428 41.2503Z" fill="#0B1E47" style="fill:#0B1E47;fill:color(display-p3 0.0431 0.1176 0.2784);fill-opacity:1;"/>
+          </svg>
+        </div>
+        <h4 class="gw-rpl-how-it-works__card-title">Redeem Points</h4>
+        <p class="gw-rpl-how-it-works__card-text">Spend your points for $ and discounts</p>
+      </li>
+    </ul>
+  </div>
+</div>
+
+
+{% stylesheet %}
+  .gw-rpl-how-it-works {
+    margin: 40px auto;
+    max-width: 1600px;
+    box-sizing: border-box;
+  }
+
+  .gw-rpl-how-it-works__container {
+    max-width: 1118px;
+    margin: 0 auto;
+  }
+
+  .gw-rpl-how-it-works__title {
+    padding-top: 37px;
+    font-size: clamp(24px, 9px + 3vw, 32px);
+    line-height: 40px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .gw-rpl-how-it-works__cards {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    justify-items: center;
+    grid-template-columns: repeat(auto-fit, minmax(288px, 270px));
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .gw-rpl-how-it-works__card-item {
+    border: 2px solid #EBEEF5;
+    border-radius: 16px;
+    padding: 40px 24px;
+    width: 100%;
+  }
+
+  .gw-rpl-how-it-works__card-item:nth-child(2) {
+    background-color: #ebeced;
+    border: 1px solid #F3F3F3;
+  }
+
+  .gw-rpl-how-it-works__card-icon {
+    display: flex;
+    justify-content: center;
+  }
+
+  .gw-rpl-how-it-works__card-title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 28px;
+    text-align: center;
+    color: #323B4B;
+    margin: 15px 0 0;
+  }
+
+  .gw-rpl-how-it-works__card-text {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+    text-align: center;
+    margin: 15px 0 0;
+  }
+
+  @media screen and (max-width: 800px) {
+    .gw-rpl-how-it-works__title {
+      padding-top: 36px;
+    }
+  }
+{% endstylesheet %}
+
+
+
+

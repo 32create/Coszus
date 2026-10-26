@@ -1,0 +1,28 @@
+{% assign group = product.metafields.custom.product_group.value %}
+{% assign related_products = collections.all.products | where: 'metafields.custom.product_group.value', group %}
+
+{% if group and related_products.size > 1 %}
+  <div class="product-color-variants" style="margin-top: 20px;">
+    <strong>Available Colours:</strong>
+    <div class="color-variant-links" style="display: flex; gap: 8px; margin-top: 10px;">
+      {% for related_product in related_products %}
+        {% assign color_option = related_product.options_by_name.Color.values[0] %}
+        {% assign color_swatch = color_option | downcase %}
+
+        {% if related_product.handle == product.handle %}
+          <div
+            title="{{ color_option }}"
+            style="width: 30px; height: 30px; border-radius: 50%; background-color: {{ color_swatch }}; border: 2px solid black;"
+          ></div>
+        {% else %}
+          <a
+            href="{{ related_product.url }}"
+            title="{{ color_option }}"
+            style="width: 30px; height: 30px; display: block; border-radius: 50%; background-color: {{ color_swatch }}; border: 1px solid #ccc;"
+          >
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

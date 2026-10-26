@@ -1,0 +1,1045 @@
+{%- comment -%}
+  Hero slider (images + videos)
+
+  Each block is one slide. Every text field is optional so a slide can be
+  media-only, heading-only, or heading + one button without the layout
+  collapsing.
+
+  Content sits bottom-left. Pagination dots sit centred at the bottom of the
+  image; the active dot draws a progress ring timed to the slide duration
+  (the set delay for images, the real clip length for videos).
+
+  Video slides autoplay muted with no controls, play once, and hold the
+  slider until the clip ends.
+
+  Usage: add as a section, then add one "Slide" block per slide.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign slide_count = section.blocks.size
+
+  comment
+    Dot geometry. The ring's OUTER diameter must equal the solid dot's
+    diameter, and an SVG circle renders at (r * 2) + stroke-width. So the
+    radius is derived from the size rather than set by hand, and the dash
+    length is the real circumference (2 * pi * r). Change dot_size in the
+    editor and all three stay in sync.
+  endcomment
+  assign dot_size = s.dot_size | default: 12
+  assign dot_stroke = s.dot_stroke | default: 1.5
+  assign dot_r = dot_size | times: 1.0 | minus: dot_stroke | divided_by: 2.0
+  assign dot_circ = dot_r | times: 6.28318531 | round: 2
+  assign dot_r = dot_r | round: 3
+-%}
+
+<div
+  class="hero-slider hero-slider--{{ section.id }}"
+  id="HeroSlider-{{ section.id }}"
+  data-autoplay="{% if s.autoplay and slide_count > 1 %}1{% else %}0{% endif %}"
+  data-delay="{{ s.autoplay_delay | times: 1000 }}"
+  data-count="{{ slide_count }}"
+>
+  {%- if slide_count == 0 -%}
+    <div class="hero-slider__empty">Add a slide to get started.</div>
+  {%- endif -%}
+
+  <div class="hero-slider__viewport">
+    {%- for block in section.blocks -%}
+      {%- liquid
+        assign b = block.settings
+
+        assign is_first = false
+        assign img_loading = 'lazy'
+        if forloop.first
+          assign is_first = true
+          assign img_loading = 'eager'
+        endif
+
+        assign has_mobile = false
+        if b.image_mobile != blank
+          assign has_mobile = true
+        endif
+      -%}
+      <div
+        class="hero-slide{% if is_first %} is-active{% endif %}"
+        data-index="{{ forloop.index0 }}"
+        {{ block.shopify_attributes }}
+      >
+        <div class="hero-slide__media{% if has_mobile %} has-mobile{% endif %}">
+          {%- if b.media_type == 'video' and b.video != blank -%}
+            {{
+              b.video
+              | video_tag:
+                image_size: '1100x',
+                autoplay: false,
+                loop: false,
+                muted: true,
+                controls: false,
+                playsinline: true,
+                class: 'hero-slide__video'
+            }}
+          {%- else -%}
+            {%- if b.image != blank -%}
+              {{
+                b.image
+                | image_url: width: 3840
+                | image_tag:
+                  loading: img_loading,
+                  sizes: '100vw',
+                  widths: '750, 1100, 1500, 1780, 2000, 2600, 3200, 3840',
+                  alt: b.image.alt,
+                  class: 'hero-slide__img hero-slide__img--desktop'
+              }}
+            {%- else -%}
+              {{ 'lifestyle-1' | placeholder_svg_tag: 'hero-slide__img hero-slide__img--desktop' }}
+            {%- endif -%}
+
+            {%- if has_mobile -%}
+              {{
+                b.image_mobile
+                | image_url: width: 1600
+                | image_tag:
+                  loading: img_loading,
+                  sizes: '100vw',
+                  widths: '400, 550, 750, 1100, 1600',
+                  alt: b.image_mobile.alt,
+                  class: 'hero-slide__img hero-slide__img--mobile'
+              }}
+            {%- endif -%}
+          {%- endif -%}
+        </div>
+
+        <div class="hero-slide__content">
+          {%- if b.subheading != blank -%}
+            <p class="hero-slide__subheading">{{ b.subheading | escape }}</p>
+          {%- endif -%}
+
+          {%- if b.heading != blank -%}
+            {%- if is_first and s.first_slide_h1 -%}
+              <h1 class="hero-slide__heading">{{ b.heading | escape }}</h1>
+            {%- else -%}
+              <h2 class="hero-slide__heading">{{ b.heading | escape }}</h2>
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- if b.button_1_label != blank or b.button_2_label != blank -%}
+            <div class="hero-slide__buttons">
+              {%- if b.button_1_label != blank -%}
+                <a href="{{ b.button_1_url | default: '#' }}" class="hero-slide__button">
+                  {{ b.button_1_label | escape }}
+                </a>
+              {%- endif -%}
+              {%- if b.button_2_label != blank -%}
+                <a href="{{ b.button_2_url | default: '#' }}" class="hero-slide__button">
+                  {{ b.button_2_label | escape }}
+                </a>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endfor -%}
+
+    {%- if slide_count > 1 -%}
+      <div class="hero-slider__dots" role="tablist" aria-label="Slides">
+        {%- for block in section.blocks -%}
+          <button
+            type="button"
+            class="hero-dot{% if forloop.first %} is-active{% endif %}"
+            data-dot="{{ forloop.index0 }}"
+            role="tab"
+            aria-label="Go to slide {{ forloop.index }}"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+          >
+            <svg class="hero-dot__ring" viewBox="0 0 28 28" aria-hidden="true">
+              <circle class="hero-dot__ring-track" cx="14" cy="14" r="{{ dot_r }}"></circle>
+              <circle class="hero-dot__ring-progress" cx="14" cy="14" r="{{ dot_r }}"></circle>
+            </svg>
+            <span class="hero-dot__core"></span>
+          </button>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{%- style -%}
+  .hero-slider--{{ section.id }} {
+    --hero-dot: {{ s.dot_color }};
+    --hero-sub: {{ s.subheading_color }};
+    --hero-head: {{ s.heading_color }};
+    --hero-btn-text: {{ s.button_text_color }};
+    --hero-btn-border: {{ s.button_border_color }};
+    --hero-btn-hover-text: {{ s.button_hover_text_color }};
+    --hero-btn-hover-bg: {{ s.button_hover_bg_color }};
+    --hero-pad-x: {{ s.padding_horizontal_mobile }}px;
+    --hero-pad-b: {{ s.padding_bottom_mobile }}px;
+    --hero-sub-size: {{ s.subheading_size_mobile }}px;
+    --hero-head-size: {{ s.heading_size_mobile }}px;
+    --hero-dot-size: {{ dot_size }}px;
+    --hero-dot-stroke: {{ dot_stroke }};
+    --hero-dot-circ: {{ dot_circ }};
+  }
+
+  @media (min-width: 990px) {
+    .hero-slider--{{ section.id }} {
+      --hero-pad-x: {{ s.padding_horizontal }}px;
+      --hero-pad-b: {{ s.padding_bottom }}px;
+      --hero-sub-size: {{ s.subheading_size }}px;
+      --hero-head-size: {{ s.heading_size }}px;
+    }
+  }
+
+  .hero-slider--{{ section.id }} .hero-slide__button {
+    {% if s.button_style == 'solid' %}
+      background: {{ s.button_bg_color }};
+    {% else %}
+      background: transparent;
+    {% endif %}
+  }
+
+  .hero-slider--{{ section.id }} .hero-slider__viewport {
+    {% if s.height_type == 'full_screen' %}
+      height: 100vh;
+      height: 100svh;
+    {% elsif s.height_type == 'fixed' %}
+      height: {{ s.fixed_height_mobile }}px;
+    {% else %}
+      aspect-ratio: {{ s.aspect_mobile }};
+    {% endif %}
+  }
+
+  @media (min-width: 990px) {
+    .hero-slider--{{ section.id }} .hero-slider__viewport {
+      {% if s.height_type == 'full_screen' %}
+        height: 100vh;
+        height: 100svh;
+      {% elsif s.height_type == 'fixed' %}
+        height: {{ s.fixed_height }}px;
+      {% else %}
+        aspect-ratio: {{ s.aspect_desktop }};
+      {% endif %}
+    }
+  }
+
+  .hero-slider--{{ section.id }} .hero-slide::after {
+    background: linear-gradient(
+      to top,
+      rgba({{ s.scrim_color.red }}, {{ s.scrim_color.green }}, {{ s.scrim_color.blue }}, {{ s.scrim_opacity }}) 0%,
+      rgba({{ s.scrim_color.red }}, {{ s.scrim_color.green }}, {{ s.scrim_color.blue }}, 0) {{ s.scrim_height }}%
+    );
+  }
+
+  /* ---- structure ---- */
+
+  .hero-slider {
+    position: relative;
+    display: block;
+  }
+
+  .hero-slider__viewport {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .hero-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .7s ease;
+    z-index: 1;
+  }
+
+  .hero-slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+  }
+
+  .hero-slide__media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero-slide__media img,
+  .hero-slide__media video,
+  .hero-slide__media svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Image swap. These selectors are scoped to .hero-slide__media so they
+     outrank the shared "display: block" rule above. */
+  .hero-slide__media .hero-slide__img--mobile {
+    display: none;
+  }
+
+  @media (max-width: 749px) {
+    .hero-slide__media.has-mobile .hero-slide__img--desktop {
+      display: none;
+    }
+    .hero-slide__media.has-mobile .hero-slide__img--mobile {
+      display: block;
+    }
+  }
+
+  /* Overlay is a pseudo-element, not an empty div, so a theme-level
+     "div:empty { display: none }" rule cannot hide it. */
+  .hero-slide::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .hero-slide__content {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: 0 var(--hero-pad-x) var(--hero-pad-b);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    max-width: 46rem;
+  }
+
+  .hero-slide__subheading {
+    margin: 0 0 .8rem;
+    font-size: var(--hero-sub-size);
+    line-height: 1.3;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--hero-sub);
+  }
+
+  .hero-slide__heading {
+    margin: 0;
+    font-size: var(--hero-head-size);
+    line-height: 1.02;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+    color: var(--hero-head);
+    word-break: break-word;
+  }
+
+  .hero-slide__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.8rem;
+  }
+
+  .hero-slide__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 12rem;
+    padding: 0.6rem 2.4rem;
+    font-size: 1.3rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--hero-btn-text);
+    border: 1px solid var(--hero-btn-border);
+    border-radius: {{ s.button_radius }}px;
+    transition: background .25s ease, color .25s ease;
+  }
+
+  @media (min-width: 750px) {
+    .hero-slide__button {
+      min-width: 14rem;
+    }
+  }
+
+  .hero-slide__button:hover {
+    color: var(--hero-btn-hover-text);
+    background: var(--hero-btn-hover-bg);
+  }
+
+  /* ---- dots ---- */
+
+  .hero-slider__dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: {{ s.dots_bottom }}px;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    pointer-events: auto;
+  }
+
+  .hero-dot {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+
+  /* Inactive: a plain solid dot, nothing else.
+     Active: the solid dot scales away and a hollow ring fills around. */
+  .hero-dot__core {
+    display: block;
+    width: var(--hero-dot-size, 12px);
+    height: var(--hero-dot-size, 12px);
+    border-radius: 50%;
+    background: var(--hero-dot);
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+
+  .hero-dot.is-active .hero-dot__core {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  .hero-dot__ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 28px;
+    transform: rotate(-90deg);
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+
+  .hero-dot.is-active .hero-dot__ring {
+    opacity: 1;
+  }
+
+  .hero-dot__ring-track,
+  .hero-dot__ring-progress {
+    fill: none;
+    stroke: var(--hero-dot);
+    stroke-width: var(--hero-dot-stroke, 1.5);
+  }
+
+  /* Faint outline of the full circle, so the ring is visible before it fills */
+  .hero-dot__ring-track {
+    opacity: .35;
+  }
+
+  .hero-dot__ring-progress {
+    stroke-linecap: butt;
+    stroke-dasharray: var(--hero-dot-circ, 32.99);
+    stroke-dashoffset: var(--hero-dot-circ, 32.99);
+  }
+
+  .hero-dot.is-active .hero-dot__ring-progress {
+    animation: hero-ring-fill var(--hero-ring-duration, 6s) linear forwards;
+  }
+
+  @keyframes hero-ring-fill {
+    from { stroke-dashoffset: var(--hero-dot-circ, 32.99); }
+    to { stroke-dashoffset: 0; }
+  }
+
+  .hero-slider__empty {
+    padding: 6rem 2rem;
+    text-align: center;
+    opacity: .6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-slide {
+      transition: none;
+    }
+    .hero-dot__core {
+      transition: none;
+    }
+    .hero-dot.is-active .hero-dot__ring-progress {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+{%- endstyle -%}
+
+<script>
+  (function () {
+    var ROOT_ID = 'HeroSlider-{{ section.id }}';
+
+    function initHeroSlider(root) {
+      if (!root || root.dataset.booted === '1') return;
+      root.dataset.booted = '1';
+
+      var slides = Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+      var dots = Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
+      if (slides.length === 0) return;
+
+      var autoplay = root.dataset.autoplay === '1';
+      var delay = parseInt(root.dataset.delay, 10) || 6000;
+      var current = 0;
+      var timer = null;
+      var paused = false;
+
+      function clearTimer() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      }
+
+      function stopVideo(slide) {
+        var v = slide.querySelector('video');
+        if (v) {
+          v.onended = null;
+          try {
+            v.pause();
+            v.currentTime = 0;
+          } catch (e) {}
+        }
+      }
+
+      function setRing(dot, seconds) {
+        if (!dot) return;
+        var ring = dot.querySelector('.hero-dot__ring-progress');
+        if (!ring) return;
+        ring.style.animation = 'none';
+        void ring.offsetWidth;
+        ring.style.animation = '';
+        dot.style.setProperty('--hero-ring-duration', seconds + 's');
+      }
+
+      function activate(slide, dot) {
+        clearTimer();
+        var video = slide.querySelector('video');
+
+        if (video) {
+          var start = function () {
+            var dur = isFinite(video.duration) && video.duration > 0 ? video.duration : delay / 1000;
+            setRing(dot, dur);
+            video.onended = null;
+            if (autoplay) {
+              video.onended = function () {
+                next();
+              };
+            }
+            var p = video.play();
+            if (p && p.catch) {
+              p.catch(function () {
+                setRing(dot, delay / 1000);
+                if (autoplay) timer = setTimeout(next, delay);
+              });
+            }
+          };
+
+          if (video.readyState >= 1) {
+            start();
+          } else {
+            video.addEventListener('loadedmetadata', start, { once: true });
+          }
+          return;
+        }
+
+        setRing(dot, delay / 1000);
+        if (autoplay) timer = setTimeout(next, delay);
+      }
+
+      function go(index) {
+        clearTimer();
+
+        slides.forEach(function (sl, i) {
+          if (i === index) {
+            sl.classList.add('is-active');
+          } else {
+            sl.classList.remove('is-active');
+            stopVideo(sl);
+          }
+        });
+
+        dots.forEach(function (d, i) {
+          if (i === index) {
+            d.classList.add('is-active');
+            d.setAttribute('aria-selected', 'true');
+          } else {
+            d.classList.remove('is-active');
+            d.setAttribute('aria-selected', 'false');
+          }
+        });
+
+        current = index;
+        activate(slides[index], dots[index]);
+      }
+
+      function next() {
+        go((current + 1) % slides.length);
+      }
+
+      function prev() {
+        go((current - 1 + slides.length) % slides.length);
+      }
+
+      dots.forEach(function (d, i) {
+        d.addEventListener('click', function () {
+          go(i);
+        });
+      });
+
+      var startX = null;
+      root.addEventListener(
+        'touchstart',
+        function (e) {
+          startX = e.touches[0].clientX;
+        },
+        { passive: true }
+      );
+      root.addEventListener(
+        'touchend',
+        function (e) {
+          if (startX === null) return;
+          var diff = e.changedTouches[0].clientX - startX;
+          if (Math.abs(diff) > 50) {
+            if (diff < 0) {
+              next();
+            } else {
+              prev();
+            }
+          }
+          startX = null;
+        },
+        { passive: true }
+      );
+
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                if (paused) {
+                  paused = false;
+                  activate(slides[current], dots[current]);
+                }
+              } else if (!paused) {
+                paused = true;
+                clearTimer();
+                stopVideo(slides[current]);
+              }
+            });
+          },
+          { threshold: 0.2 }
+        );
+        io.observe(root);
+      }
+
+      activate(slides[0], dots[0]);
+    }
+
+    function boot() {
+      initHeroSlider(document.getElementById(ROOT_ID));
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+
+    document.addEventListener('shopify:section:load', function (e) {
+      if (e.detail && e.detail.sectionId === '{{ section.id }}') {
+        var el = document.getElementById(ROOT_ID);
+        if (el) {
+          el.dataset.booted = '0';
+          initHeroSlider(el);
+        }
+      }
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Hero slider",
+  "tag": "section",
+  "class": "hero-slider-section",
+  "max_blocks": 8,
+  "settings": [
+    { "type": "header", "content": "Playback" },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Auto-advance slides",
+      "info": "Video slides always wait for the clip to finish.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_delay",
+      "label": "Seconds per image slide",
+      "min": 3,
+      "max": 15,
+      "step": 1,
+      "unit": "s",
+      "default": 6
+    },
+    { "type": "header", "content": "Height" },
+    {
+      "type": "select",
+      "id": "height_type",
+      "label": "Height",
+      "options": [
+        { "value": "full_screen", "label": "Full screen" },
+        { "value": "fixed", "label": "Fixed height" },
+        { "value": "aspect", "label": "Aspect ratio" }
+      ],
+      "default": "full_screen"
+    },
+    {
+      "type": "range",
+      "id": "fixed_height",
+      "label": "Fixed height",
+      "min": 300,
+      "max": 1000,
+      "step": 10,
+      "unit": "px",
+      "default": 720
+    },
+    {
+      "type": "range",
+      "id": "fixed_height_mobile",
+      "label": "Fixed height - mobile",
+      "min": 300,
+      "max": 900,
+      "step": 10,
+      "unit": "px",
+      "default": 560
+    },
+    {
+      "type": "text",
+      "id": "aspect_desktop",
+      "label": "Aspect ratio",
+      "info": "For example 16/9",
+      "default": "16/9"
+    },
+    {
+      "type": "text",
+      "id": "aspect_mobile",
+      "label": "Aspect ratio - mobile",
+      "default": "4/5"
+    },
+    { "type": "header", "content": "Content position" },
+    {
+      "type": "range",
+      "id": "padding_horizontal",
+      "label": "Padding sides",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 56
+    },
+    {
+      "type": "range",
+      "id": "padding_horizontal_mobile",
+      "label": "Padding sides - mobile",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 240,
+      "step": 4,
+      "unit": "px",
+      "default": 96
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "label": "Padding bottom - mobile",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 80
+    },
+    { "type": "header", "content": "Typography" },
+    {
+      "type": "checkbox",
+      "id": "first_slide_h1",
+      "label": "Use H1 on the first slide",
+      "info": "Turn off if another section on the page already has the H1.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "subheading_size",
+      "label": "Subheading size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "subheading_size_mobile",
+      "label": "Subheading size - mobile",
+      "min": 9,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 11
+    },
+    {
+      "type": "range",
+      "id": "heading_size",
+      "label": "Heading size",
+      "min": 24,
+      "max": 110,
+      "step": 2,
+      "unit": "px",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "heading_size_mobile",
+      "label": "Heading size - mobile",
+      "min": 18,
+      "max": 64,
+      "step": 2,
+      "unit": "px",
+      "default": 34
+    },
+    { "type": "header", "content": "Overlay" },
+    {
+      "type": "color",
+      "id": "scrim_color",
+      "label": "Gradient colour",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "scrim_opacity",
+      "label": "Gradient strength",
+      "min": 0,
+      "max": 0.9,
+      "step": 0.1,
+      "default": 0.5
+    },
+    {
+      "type": "range",
+      "id": "scrim_height",
+      "label": "Gradient height",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 60
+    },
+    { "type": "header", "content": "Colours" },
+    {
+      "type": "color",
+      "id": "subheading_color",
+      "label": "Subheading",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "dot_color",
+      "label": "Dots and progress ring",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "range",
+      "id": "dot_size",
+      "label": "Dot size",
+      "info": "The active ring matches this size automatically.",
+      "min": 6,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "dot_stroke",
+      "label": "Ring thickness",
+      "min": 1,
+      "max": 4,
+      "step": 0.5,
+      "unit": "px",
+      "default": 1.5
+    },
+    {
+      "type": "range",
+      "id": "dots_bottom",
+      "label": "Dots distance from bottom",
+      "min": 4,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    { "type": "header", "content": "Buttons" },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Style",
+      "options": [
+        { "value": "outline", "label": "Outline" },
+        { "value": "solid", "label": "Solid" }
+      ],
+      "default": "outline"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Text",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Background",
+      "info": "Used when the style is Solid.",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_border_color",
+      "label": "Border",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_text_color",
+      "label": "Hover text",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_hover_bg_color",
+      "label": "Hover background",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "label": "Button roundness",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Slide",
+      "settings": [
+        {
+          "type": "select",
+          "id": "media_type",
+          "label": "Media type",
+          "options": [
+            { "value": "image", "label": "Image" },
+            { "value": "video", "label": "Video" }
+          ],
+          "default": "image"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "Image - mobile",
+          "info": "Optional. Shown under 750px. Falls back to the desktop image."
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Video",
+          "info": "Plays muted with no controls. The slider waits for it to finish."
+        },
+        { "type": "header", "content": "Content" },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Subheading",
+          "info": "Optional."
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading"
+        },
+        {
+          "type": "text",
+          "id": "button_1_label",
+          "label": "Button 1 label"
+        },
+        {
+          "type": "url",
+          "id": "button_1_url",
+          "label": "Button 1 link"
+        },
+        {
+          "type": "text",
+          "id": "button_2_label",
+          "label": "Button 2 label",
+          "info": "Optional. Leave empty for a single button."
+        },
+        {
+          "type": "url",
+          "id": "button_2_url",
+          "label": "Button 2 link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero slider",
+      "blocks": [
+        { "type": "slide" },
+        { "type": "slide" },
+        { "type": "slide" }
+      ]
+    }
+  ]
+}
+{% endschema %}

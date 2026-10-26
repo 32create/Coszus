@@ -1,0 +1,696 @@
+{% comment %}
+  Renders a header drawer menu for mobile and desktop.
+  Custom light theme with search bar and social icons.
+
+  The menu is driven entirely by a Shopify navigation menu, so the client can
+  restructure it from Online Store > Navigation without a developer.
+
+  Uses the menu whose handle is in section.settings.drawer_menu_handle.
+  If that setting is empty or the handle does not match a real menu, it
+  falls back to section.settings.menu, so the drawer is never empty.
+  Supports all three of Shopify's menu tiers:
+  top level -> children -> grandchildren.
+
+  Usage:
+  {% render 'header-drawer' %}
+{% endcomment %}
+
+{%- liquid
+  assign drawer_handle = section.settings.drawer_menu_handle | strip
+  assign drawer_menu = section.settings.menu
+  if drawer_handle != blank and linklists[drawer_handle] != blank
+    assign drawer_menu = linklists[drawer_handle]
+  endif
+
+  assign show_search = true
+  if section.settings.drawer_show_search == false
+    assign show_search = false
+  endif
+
+  assign show_social = true
+  if section.settings.drawer_show_social == false
+    assign show_social = false
+  endif
+
+  assign show_account = true
+  if section.settings.drawer_show_account == false
+    assign show_account = false
+  endif
+
+  assign search_placeholder = section.settings.drawer_search_placeholder | default: 'Search'
+  assign account_label = section.settings.drawer_account_label | default: 'MY ACCOUNT'
+-%}
+
+{%- comment -%}
+  Build the social list first so the wrapper is only output when at least one
+  network is configured. This also avoids leaving an empty container behind.
+
+  Instagram, Facebook and TikTok only, matching the original drawer. Each is
+  guarded, so a network appears here as soon as its link is filled in under
+  Theme settings > Social media, and disappears when it is cleared.
+{%- endcomment -%}
+{%- capture social_items -%}
+  {%- if settings.social_instagram_link != blank -%}
+    <li class="menu-drawer__social-item">
+      <a href="{{ settings.social_instagram_link }}" class="menu-drawer__social-link" aria-label="Instagram">
+        {% render 'icon-instagram' %}
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_facebook_link != blank -%}
+    <li class="menu-drawer__social-item">
+      <a href="{{ settings.social_facebook_link }}" class="menu-drawer__social-link" aria-label="Facebook">
+        {% render 'icon-facebook' %}
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_tiktok_link != blank -%}
+    <li class="menu-drawer__social-item">
+      <a href="{{ settings.social_tiktok_link }}" class="menu-drawer__social-link" aria-label="TikTok">
+        {% render 'icon-tiktok' %}
+      </a>
+    </li>
+  {%- endif -%}
+{%- endcapture -%}
+
+<style>
+/* ========================================
+   CUSTOM MENU DRAWER STYLES - LIGHT THEME
+   ======================================== */
+
+/* Force white background and black text */
+#menu-drawer {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.menu-drawer {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.menu-drawer--light {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.menu-drawer--light .menu-drawer__inner-container {
+  background-color: #ffffff !important;
+  padding: 0;
+}
+
+.menu-drawer__inner-container {
+  background-color: #ffffff !important;
+}
+
+/* Remove any gradient backgrounds */
+.gradient.menu-drawer {
+  background: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Close button (X) styling - make it black */
+.menu-drawer .header__icon--summary span,
+.menu-drawer--light .header__icon--summary span {
+  color: #000000 !important;
+}
+
+.menu-drawer .header__icon--summary svg {
+  color: #000000 !important;
+}
+
+/* ========================================
+   SEARCH BAR
+   ======================================== */
+.menu-drawer__search {
+  padding: 20px 20px 10px;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #ffffff;
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.search-form__input {
+  flex: 1;
+  padding: 12px 40px 12px 15px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  outline: none;
+}
+
+.search-form__input::placeholder {
+  color: #999999;
+}
+
+.search-form__input:focus {
+  border-color: #000000;
+}
+
+.search-form__submit {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-form__submit svg {
+  width: 18px;
+  height: 18px;
+  color: #000000;
+  stroke: #000000;
+}
+
+/* ========================================
+   NAVIGATION CONTAINER
+   ======================================== */
+.menu-drawer__navigation-container {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+}
+
+.menu-drawer__navigation {
+  background-color: #ffffff;
+}
+
+/* ========================================
+   MENU ITEMS - SIMPLE STYLE
+   ======================================== */
+.menu-drawer__menu-simple {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-drawer__menu-simple > li {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.menu-drawer__details {
+  width: 100%;
+}
+
+.menu-drawer__menu-item-simple {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #000000 !important;
+  text-decoration: none;
+  cursor: pointer;
+  background-color: #ffffff !important;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.menu-drawer__menu-item-simple:hover {
+  background-color: #f9f9f9 !important;
+}
+
+.menu-drawer__menu-item-single {
+  display: block;
+}
+
+/* Arrow icon for collapsible items */
+.menu-drawer__arrow {
+  font-size: 20px;
+  font-weight: 300;
+  color: #000000;
+  transition: transform 0.3s ease;
+}
+
+.menu-drawer__details[open] > summary .menu-drawer__arrow {
+  transform: rotate(90deg);
+}
+
+/* ========================================
+   SUBMENU STYLES
+   ======================================== */
+.menu-drawer__submenu-simple {
+  background-color: #f9f9f9 !important;
+  padding: 10px 0;
+}
+
+.menu-drawer__submenu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-drawer__submenu-list li {
+  padding: 0;
+}
+
+.menu-drawer__submenu-link {
+  display: block;
+  padding: 12px 20px 12px 40px;
+  font-size: 13px;
+  color: #666666 !important;
+  text-decoration: none;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.menu-drawer__submenu-link:hover {
+  color: #000000 !important;
+  background-color: #f0f0f0 !important;
+}
+
+/* Third tier, when a submenu item has its own children */
+.menu-drawer__submenu-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 12px 20px 12px 40px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444444 !important;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.menu-drawer__submenu-toggle:hover {
+  color: #000000 !important;
+  background-color: #f0f0f0 !important;
+}
+
+.menu-drawer__submenu-nested {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background-color: #f2f2f2;
+}
+
+.menu-drawer__submenu-nested .menu-drawer__submenu-link {
+  padding-left: 60px;
+  font-size: 12px;
+}
+
+/* ========================================
+   SOCIAL MEDIA SECTION - RIGHT BELOW MENU
+   ======================================== */
+.menu-drawer__social {
+  padding: 20px 20px;
+  background-color: #ffffff;
+  margin-top: 0 !important;
+}
+
+.menu-drawer__social-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.menu-drawer__social-item {
+  display: flex;
+}
+
+.menu-drawer__social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  background-color: #ffffff;
+}
+
+.menu-drawer__social-link:hover {
+  border-color: #000000;
+  background-color: #f9f9f9;
+}
+
+.menu-drawer__social-link svg {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+  fill: #000000;
+}
+
+/* ========================================
+   ACCOUNT / LOYALTY CTA
+   ======================================== */
+.menu-drawer__account-cta {
+  padding: 0 20px 20px;
+  background-color: #ffffff;
+}
+
+.menu-drawer__account-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  border: solid 1px #00000045 !important;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #000000;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.menu-drawer__account-link:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.menu-drawer__account-link:hover svg {
+  stroke: #ffffff;
+}
+
+/* ========================================
+   REMOVE OLD ELEMENTS
+   ======================================== */
+/* Hide old utility links section */
+.menu-drawer__utility-links {
+  display: none !important;
+}
+
+/* Hide old account link */
+.menu-drawer__account {
+  display: none !important;
+}
+
+/* Hide old localization */
+.menu-drawer__localization {
+  display: none !important;
+}
+
+/* Hide old social list style */
+.list-social {
+  display: none !important;
+}
+
+/* ========================================
+   HEADER STATE WHILE DRAWER IS OPEN
+   Toggled by the script at the bottom of this file, because CSS cannot
+   style an ancestor and the drawer lives inside the header.
+   ======================================== */
+
+/* Transitions live on the base state so it animates both ways */
+.section-header .header-wrapper,
+.section-header .header__heading-logo,
+.section-header .header__icon,
+.section-header .header__icon svg,
+.section-header .cart-count-bubble {
+  transition: background-color 0.3s ease, color 0.3s ease, filter 0.3s ease, fill 0.3s ease;
+}
+
+.section-header.drawer-open .header-wrapper {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.section-header.drawer-open .header,
+.section-header.drawer-open .header a,
+.section-header.drawer-open .header__heading-link,
+.section-header.drawer-open .header__icon,
+.section-header.drawer-open .header__icon svg {
+  color: #000000 !important;
+}
+
+/* Works whether the logo image is light or dark */
+.section-header.drawer-open .header__heading-logo {
+  filter: brightness(0) !important;
+}
+
+.section-header.drawer-open .cart-count-bubble {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+@media screen and (max-width: 749px) {
+  div#menu-drawer {
+    width: 87%;
+  }
+  .menu-drawer__search {
+    padding: 15px 15px 10px;
+  }
+  .menu-drawer__social {
+    padding-top: 5px !important;
+  }
+  li.menu-drawer__social-item {
+    border: solid 1px #00000045 !important;
+  }
+  a.menu-drawer__social-link {
+    padding: 12px 30px !important;
+  }
+  .menu-drawer__menu-item-simple {
+    padding: 18px 15px;
+    font-size: 13px;
+  }
+  .menu-drawer__submenu-link {
+    padding: 10px 15px 10px 30px;
+    font-size: 12px;
+  }
+  .menu-drawer__submenu-toggle {
+    padding: 10px 15px 10px 30px;
+    font-size: 12px;
+  }
+  .menu-drawer__submenu-nested .menu-drawer__submenu-link {
+    padding-left: 45px;
+  }
+  .menu-drawer__social {
+    padding: 20px 15px;
+  }
+  .menu-drawer__social-list {
+    gap: 10px;
+  }
+  .menu-drawer__account-cta {
+    padding: 0 15px 20px;
+  }
+}
+
+/* ========================================
+   DETAILS/SUMMARY RESET
+   ======================================== */
+.menu-drawer__details summary {
+  list-style: none;
+}
+
+.menu-drawer__details summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-drawer__details[open] > .menu-drawer__submenu-simple {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+</style>
+
+<header-drawer data-breakpoint="{% if section.settings.menu_type_desktop == 'drawer' %}desktop{% else %}tablet{% endif %}">
+  <details id="Details-menu-drawer-container" class="menu-drawer-container">
+    <summary
+      class="header__icon header__icon--menu header__icon--summary link focus-inset"
+      aria-label="{{ 'sections.header.menu' | t }}"
+    >
+      <span>
+        {% render 'icon-hamburger' %}
+        {% render 'icon-close' %}
+      </span>
+    </summary>
+    <div id="menu-drawer" class="gradient menu-drawer motion-reduce menu-drawer--light">
+      <div class="menu-drawer__inner-container">
+
+        {%- if show_search -%}
+          <div class="menu-drawer__search">
+            <form action="{{ routes.search_url }}" method="get" role="search" class="search-form">
+              <input
+                type="search"
+                name="q"
+                placeholder="{{ search_placeholder | escape }}"
+                class="search-form__input"
+                aria-label="{{ search_placeholder | escape }}"
+              >
+              <button type="submit" class="search-form__submit" aria-label="{{ search_placeholder | escape }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
+              </button>
+            </form>
+          </div>
+        {%- endif -%}
+
+        <div class="menu-drawer__navigation-container">
+          <nav class="menu-drawer__navigation">
+            <ul class="menu-drawer__menu-simple list-menu" role="list">
+              {%- for link in drawer_menu.links -%}
+                <li>
+                  {%- if link.links.size > 0 -%}
+                    <details class="menu-drawer__details">
+                      <summary class="menu-drawer__menu-item-simple">
+                        <span>{{ link.title | escape }}</span>
+                        <span class="menu-drawer__arrow">&rsaquo;</span>
+                      </summary>
+                      <div class="menu-drawer__submenu-simple">
+                        <ul class="menu-drawer__submenu-list" role="list">
+                          {%- for child in link.links -%}
+                            <li>
+                              {%- if child.links.size > 0 -%}
+                                <details class="menu-drawer__details">
+                                  <summary class="menu-drawer__submenu-toggle">
+                                    <span>{{ child.title | escape }}</span>
+                                    <span class="menu-drawer__arrow">&rsaquo;</span>
+                                  </summary>
+                                  <ul class="menu-drawer__submenu-nested" role="list">
+                                    {%- for grandchild in child.links -%}
+                                      <li>
+                                        <a
+                                          href="{{ grandchild.url }}"
+                                          class="menu-drawer__submenu-link"
+                                          {% if grandchild.current %}aria-current="page"{% endif %}
+                                        >
+                                          {{ grandchild.title | escape }}
+                                        </a>
+                                      </li>
+                                    {%- endfor -%}
+                                  </ul>
+                                </details>
+                              {%- else -%}
+                                <a
+                                  href="{{ child.url }}"
+                                  class="menu-drawer__submenu-link"
+                                  {% if child.current %}aria-current="page"{% endif %}
+                                >
+                                  {{ child.title | escape }}
+                                </a>
+                              {%- endif -%}
+                            </li>
+                          {%- endfor -%}
+                        </ul>
+                      </div>
+                    </details>
+                  {%- else -%}
+                    <a
+                      href="{{ link.url }}"
+                      class="menu-drawer__menu-item-simple menu-drawer__menu-item-single"
+                      {% if link.current %}aria-current="page"{% endif %}
+                    >
+                      <span>{{ link.title | escape }}</span>
+                    </a>
+                  {%- endif -%}
+                </li>
+              {%- endfor -%}
+            </ul>
+          </nav>
+
+          {%- if show_social and social_items != blank -%}
+            <div class="menu-drawer__social">
+              <ul class="menu-drawer__social-list" role="list">
+                {{ social_items }}
+              </ul>
+            </div>
+          {%- endif -%}
+
+          {%- if show_account -%}
+            <div class="menu-drawer__account-cta">
+              <a href="{{ routes.account_url }}" class="menu-drawer__account-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>{{ account_label | escape }}</span>
+              </a>
+            </div>
+          {%- endif -%}
+
+        </div>
+      </div>
+    </div>
+  </details>
+</header-drawer>
+
+<script>
+  (function () {
+    function initDrawerHeaderState() {
+      var details = document.getElementById('Details-menu-drawer-container');
+      var header = document.querySelector('.section-header');
+      if (!details || !header) return;
+      if (details.dataset.headerStateBound === '1') return;
+      details.dataset.headerStateBound = '1';
+
+      // Dawn adds "menu-opening" as soon as the drawer starts opening and
+      // removes it the moment closing starts, which is snappier than waiting
+      // for the [open] attribute. Fall back to [open] if that class is never used.
+      var usesOpeningClass = false;
+
+      function isOpen() {
+        if (details.classList.contains('menu-opening')) {
+          usesOpeningClass = true;
+          return true;
+        }
+        if (usesOpeningClass) return false;
+        return details.hasAttribute('open');
+      }
+
+      function sync() {
+        if (isOpen()) {
+          header.classList.add('drawer-open');
+        } else {
+          header.classList.remove('drawer-open');
+        }
+      }
+
+      details.addEventListener('toggle', sync);
+
+      if ('MutationObserver' in window) {
+        new MutationObserver(sync).observe(details, {
+          attributes: true,
+          attributeFilter: ['open', 'class']
+        });
+      }
+
+      sync();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDrawerHeaderState);
+    } else {
+      initDrawerHeaderState();
+    }
+
+    document.addEventListener('shopify:section:load', initDrawerHeaderState);
+  })();
+</script>

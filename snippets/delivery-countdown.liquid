@@ -1,0 +1,236 @@
+{%- comment -%}
+  Delivery line (geo-aware)
+
+  UK visitors (localization country matches home country) see a live
+  "For next day delivery Tue 5 Aug; order within 03h, 35m, 35s" line.
+
+  The UK line only shows when next day delivery is genuinely possible:
+    - today is a dispatch day, AND
+    - the current London time is before the cutoff, AND
+    - tomorrow is a delivery day.
+  Outside those conditions the line hides itself. In practice it is
+  visible from 00:00 up to the cutoff on qualifying days, then hidden
+  until 00:00 of the next qualifying day.
+
+  All other visitors see the static international line unchanged.
+
+  Anchored to Europe/London so it is correct regardless of the visitor's
+  own timezone. Bank holidays are not accounted for.
+
+  IMPORTANT: the UK vs international split relies on Shopify Markets being
+  enabled. Without Markets, localization.country resolves to the shop's
+  default country for everyone and the split will not work.
+
+  Usage (from main-product.liquid):
+    {% render 'delivery-countdown', block: block, section: section %}
+{%- endcomment -%}
+
+{%- liquid
+  assign home_country = block.settings.home_country | default: 'GB' | upcase
+  assign visitor_country = localization.country.iso_code | upcase
+  assign is_home = false
+  if visitor_country == home_country
+    assign is_home = true
+  endif
+
+  case block.settings.dispatch_days
+    when 'mon_sat'
+      assign dispatch_mask = '0111111'
+    when 'all'
+      assign dispatch_mask = '1111111'
+    else
+      assign dispatch_mask = '0111110'
+  endcase
+
+  case block.settings.delivery_days
+    when 'mon_fri'
+      assign delivery_mask = '0111110'
+    when 'all'
+      assign delivery_mask = '1111111'
+    else
+      assign delivery_mask = '0111111'
+  endcase
+
+  assign text_color = block.settings.text_color | default: '#6b7280'
+-%}
+
+{%- capture truck_icon -%}
+  {%- if block.settings.show_icon -%}
+    <svg class="delivery-line__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="7" cy="17.5" r="1.8" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="17.5" cy="17.5" r="1.8" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if is_home -%}
+  <delivery-countdown
+    class="delivery-line is-hidden"
+    id="DeliveryCountdown-{{ block.id }}"
+    style="--dc-text: {{ text_color }};"
+    data-cutoff-hour="{{ block.settings.cutoff_hour }}"
+    data-cutoff-minute="{{ block.settings.cutoff_minute }}"
+    data-dispatch-mask="{{ dispatch_mask }}"
+    data-delivery-mask="{{ delivery_mask }}"
+    {{ block.shopify_attributes }}
+  >
+    {{ truck_icon }}
+    <span class="delivery-line__text">
+      {{ block.settings.lead_before }}
+      <strong data-dc-date></strong>{{ block.settings.lead_after }}
+      <strong data-dc-countdown>&hellip;</strong>
+    </span>
+  </delivery-countdown>
+{%- else -%}
+  <div
+    class="delivery-line"
+    style="--dc-text: {{ text_color }};"
+    {{ block.shopify_attributes }}
+  >
+    {{ truck_icon }}
+    <span class="delivery-line__text">{{ block.settings.intl_text }}</span>
+  </div>
+{%- endif -%}
+
+<style>
+  .delivery-line {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: 1.4rem;
+    line-height: 1.4;
+    color: var(--dc-text);
+    margin: 1.2rem 0;
+  }
+  .delivery-line.is-hidden { display: none; }
+  .delivery-line__icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+  }
+  .delivery-line__text strong { font-weight: 600; }
+</style>
+
+{%- if is_home -%}
+  <script>
+    (function () {
+      if (window.customElements && customElements.get('delivery-countdown')) return;
+
+      var WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+      class DeliveryCountdown extends HTMLElement {
+        connectedCallback() {
+          this.cutoffHour = parseInt(this.dataset.cutoffHour, 10) || 0;
+          this.cutoffMinute = parseInt(this.dataset.cutoffMinute, 10) || 0;
+
+          // 7 chars, index 0 = Sunday through index 6 = Saturday
+          this.dispatchMask = (this.dataset.dispatchMask || '0111110').split('');
+          this.deliveryMask = (this.dataset.deliveryMask || '0111111').split('');
+
+          this.dateEl = this.querySelector('[data-dc-date]');
+          this.countdownEl = this.querySelector('[data-dc-countdown]');
+
+          this.tick();
+          this.timer = setInterval(this.tick.bind(this), 1000);
+        }
+
+        disconnectedCallback() {
+          if (this.timer) clearInterval(this.timer);
+        }
+
+        londonParts(instant) {
+          var parts = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Europe/London',
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
+          }).formatToParts(instant).reduce(function (acc, p) {
+            acc[p.type] = p.value; return acc;
+          }, {});
+          var hour = parseInt(parts.hour, 10) % 24;
+          return {
+            year: +parts.year, month: +parts.month, day: +parts.day,
+            hour: hour, minute: +parts.minute, second: +parts.second
+          };
+        }
+
+        londonOffsetMs(instant) {
+          try {
+            var name = new Intl.DateTimeFormat('en-US', {
+              timeZone: 'Europe/London', timeZoneName: 'longOffset'
+            }).formatToParts(instant).find(function (p) { return p.type === 'timeZoneName'; }).value;
+            var m = /GMT([+-])(\d{2}):(\d{2})/.exec(name);
+            if (m) {
+              var sign = m[1] === '-' ? -1 : 1;
+              return sign * ((+m[2]) * 60 + (+m[3])) * 60000;
+            }
+            if (/GMT/.test(name)) return 0;
+          } catch (e) {}
+          var s = new Date(instant.toLocaleString('en-US', { timeZone: 'Europe/London' }));
+          var u = new Date(instant.toLocaleString('en-US', { timeZone: 'UTC' }));
+          return s.getTime() - u.getTime();
+        }
+
+        londonWallToInstant(y, mo, d, h, mi) {
+          var guess = Date.UTC(y, mo - 1, d, h, mi);
+          var off = this.londonOffsetMs(new Date(guess));
+          return guess - off;
+        }
+
+        dayObj(y, mo, d) {
+          var dt = new Date(Date.UTC(y, mo - 1, d));
+          return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), dow: dt.getUTCDay() };
+        }
+
+        addDays(o, n) {
+          var dt = new Date(Date.UTC(o.y, o.m - 1, o.d));
+          dt.setUTCDate(dt.getUTCDate() + n);
+          return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), dow: dt.getUTCDay() };
+        }
+
+        isDispatchDay(o) { return this.dispatchMask[o.dow] === '1'; }
+        isDeliveryDay(o) { return this.deliveryMask[o.dow] === '1'; }
+
+        pad(n) { return String(n).padStart(2, '0'); }
+        fmtDate(o) { return WEEKDAYS[o.dow] + ' ' + o.d + ' ' + MONTHS[o.m - 1]; }
+
+        tick() {
+          var now = new Date();
+          var nowMs = now.getTime();
+          var lp = this.londonParts(now);
+          var today = this.dayObj(lp.year, lp.month, lp.day);
+          var tomorrow = this.addDays(today, 1);
+
+          var cutoffMs = this.londonWallToInstant(
+            today.y, today.m, today.d, this.cutoffHour, this.cutoffMinute
+          );
+
+          var show = this.isDispatchDay(today)
+            && nowMs < cutoffMs
+            && this.isDeliveryDay(tomorrow);
+
+          if (!show) {
+            this.classList.add('is-hidden');
+            return;
+          }
+
+          var diff = Math.max(0, cutoffMs - nowMs);
+          var totalSec = Math.floor(diff / 1000);
+          var hrs = Math.floor(totalSec / 3600);
+          var mins = Math.floor((totalSec % 3600) / 60);
+          var secs = totalSec % 60;
+
+          if (this.dateEl) this.dateEl.textContent = this.fmtDate(tomorrow);
+          if (this.countdownEl) {
+            this.countdownEl.textContent = this.pad(hrs) + 'h, ' + this.pad(mins) + 'm, ' + this.pad(secs) + 's';
+          }
+          this.classList.remove('is-hidden');
+        }
+      }
+
+      customElements.define('delivery-countdown', DeliveryCountdown);
+    })();
+  </script>
+{%- endif -%}

@@ -1,0 +1,22 @@
+{% assign current_group = product.metafields.custom.product_group %}
+{% if current_group %}
+  <div class="color-variant-links">
+    <p style="margin-bottom: 8px;"><strong>Colour:</strong> {{ product.metafields.custom.color_name }}</p>
+    <ul style="display: flex; gap: 10px; list-style: none; padding: 0;">
+      {% assign all_products = collections.all.products %}
+      {% for p in all_products %}
+        {% if p.metafields.custom.product_group == current_group %}
+          <li>
+            <a href="{{ p.url }}" title="{{ p.title }}" {% if p.id == product.id %}aria-current="true"{% endif %}>
+              <img
+                src="{{ p.featured_image | image_url: width: 80 }}"
+                alt="{{ p.title }}"
+                style="width: 40px; height: 40px; border-radius: 100%; object-fit: cover;{% if p.id == product.id %} border: 2px solid black;{% endif %}"
+              >
+            </a>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

@@ -1,0 +1,309 @@
+{% doc %}
+  @prompt
+    Create CSS styling to make variant picker size option buttons square instead of oval/rounded. The styling should target size variant selectors and override any border-radius properties to make them perfectly square with sharp corners., it must be in the correct position on the page
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-square-variant-override-{{ ai_gen_id }} {
+    position: relative;
+    z-index: 1;
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} fieldset[data-product-attribute="size"] .product-form__input + label,
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-input-wrap[data-option-name*="size"] .product-form__input + label,
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-input-wrap[data-option-name*="Size"] .product-form__input + label,
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input[name*="size"] + label,
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input[name*="Size"] + label,
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input + label {
+    border-radius: 0 !important;
+    min-width: {{ block.settings.button_size }}px;
+    min-height: {{ block.settings.button_size }}px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input + label {
+    border: {{ block.settings.border_width }}px solid {{ block.settings.border_color }};
+    background-color: {{ block.settings.background_color }};
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input + label:hover {
+    border-color: {{ block.settings.hover_border_color }};
+    background-color: {{ block.settings.hover_background_color }};
+    color: {{ block.settings.hover_text_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input:checked + label {
+    border-color: {{ block.settings.selected_border_color }};
+    background-color: {{ block.settings.selected_background_color }};
+    color: {{ block.settings.selected_text_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input:focus + label {
+    outline: 2px solid {{ block.settings.focus_color }};
+    outline-offset: 2px;
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input:disabled + label {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: {{ block.settings.disabled_background_color }};
+    color: {{ block.settings.disabled_text_color }};
+    border-color: {{ block.settings.disabled_border_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input + label {
+    border: {{ block.settings.border_width }}px solid {{ block.settings.border_color }};
+    background-color: {{ block.settings.background_color }};
+    color: {{ block.settings.text_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input + label:hover {
+    border-color: {{ block.settings.hover_border_color }};
+    background-color: {{ block.settings.hover_background_color }};
+    color: {{ block.settings.hover_text_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input:checked + label {
+    border-color: {{ block.settings.selected_border_color }};
+    background-color: {{ block.settings.selected_background_color }};
+    color: {{ block.settings.selected_text_color }};
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input:focus + label {
+    outline: 2px solid {{ block.settings.focus_color }};
+    outline-offset: 2px;
+  }
+
+  .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input:disabled + label {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: {{ block.settings.disabled_background_color }};
+    color: {{ block.settings.disabled_text_color }};
+    border-color: {{ block.settings.disabled_border_color }};
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-square-variant-override-{{ ai_gen_id }} .variant-pills .variant-input-wrap .product-form__input + label,
+    .ai-square-variant-override-{{ ai_gen_id }} .product-form__buttons .product-form__input + label {
+      min-width: {{ block.settings.button_size | times: 0.9 }}px;
+      min-height: {{ block.settings.button_size | times: 0.9 }}px;
+      padding: 6px 10px;
+    }
+  }
+{% endstyle %}
+
+<script>
+  (function() {
+    class SquareVariantOverride{{ ai_gen_id }} extends HTMLElement {
+      constructor() {
+        super();
+      }
+
+      connectedCallback() {
+        this.applySquareStyles();
+        this.observeVariantChanges();
+      }
+
+      applySquareStyles() {
+        const targetSelectors = [
+          'fieldset[data-product-attribute="size"]',
+          '.variant-input-wrap[data-option-name*="size"]',
+          '.variant-input-wrap[data-option-name*="Size"]',
+          '.product-form__buttons',
+          '.variant-pills'
+        ];
+
+        targetSelectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach(element => {
+            if (!element.closest('.ai-square-variant-override-{{ ai_gen_id }}')) {
+              element.classList.add('ai-square-variant-override-{{ ai_gen_id }}');
+            }
+          });
+        });
+      }
+
+      observeVariantChanges() {
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'childList') {
+              this.applySquareStyles();
+            }
+          });
+        });
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
+    }
+
+    customElements.define('square-variant-override-{{ ai_gen_id }}', SquareVariantOverride{{ ai_gen_id }});
+  })();
+</script>
+
+<square-variant-override-{{ ai_gen_id }} {{ block.shopify_attributes }}>
+  <div style="padding: 20px; background-color: {{ block.settings.info_background }}; border-radius: 8px; text-align: center;">
+    <h3 style="margin: 0 0 10px; color: {{ block.settings.info_text_color }};">Square Variant Picker Active</h3>
+    <p style="margin: 0; color: {{ block.settings.info_text_color }}; font-size: 14px;">
+      This block automatically applies square styling to size variant picker buttons on this page. 
+      The styling targets common variant picker selectors and overrides border-radius properties.
+    </p>
+  </div>
+</square-variant-override-{{ ai_gen_id }}>
+
+{% schema %}
+{
+  "name": "Square Variant Override",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Button Style"
+    },
+    {
+      "type": "range",
+      "id": "button_size",
+      "min": 30,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Minimum button size",
+      "default": 44
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "unit": "px",
+      "label": "Border width",
+      "default": 1
+    },
+    {
+      "type": "header",
+      "content": "Default State Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border color",
+      "default": "#cccccc"
+    },
+    {
+      "type": "header",
+      "content": "Hover State Colors"
+    },
+    {
+      "type": "color",
+      "id": "hover_background_color",
+      "label": "Hover background color",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "color",
+      "id": "hover_text_color",
+      "label": "Hover text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "hover_border_color",
+      "label": "Hover border color",
+      "default": "#999999"
+    },
+    {
+      "type": "header",
+      "content": "Selected State Colors"
+    },
+    {
+      "type": "color",
+      "id": "selected_background_color",
+      "label": "Selected background color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "selected_text_color",
+      "label": "Selected text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "selected_border_color",
+      "label": "Selected border color",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Disabled State Colors"
+    },
+    {
+      "type": "color",
+      "id": "disabled_background_color",
+      "label": "Disabled background color",
+      "default": "#f9f9f9"
+    },
+    {
+      "type": "color",
+      "id": "disabled_text_color",
+      "label": "Disabled text color",
+      "default": "#cccccc"
+    },
+    {
+      "type": "color",
+      "id": "disabled_border_color",
+      "label": "Disabled border color",
+      "default": "#e5e5e5"
+    },
+    {
+      "type": "color",
+      "id": "focus_color",
+      "label": "Focus outline color",
+      "default": "#005fcc"
+    },
+    {
+      "type": "header",
+      "content": "Info Box Style"
+    },
+    {
+      "type": "color",
+      "id": "info_background",
+      "label": "Info box background",
+      "default": "#f0f0f0"
+    },
+    {
+      "type": "color",
+      "id": "info_text_color",
+      "label": "Info box text color",
+      "default": "#333333"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Square Variant Override"
+    }
+  ]
+}
+{% endschema %}
