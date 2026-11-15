@@ -1,0 +1,143 @@
+{%- doc -%}
+  Coszus design tokens (docs/HANDOFF.md section 2), driven by theme settings.
+
+  Rendered straight after `color-palette` in both layouts and templates/gift_card.liquid, so values declared here
+  win over Horizon's own `:root` values without !important. Static Coszus styles
+  live in assets/coszus.css and only read these variables.
+
+  @example
+  {% render 'coszus-tokens' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign gutter_mobile = settings.gutter_mobile | default: 20
+  assign gutter_desktop = settings.gutter_desktop | default: 24
+
+  # Heading 2 is the section heading: clamp(24px, 2.3vw, 32px) at the default 32px size.
+  # The fluid part scales with the chosen size so 32px reaches its max at ~1390px wide.
+  assign h2_max = settings.type_size_h2 | times: 1
+  assign h2_min = h2_max | at_most: 24
+  assign h2_fluid = h2_max | times: 0.071875 | round: 3
+-%}
+
+{% style %}
+  :root {
+    /* Brand colours (Theme settings > Colors) */
+    --coszus-ink: {{ settings.color_palette.foreground | default: '#101010' }};
+    --coszus-paper: {{ settings.color_palette.background | default: '#FFFFFF' }};
+    --coszus-off-white: {{ settings.color_palette.off_white | default: '#F4F4F2' }};
+    --coszus-concrete: {{ settings.color_palette.concrete | default: '#9A9A9A' }};
+    --coszus-muted: {{ settings.color_palette.muted | default: '#6F6F6F' }};
+    --coszus-muted-rgb: {{ settings.color_palette.muted.rgb | default: '111 111 111' }};
+    --coszus-line: {{ settings.color_palette.line | default: '#DCDCDC' }};
+    --coszus-petrol: {{ settings.color_palette.petrol | default: '#2A3855' }};
+    --coszus-bleu: {{ settings.color_palette.bleu | default: '#0B4EA2' }};
+    --coszus-rouge: {{ settings.color_palette.rouge | default: '#C8102E' }};
+    --coszus-gold: {{ settings.color_palette.gold | default: '#D4AF37' }};
+    --coszus-progress-start: {{ settings.color_palette.progress_start | default: '#F4C430' }};
+    --coszus-progress-end: {{ settings.color_palette.progress_end | default: '#22A05A' }};
+    --coszus-progress-gradient: linear-gradient(90deg, var(--coszus-progress-start), var(--coszus-progress-end));
+
+    /* Type. Buttons use the "Helvetica Neue / Arial" option in Theme settings > Buttons */
+    --font-system--family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-size--h2: clamp({{ h2_min | divided_by: 16.0 }}rem, {{ h2_fluid }}vw, {{ h2_max | divided_by: 16.0 }}rem);
+    --letter-spacing--heading-tight: -0.02em;
+    --coszus-kicker-size: 0.6875rem;
+    --coszus-kicker-tracking: 0.16em;
+
+    /* Buttons: 12px + 16px line + 12px = 40px tall.
+       Hover colours only apply when a hover background is set; cleared, Horizon picks them. */
+    --button-padding-block: 12px;
+    --button-padding-inline: 24px;
+    {%- assign hover_bg = settings.palette_primary_button_hover_background %}
+    {%- if hover_bg != blank %}
+      --color-primary-button-hover-background: rgb({{ hover_bg.rgba }});
+      --color-primary-button-hover-border: rgb({{ hover_bg.rgba }});
+      {%- assign hover_bg_brightness = hover_bg | color_brightness %}
+      {%- if settings.palette_primary_button_hover_text != blank %}
+        --color-primary-button-hover-text: rgb({{ settings.palette_primary_button_hover_text.rgba }});
+      {%- elsif hover_bg_brightness > 128 %}
+        --color-primary-button-hover-text: var(--palette-darkest);
+      {%- else %}
+        --color-primary-button-hover-text: var(--palette-lightest);
+      {%- endif %}
+    {%- endif %}
+    {%- assign hover_bg = settings.palette_secondary_button_hover_background %}
+    {%- if hover_bg != blank %}
+      --color-secondary-button-hover-background: rgb({{ hover_bg.rgba }});
+      --color-secondary-button-hover-border: rgb({{ hover_bg.rgba }});
+      {%- assign hover_bg_brightness = hover_bg | color_brightness %}
+      {%- if settings.palette_secondary_button_hover_text != blank %}
+        --color-secondary-button-hover-text: rgb({{ settings.palette_secondary_button_hover_text.rgba }});
+      {%- elsif hover_bg_brightness > 128 %}
+        --color-secondary-button-hover-text: var(--palette-darkest);
+      {%- else %}
+        --color-secondary-button-hover-text: var(--palette-lightest);
+      {%- endif %}
+    {%- endif %}
+
+    /* Layout. Mobile is up to 820px (see docs/scripts/set-breakpoint.mjs) */
+    --coszus-gutter-mobile: {{ gutter_mobile }}px;
+    --coszus-gutter-desktop: {{ gutter_desktop }}px;
+    --coszus-gutter-dense: 16px;
+    --coszus-gutter: var(--coszus-gutter-mobile);
+
+    /* Product cards */
+    --coszus-card-media-background: {{ settings.card_media_background | default: 'transparent' }};
+    --coszus-card-title-lines: {{ settings.card_title_lines | default: 2 }};
+    /* Small cards and pop-ups (Theme settings > Search > Card corner radius, 4px; also rounds search result cards) */
+    --coszus-card-radius: {{ settings.card_corner_radius | default: 4 }}px;
+
+    /* Focus: 2px outline in the element's own colour, so it shows on ink, petrol and photos */
+    --focus-outline-width: 2px;
+    --focus-outline-offset: 2px;
+
+    /* Coszus motion. Horizon's own motion tokens are zeroed in coszus.css */
+    --coszus-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --coszus-motion-fast: 0.2s;
+    --coszus-motion: 0.35s;
+  }
+
+  @media screen and (min-width: 821px) {
+    :root {
+      --coszus-gutter: var(--coszus-gutter-desktop);
+    }
+  }
+
+  /* Horizon declares --page-margin on the body's page-width class, so override it there */
+  .page-width-wide,
+  .page-width-normal,
+  .page-width-narrow,
+  .page-width-content {
+    --page-margin: max(var(--coszus-gutter), var(--safe-area-inset-left, 0px), var(--safe-area-inset-right, 0px));
+  }
+
+  /* Card images: multiply so white flat lays sit on the image background */
+  {%- case settings.card_media_blend -%}
+    {%- when 'first' %}
+      .card-gallery > a > .product-media-container img,
+      .card-gallery slideshow-slide:first-child img {
+        mix-blend-mode: multiply;
+      }
+    {%- when 'all' %}
+      .card-gallery .product-media-container img {
+        mix-blend-mode: multiply;
+      }
+  {%- endcase %}
+
+  {%- unless settings.card_show_sale_badge %}
+    /* HANDOFF: no red Sale tags in grids; the struck-through price shows the sale */
+    .card-gallery .product-badges__badge.color-custom-badge-sale {
+      display: none;
+    }
+  {%- endunless %}
+
+  {%- unless settings.mobile_quick_add %}
+    /* No hover-only features on touch screens, including iPad landscape */
+    @media (hover: none) {
+      .card-gallery .quick-add {
+        display: none !important;
+      }
+    }
+  {%- endunless %}
+{% endstyle %}

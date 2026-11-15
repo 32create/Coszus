@@ -1,0 +1,720 @@
+{%- comment -%}
+  Coszus footer (docs/HANDOFF.md section 3, docs/design/01-homepage.html).
+  - "Join the Family" sign-up (snippets/coszus-join.liquid, copy in Theme settings > Join the Family):
+    email first, then birthday and "shopping for" open underneath. Shopify's customer form, so sign-ups
+    land in Customers with email marketing on; answers go on as customer tags (source:footer,
+    birthday:DD-MM, shopping-for:men) for Omnisend to use.
+  - Follow line, link columns (blocks), country, roundel, copyright, Privacy, Terms, Refund and Shipping policies, company details
+    (empty until Ben sends the company, VAT and ICO numbers), payment badges.
+  - On mobile the link columns and country go: they live in the side menu.
+{%- endcomment -%}
+
+{%- liquid
+  assign columns = section.blocks | where: 'type', 'column'
+  assign emblem = section.settings.emblem | default: settings.logo
+
+  assign allowed_payments = section.settings.payment_types | remove: ' ' | split: ','
+-%}
+
+<footer class="coszus-footer">
+  <div class="coszus-footer__signup">
+    {%- render 'coszus-join',
+      source: 'footer',
+      id: section.id,
+      layout: 'footer',
+      birthday: section.settings.ask_birthday,
+      birthday_label: section.settings.birthday_label,
+      birthday_note: section.settings.birthday_note,
+      interests: section.settings.ask_interests
+    -%}
+
+    {%- if section.settings.instagram_url != blank or section.settings.tiktok_url != blank or section.settings.follow_text != blank -%}
+      <div class="coszus-footer__follow">
+        {%- if section.settings.instagram_url != blank -%}
+          <a
+            href="{{ section.settings.instagram_url }}"
+            target="_blank"
+            rel="noopener"
+            aria-label="Instagram"
+          >
+            {%- render 'coszus-icon', icon: 'instagram', px: 17 -%}
+          </a>
+        {%- endif -%}
+        {%- if section.settings.tiktok_url != blank -%}
+          <a
+            href="{{ section.settings.tiktok_url }}"
+            target="_blank"
+            rel="noopener"
+            aria-label="TikTok"
+          >
+            {%- render 'coszus-icon', icon: 'tiktok', px: 17 -%}
+          </a>
+        {%- endif -%}
+        {%- if section.settings.follow_text != blank -%}
+          <span>{{ section.settings.follow_text }}</span>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+
+  {%- if columns.size > 0 or section.settings.show_country -%}
+    <div class="coszus-footer__columns">
+      {%- for block in columns -%}
+        <nav
+          class="coszus-footer__column"
+          aria-label="{{ block.settings.heading | escape }}"
+          {{ block.shopify_attributes }}
+        >
+          {%- if block.settings.heading != blank -%}
+            <h3 class="coszus-footer__heading">{{ block.settings.heading | escape }}</h3>
+          {%- endif -%}
+          <ul role="list">
+            {%- if block.settings.menu != blank and block.settings.menu.links.size > 0 -%}
+              {%- for link in block.settings.menu.links -%}
+                {%- capture link_url -%}{% render 'coszus-account-url', url: link.url, title: link.title %}{%- endcapture -%}
+                <li>
+                  <a
+                    href="{{ link_url | strip }}"
+                    {% if link.title contains 'Sale' or link.title contains 'SALE' %}
+                      class="coszus-footer__sale"
+                    {% endif %}
+                  >
+                    {{- link.title | escape -}}
+                  </a>
+                </li>
+              {%- endfor -%}
+            {%- else -%}
+              {%- for i in (1..6) -%}
+                {%- liquid
+                  assign label_key = 'label_' | append: i
+                  assign link_key = 'link_' | append: i
+                  assign link_label = block.settings[label_key]
+                  # Account links (Track my order) go to Shopify's account route, link or no link
+                  capture link_url
+                    render 'coszus-account-url', url: block.settings[link_key], title: link_label
+                  endcapture
+                  assign link_url = link_url | strip
+                -%}
+                {%- if link_label != blank and link_url != blank -%}
+                  <li>
+                    <a
+                      href="{{ link_url }}"
+                      {% if link_label contains 'Sale' or link_label contains 'SALE' %}
+                        class="coszus-footer__sale"
+                      {% endif %}
+                      {% if link_url contains '://' %}
+                        target="_blank" rel="noopener"
+                      {% endif %}
+                    >
+                      {{- link_label | escape -}}
+                    </a>
+                  </li>
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+          </ul>
+        </nav>
+      {%- endfor -%}
+
+      {%- if section.settings.show_country -%}
+        {%- capture current_country -%}
+          {{- localization.country.name }} ({{ localization.country.currency.iso_code }})
+        {%- endcapture -%}
+        <div class="coszus-footer__column coszus-footer__country">
+          {%- if localization.available_countries.size > 1 -%}
+            {%- form 'localization', class: 'coszus-footer__country-form' -%}
+              {%- render 'coszus-icon', icon: 'globe', px: 18 -%}
+              <span aria-hidden="true">{{ current_country }}</span>
+              <label
+                class="visually-hidden"
+                for="CoszusFooterCountry-{{ section.id }}"
+              >
+                {{- 'accessibility.country_region' | t -}}
+              </label>
+              <select
+                id="CoszusFooterCountry-{{ section.id }}"
+                name="country_code"
+                class="coszus-footer__country-select"
+                onchange="this.form.submit()"
+              >
+                {%- for country in localization.available_countries -%}
+                  <option
+                    value="{{ country.iso_code }}"
+                    {% if country.iso_code == localization.country.iso_code %}
+                      selected
+                    {% endif %}
+                  >
+                    {{- country.name }} ({{ country.currency.iso_code }})
+                  </option>
+                {%- endfor -%}
+              </select>
+            {%- endform -%}
+          {%- else -%}
+            <p class="coszus-footer__country-form">
+              {%- render 'coszus-icon', icon: 'globe', px: 18 -%}
+              <span>{{ current_country }}</span>
+            </p>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+  <div class="coszus-footer__bottom">
+    <div class="coszus-footer__legal">
+      {%- liquid
+        # The header's logo file, drawn big enough to stay sharp at 3x (2.5x at the desktop size)
+        if emblem != blank
+          assign emblem_url = emblem | image_url: width: 720
+          assign emblem_ratio = emblem.aspect_ratio
+        else
+          assign emblem_url = 'coszus-logo.png' | asset_url
+          assign emblem_ratio = 1.946
+        endif
+      -%}
+      {%- if section.settings.recolour_emblem -%}
+        <span
+          class="coszus-footer__emblem coszus-footer__emblem--mask"
+          role="img"
+          aria-label="{{ shop.name | escape }}"
+          style="--emblem-url: url('{{ emblem_url }}'); --emblem-ratio: {{ emblem_ratio }};"
+        ></span>
+      {%- else -%}
+        <img
+          class="coszus-footer__emblem"
+          src="{{ emblem_url }}"
+          alt="{{ shop.name | escape }}"
+          width="{{ emblem_ratio | times: 22 | round }}"
+          height="22"
+          loading="lazy"
+          style="--emblem-ratio: {{ emblem_ratio }};"
+        >
+      {%- endif -%}
+      <p class="coszus-footer__links">
+        <span>&copy; {{ 'now' | date: '%Y' }} {{ section.settings.copyright | default: shop.name | escape }}</span>
+        {%- if shop.privacy_policy -%}
+          <a href="{{ shop.privacy_policy.url }}">{{ section.settings.privacy_label | escape }}</a>
+        {%- endif -%}
+        {%- if shop.terms_of_service -%}
+          <a href="{{ shop.terms_of_service.url }}">{{ section.settings.terms_label | escape }}</a>
+        {%- endif -%}
+        {%- if shop.refund_policy and section.settings.refund_label != blank -%}
+          <a href="{{ shop.refund_policy.url }}">{{ section.settings.refund_label | escape }}</a>
+        {%- endif -%}
+        {%- if shop.shipping_policy and section.settings.shipping_label != blank -%}
+          <a href="{{ shop.shipping_policy.url }}">{{ section.settings.shipping_label | escape }}</a>
+        {%- endif -%}
+      </p>
+    </div>
+
+    {%- if section.settings.legal_details != blank -%}
+      <p class="coszus-footer__legal-details">{{ section.settings.legal_details | escape }}</p>
+    {%- endif -%}
+
+    {%- if section.settings.show_payment_icons -%}
+      <ul
+        class="coszus-footer__payments"
+        role="list"
+        aria-label="{{ 'blocks.payment_methods' | t }}"
+      >
+        {%- for type in shop.enabled_payment_types -%}
+          {%- if allowed_payments.size == 0 or allowed_payments contains type -%}
+            <li>{{ type | payment_type_svg_tag: class: 'coszus-footer__payment' }}</li>
+          {%- endif -%}
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+  </div>
+</footer>
+
+{% stylesheet %}
+  .coszus-footer {
+    margin-top: 40px;
+    padding-inline: var(--coszus-gutter);
+    border-top: 1px solid var(--coszus-line);
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    font-family: var(--font-body--family);
+  }
+
+  .coszus-footer a {
+    color: inherit;
+  }
+
+  /* ---------- Sign-up ---------- */
+  .coszus-footer__signup {
+    padding-top: 30px;
+  }
+
+  /* Clear of the form above, so it doesn't read as part of the sign-up */
+  .coszus-footer__follow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 36px;
+    font-size: 0.75rem;
+  }
+
+  /* 44px hit area round the 17px icon; the negative margin keeps the layout */
+  .coszus-footer__follow a {
+    display: inline-flex;
+    padding: 13.5px;
+    margin: -13.5px;
+  }
+
+  .coszus-footer__follow a + a {
+    margin-left: 2px;
+  }
+
+  .coszus-footer__follow p {
+    display: inline;
+    margin: 0;
+  }
+
+  /* ---------- Columns ---------- */
+  .coszus-footer__columns {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0 20px;
+    padding: 72px 0 30px;
+  }
+
+  .coszus-footer__heading {
+    margin: 0 0 14px;
+    font-family: var(--font-body--family);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  .coszus-footer__column ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coszus-footer__column a {
+    display: block;
+    padding: 7px 0;
+    font-size: 0.8125rem;
+    text-decoration: none;
+  }
+
+  .coszus-footer__column a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-footer__column .coszus-footer__sale {
+    color: var(--coszus-rouge);
+  }
+
+  .coszus-footer__country-form {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.6875rem;
+    line-height: 18px;
+  }
+
+  /* Real select on top at 16px (no iPhone zoom); the small label shows through */
+  .coszus-footer__country-select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .coszus-footer__country-form:has(:focus-visible) {
+    outline: 2px solid currentcolor;
+    outline-offset: 2px;
+  }
+
+  /* ---------- Bottom bar: logo with the copyright and policies beside it, then the company
+     line, then the payment badges on their own row ---------- */
+  .coszus-footer__bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 22px 0 calc(26px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .coszus-footer__legal {
+    display: flex;
+    align-items: center;
+    gap: 12px 32px;
+    min-width: 0;
+  }
+
+  /* Wraps onto more lines rather than running off the edge */
+  .coszus-footer__links {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 20px;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .coszus-footer__links a {
+    color: var(--coszus-muted);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .coszus-footer__links a:hover {
+    color: var(--coszus-ink);
+  }
+
+  .coszus-footer__legal-details {
+    margin: 0;
+    color: var(--coszus-muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .coszus-footer__emblem {
+    display: block;
+    flex: none;
+    width: calc(22px * var(--emblem-ratio, 1));
+    height: 22px;
+  }
+
+  /* One-colour logo in Ink, like the header's recoloured logo */
+  .coszus-footer__emblem--mask {
+    background: currentcolor;
+    -webkit-mask: var(--emblem-url) center / contain no-repeat;
+    mask: var(--emblem-url) center / contain no-repeat;
+  }
+
+  .coszus-footer__payments {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coszus-footer__payments li {
+    display: flex;
+  }
+
+  .coszus-footer__payment {
+    display: block;
+    width: 38px;
+    height: 24px;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-footer__signup {
+      padding-top: 28px;
+    }
+
+    .coszus-footer__follow {
+      margin-top: 28px;
+    }
+
+    /* Columns and country live in the side menu on mobile */
+    .coszus-footer__columns {
+      display: none;
+    }
+
+    .coszus-footer__bottom {
+      gap: 12px;
+      margin-top: 20px;
+      padding: 18px 0 calc(18px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--coszus-line);
+    }
+
+    /* Logo on its own row, the copyright and policies on the row under it */
+    .coszus-footer__legal {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .coszus-footer__links {
+      gap: 4px 16px;
+    }
+
+    .coszus-footer__emblem {
+      width: calc(18px * var(--emblem-ratio, 1));
+      height: 18px;
+    }
+
+    .coszus-footer__payments {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .coszus-footer__payment {
+      width: 34px;
+      height: 22px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus footer",
+  "tag": "section",
+  "class": "coszus-footer-section",
+  "enabled_on": {
+    "groups": ["footer"]
+  },
+  "max_blocks": 4,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Sign-up"
+    },
+    {
+      "type": "paragraph",
+      "content": "Heading, offer, Shopping-for options and small print: Theme settings > Join the Family. Same copy everywhere."
+    },
+    {
+      "type": "checkbox",
+      "id": "ask_birthday",
+      "label": "Ask for birthday",
+      "info": "Saved as a customer tag: birthday:DD-MM",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "birthday_label",
+      "label": "Birthday question",
+      "default": "Birthday"
+    },
+    {
+      "type": "text",
+      "id": "birthday_note",
+      "label": "Birthday note",
+      "default": "(for a treat on the day)"
+    },
+    {
+      "type": "checkbox",
+      "id": "ask_interests",
+      "label": "Ask what they shop for",
+      "info": "Shows the Shopping-for chips. Saved as customer tags: shopping-for:men",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Follow"
+    },
+    {
+      "type": "url",
+      "id": "instagram_url",
+      "label": "Instagram"
+    },
+    {
+      "type": "url",
+      "id": "tiktok_url",
+      "label": "TikTok"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "follow_text",
+      "label": "Follow text",
+      "default": "Follow us and get <b>20 Coszus Rewards</b> per account"
+    },
+    {
+      "type": "header",
+      "content": "Bottom row"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_country",
+      "label": "Show country",
+      "info": "Desktop only. A picker when Shopify Markets sells to more than one country.",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "emblem",
+      "label": "Roundel emblem",
+      "info": "Defaults to the logo in Theme settings."
+    },
+    {
+      "type": "checkbox",
+      "id": "recolour_emblem",
+      "label": "Colour the emblem Ink",
+      "info": "For one-colour logos on a transparent background.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "copyright",
+      "label": "Copyright name",
+      "default": "Coszus"
+    },
+    {
+      "type": "text",
+      "id": "privacy_label",
+      "label": "Privacy link label",
+      "default": "Privacy"
+    },
+    {
+      "type": "text",
+      "id": "terms_label",
+      "label": "Terms link label",
+      "default": "Terms"
+    },
+    {
+      "type": "text",
+      "id": "refund_label",
+      "label": "Refund policy link label",
+      "info": "Links to the store's refund policy (Settings > Policies). Empty hides it.",
+      "default": "Refund policy"
+    },
+    {
+      "type": "text",
+      "id": "shipping_label",
+      "label": "Shipping policy link label",
+      "info": "Links to the store's shipping policy (Settings > Policies). Empty hides it.",
+      "default": "Shipping policy"
+    },
+    {
+      "type": "text",
+      "id": "legal_details",
+      "label": "Company details",
+      "info": "Company number, VAT number and ICO registration, e.g. \"Coszus Clothing Ltd · Company no. 12345678 · VAT GB123456789 · ICO ZA123456\". Leave empty until Ben sends them; nothing shows while it's empty."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_payment_icons",
+      "label": "Show payment badges",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "payment_types",
+      "label": "Payment badges to show",
+      "info": "Shopify payment type names, comma separated, from those the store has switched on. Blank shows them all.",
+      "default": "visa,master,american_express,apple_pay,google_pay,clearpay"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "column",
+      "name": "Link column",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Shop"
+        },
+        {
+          "type": "link_list",
+          "id": "menu",
+          "label": "Menu",
+          "info": "Uses the menu when picked. Otherwise the links below. Links named Sale show in red. Account, Sign in and Track my order always go to the customer account (no link needed)."
+        },
+        {
+          "type": "text",
+          "id": "label_1",
+          "label": "Link 1 label"
+        },
+        {
+          "type": "url",
+          "id": "link_1",
+          "label": "Link 1"
+        },
+        {
+          "type": "text",
+          "id": "label_2",
+          "label": "Link 2 label"
+        },
+        {
+          "type": "url",
+          "id": "link_2",
+          "label": "Link 2"
+        },
+        {
+          "type": "text",
+          "id": "label_3",
+          "label": "Link 3 label"
+        },
+        {
+          "type": "url",
+          "id": "link_3",
+          "label": "Link 3"
+        },
+        {
+          "type": "text",
+          "id": "label_4",
+          "label": "Link 4 label"
+        },
+        {
+          "type": "url",
+          "id": "link_4",
+          "label": "Link 4"
+        },
+        {
+          "type": "text",
+          "id": "label_5",
+          "label": "Link 5 label"
+        },
+        {
+          "type": "url",
+          "id": "link_5",
+          "label": "Link 5"
+        },
+        {
+          "type": "text",
+          "id": "label_6",
+          "label": "Link 6 label"
+        },
+        {
+          "type": "url",
+          "id": "link_6",
+          "label": "Link 6"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus footer",
+      "blocks": [
+        {
+          "type": "column",
+          "settings": {
+            "heading": "Customer service"
+          }
+        },
+        {
+          "type": "column",
+          "settings": {
+            "heading": "Shop"
+          }
+        },
+        {
+          "type": "column",
+          "settings": {
+            "heading": "Coszus"
+          }
+        },
+        {
+          "type": "column",
+          "settings": {
+            "heading": "Follow"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

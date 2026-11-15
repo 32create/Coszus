@@ -1,0 +1,51 @@
+{%- doc -%}
+  Black Friday switch (Theme settings > Black Friday, docs/launch/black-friday-switch.md).
+
+  Rendered in the <head>. When the switch is on (or the theme editor preview is ticked) this sets
+  <html data-bf="live"> before anything paints, once the start time has passed by the visitor's
+  clock, or by the server's when the page was rendered after the start. Shopify caches storefront
+  pages, so a Liquid date check alone would keep serving the "before" page for a while after the
+  start; the browser check flips every page on time, cached or not.
+
+  Every Black Friday extra is only output when the switch is on, and carries one of:
+  - data-bf-on: shown only while live
+  - data-bf-off: hidden while live (the old Sale menu link, the normal sale page title)
+  The hero's Black Friday slide is taken out by assets/coszus-home.js when it isn't live.
+
+  Switch off: none of this is output and the site is exactly as before.
+{%- enddoc -%}
+{%- liquid
+  assign bf_preview = false
+  if request.design_mode and settings.bf_editor_preview
+    assign bf_preview = true
+  endif
+-%}
+{%- if settings.bf_enabled or bf_preview -%}
+  {%- liquid
+    capture bf_start
+      render 'coszus-bf-start'
+    endcapture
+    assign bf_start = bf_start | plus: 0
+    assign now_ts = 'now' | date: '%s' | plus: 0
+    assign bf_server_live = false
+    if bf_preview
+      assign bf_server_live = true
+    elsif bf_start > 0 and now_ts >= bf_start
+      assign bf_server_live = true
+    endif
+  -%}
+  <script>
+    (function () {
+      var start = {{ bf_start }} * 1000;
+      if ({{ bf_server_live }} || (start > 0 && Date.now() >= start)) {
+        document.documentElement.setAttribute('data-bf', 'live');
+      }
+    })();
+  </script>
+  <style>
+    html:not([data-bf='live']) [data-bf-on],
+    html[data-bf='live'] [data-bf-off] {
+      display: none !important;
+    }
+  </style>
+{%- endif -%}

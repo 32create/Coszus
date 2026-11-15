@@ -1,0 +1,18 @@
+{%- doc -%}
+  The Black Friday start time (Theme settings > Black Friday > Starts) as unix seconds, or -1 when
+  it's blank or can't be read. Shopify's date filter reads "YYYY-MM-DD HH:MM" in the shop's
+  timezone (Europe/London, clock changes included) and hands the text back unchanged when it
+  can't, which is how a bad value is caught (same rule as sections/coszus-promo-banner.liquid).
+
+  @example
+  {%- capture bf_start -%}{%- render 'coszus-bf-start' -%}{%- endcapture -%}
+{%- enddoc -%}
+{%- liquid
+  assign raw = settings.bf_start | strip
+  assign parsed = raw | date: '%s'
+  if raw == blank or parsed == raw
+    echo -1
+  else
+    echo parsed
+  endif
+-%}

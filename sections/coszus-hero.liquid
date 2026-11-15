@@ -1,0 +1,1011 @@
+{%- comment -%}
+  Coszus hero slideshow (docs/HANDOFF.md section 4.1, docs/design/01-homepage.html).
+  Each slide is a block: video or image, with one of three layouts. The active slide's dot becomes a
+  bar that fills while it plays. Desktop is full height, mobile 4:5 (capped to the screen on tablets).
+  Runs under the glass nav (header setting "Homepage").
+  Swipe (phones) or click-and-drag (desktop) changes slide and stops autoplay for the rest of the
+  visit (assets/coszus-home.js). There's no pause button.
+
+  Fonts: wide Archivo (kickers, the faded title) and Permanent Marker (the campaign headline) aren't in
+  Shopify's font library, so they're self-hosted in assets/ and only declared here, so they only load
+  on pages with this section.
+{%- endcomment -%}
+
+{%- liquid
+  # Black Friday slides (slide setting "Black Friday slide", Theme settings > Black Friday): only
+  # output while the switch is on, and taken out again in the browser until it's live
+  # (assets/coszus-home.js). The slide that's live when the page is rendered is the one shown
+  # and loaded first: the Black Friday slide after the start, the first normal slide before.
+  assign bf_on = false
+  if settings.bf_enabled or request.design_mode and settings.bf_editor_preview
+    assign bf_on = true
+  endif
+  assign bf_server_live = false
+  if bf_on
+    capture bf_start
+      render 'coszus-bf-start'
+    endcapture
+    assign bf_start = bf_start | plus: 0
+    assign now_ts = 'now' | date: '%s' | plus: 0
+    if request.design_mode and settings.bf_editor_preview
+      assign bf_server_live = true
+    elsif bf_start > 0 and now_ts >= bf_start
+      assign bf_server_live = true
+    endif
+  endif
+
+  assign slide_count = 0
+  assign active_number = 0
+  assign first_normal_number = 0
+  for block in section.blocks
+    if block.settings.bf_only and bf_on == false
+      continue
+    endif
+    assign slide_count = slide_count | plus: 1
+    if block.settings.bf_only
+      if bf_server_live and active_number == 0
+        assign active_number = slide_count
+      endif
+    elsif first_normal_number == 0
+      assign first_normal_number = slide_count
+    endif
+  endfor
+  if active_number == 0
+    assign active_number = first_normal_number | at_least: 1
+  endif
+
+  assign first_slide = section.blocks.first
+  assign uses_wide = false
+  assign uses_marker = false
+  for block in section.blocks
+    if block.settings.layout == 'title_top' and block.settings.heading != blank
+      assign uses_wide = true
+    elsif block.settings.layout == 'campaign'
+      if block.settings.kicker != blank or block.settings.subheading != blank
+        assign uses_wide = true
+      endif
+      if block.settings.heading != blank
+        assign uses_marker = true
+      endif
+    endif
+  endfor
+
+  assign first_needs_wide = false
+  if first_slide.settings.layout == 'title_top' and first_slide.settings.heading != blank
+    assign first_needs_wide = true
+  elsif first_slide.settings.layout == 'campaign' and first_slide.settings.kicker != blank
+    assign first_needs_wide = true
+  endif
+-%}
+
+{%- if first_needs_wide -%}
+  {{ 'coszus-archivo-wide-black.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
+{%- endif -%}
+{%- if uses_wide or uses_marker -%}
+  <style>
+    {%- if uses_wide %}
+      @font-face {
+        font-family: 'Coszus Archivo Wide';
+        src: url('{{ 'coszus-archivo-wide-black.woff2' | asset_url }}') format('woff2');
+        font-weight: 900;
+        font-style: normal;
+        font-display: swap;
+      }
+    {%- endif %}
+    {%- if uses_marker %}
+      @font-face {
+        font-family: 'Coszus Marker';
+        src: url('{{ 'coszus-permanent-marker.woff2' | asset_url }}') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+    {%- endif %}
+  </style>
+{%- endif -%}
+
+<script
+  src="{{ 'coszus-home.js' | asset_url }}"
+  type="module"
+></script>
+
+<coszus-hero
+  class="coszus-hero"
+  role="region"
+  aria-roledescription="carousel"
+  aria-label="{{ section.settings.label | escape }}"
+  data-autoplay="{{ section.settings.autoplay }}"
+  data-interval="{{ section.settings.interval }}"
+  data-dot-label="{{ 'coszus.go_to_slide' | t: number: '[number]', total: '[total]' | escape }}"
+>
+  {%- assign slide_number = 0 -%}
+  {%- for block in section.blocks -%}
+    {%- if block.settings.bf_only and bf_on == false -%}
+      {%- continue -%}
+    {%- endif -%}
+    {%- liquid
+      assign slide_number = slide_number | plus: 1
+      assign is_active = false
+      if slide_number == active_number
+        assign is_active = true
+      endif
+      assign layout = block.settings.layout
+      assign image = block.settings.image
+      assign mobile_image = block.settings.mobile_image
+      assign video = block.settings.video
+      assign mobile_video = block.settings.mobile_video
+      assign poster = block.settings.poster | default: video.preview_image
+      assign mobile_poster = mobile_video.preview_image | default: poster
+
+      if is_active
+        assign loading = 'eager'
+        assign fetchpriority = 'high'
+      else
+        assign loading = 'lazy'
+        assign fetchpriority = 'auto'
+      endif
+
+      assign alt = block.settings.alt | default: image.alt | default: poster.alt | default: block.settings.heading | strip_newlines
+      assign hotspot_image = image
+      if image == blank and video != blank
+        assign hotspot_image = poster
+      endif
+
+      capture slide_label
+        echo slide_number | append: ' / ' | append: slide_count
+      endcapture
+    -%}
+    <div
+      class="coszus-hero__slide coszus-hero__slide--{{ layout }}{% if is_active %} is-active{% endif %}"
+      role="group"
+      aria-roledescription="slide"
+      aria-label="{{ slide_label }}"
+      data-slide
+      {% if block.settings.bf_only %}
+        data-bf-slide data-bf-on
+      {% endif %}
+      {% unless is_active %}
+        aria-hidden="true" inert
+      {% endunless %}
+      style="
+        --video-position-mobile: {{ block.settings.video_position_mobile }}% 50%;
+        {%- if mobile_image != blank %} --image-position-mobile: {{ mobile_image.presentation.focal_point }};{% endif %}
+      "
+      {{ block.shopify_attributes }}
+    >
+      <div class="coszus-hero__media">
+        {%- if video != blank -%}
+          {%- comment -%} Poster as a real image so it can be the LCP and show under reduced motion {%- endcomment -%}
+          {%- if poster != blank -%}
+            <picture class="coszus-hero__poster">
+              {%- if mobile_video != blank and mobile_poster != blank -%}
+                <source
+                  media="(max-width: 820px)"
+                  srcset="
+                    {%- for width in (1..4) -%}
+                      {%- assign w = width | times: 400 -%}
+                      {{ mobile_poster | image_url: width: w }} {{ w }}w{% unless forloop.last %}, {% endunless %}
+                    {%- endfor -%}
+                  "
+                  sizes="100vw"
+                >
+              {%- endif -%}
+              {{-
+                poster
+                | image_url: width: 3000
+                | image_tag:
+                  widths: '600, 900, 1200, 1600, 2000, 2400, 3000',
+                  sizes: '100vw',
+                  loading: loading,
+                  fetchpriority: fetchpriority,
+                  alt: alt,
+                  class: 'coszus-hero__image',
+                  data-hotspot-image: true
+              -}}
+            </picture>
+          {%- endif -%}
+          {%- render 'coszus-video',
+            video: video,
+            class: 'coszus-hero__video coszus-hero__video--desktop',
+            breakpoint: 'desktop',
+            max_width: 1920
+          -%}
+          {%- if mobile_video != blank -%}
+            {%- render 'coszus-video',
+              video: mobile_video,
+              class: 'coszus-hero__video coszus-hero__video--mobile',
+              breakpoint: 'mobile',
+              max_width: 1080
+            -%}
+          {%- endif -%}
+        {%- elsif image != blank -%}
+          <picture>
+            {%- if mobile_image != blank -%}
+              <source
+                media="(max-width: 820px)"
+                srcset="
+                  {%- for width in (1..4) -%}
+                    {%- assign w = width | times: 400 -%}
+                    {{ mobile_image | image_url: width: w }} {{ w }}w{% unless forloop.last %}, {% endunless %}
+                  {%- endfor -%}
+                "
+                sizes="100vw"
+              >
+            {%- endif -%}
+            {{-
+              image
+              | image_url: width: 3000
+              | image_tag:
+                widths: '600, 900, 1200, 1600, 2000, 2400, 3000',
+                sizes: '100vw',
+                loading: loading,
+                fetchpriority: fetchpriority,
+                alt: alt,
+                class: 'coszus-hero__image',
+                data-hotspot-image: true
+            -}}
+          </picture>
+        {%- else -%}
+          {{- 'lifestyle-1' | placeholder_svg_tag: 'coszus-hero__image coszus-hero__placeholder' -}}
+        {%- endif -%}
+        <div class="coszus-hero__shade"></div>
+      </div>
+
+      {%- case layout -%}
+        {%- when 'title_top' -%}
+          <div class="coszus-hero__overlay">
+            {%- comment -%} h2: the header outputs the homepage's one h1 {%- endcomment -%}
+            {%- if block.settings.heading != blank -%}
+              <h2 class="coszus-hero__title">{{ block.settings.heading | escape | newline_to_br }}</h2>
+            {%- else -%}
+              <span></span>
+            {%- endif -%}
+            {%- if block.settings.button_label != blank -%}
+              <a
+                class="button-secondary coszus-hero__button"
+                href="{{ block.settings.link | default: routes.all_products_collection_url }}"
+              >
+                {{- block.settings.button_label | escape -}}
+              </a>
+            {%- endif -%}
+          </div>
+        {%- when 'campaign' -%}
+          <div class="coszus-hero__copy">
+            {%- if block.settings.kicker != blank -%}
+              <p class="coszus-hero__kicker">{{ block.settings.kicker | escape }}</p>
+            {%- endif -%}
+            {%- if block.settings.heading != blank -%}
+              <h2 class="coszus-hero__headline">{{ block.settings.heading | escape | newline_to_br }}</h2>
+            {%- endif -%}
+            {%- if block.settings.subheading != blank -%}
+              <p class="coszus-hero__sub">{{ block.settings.subheading | escape }}</p>
+            {%- endif -%}
+            {%- if block.settings.button_label != blank -%}
+              <a
+                class="button-secondary coszus-hero__button"
+                href="{{ block.settings.link | default: routes.all_products_collection_url }}"
+              >
+                {{- block.settings.button_label | escape -}}
+              </a>
+            {%- endif -%}
+          </div>
+        {%- else -%}
+          {%- if block.settings.link != blank -%}
+            <a
+              class="coszus-hero__cover-link"
+              href="{{ block.settings.link }}"
+            >
+              <span class="visually-hidden">{{ alt | escape }}</span>
+            </a>
+          {%- endif -%}
+      {%- endcase -%}
+
+      {%- liquid
+        assign has_hotspots = false
+        for i in (1..3)
+          assign key = 'product_' | append: i
+          if block.settings[key] != blank
+            assign has_hotspots = true
+          endif
+        endfor
+      -%}
+      {%- if has_hotspots and hotspot_image != blank -%}
+        <coszus-hotspots
+          class="coszus-hotspots coszus-hero__hotspots{% if mobile_image != blank %} coszus-hero__hotspots--desktop-only{% endif %}"
+          data-width="{{ hotspot_image.width }}"
+          data-height="{{ hotspot_image.height }}"
+          data-safe-top="90"
+          data-safe-bottom="40"
+        >
+          {%- for i in (1..3) -%}
+            {%- liquid
+              assign key = 'product_' | append: i
+              assign x_key = 'x_' | append: i
+              assign y_key = 'y_' | append: i
+              assign hotspot_product = block.settings[key]
+            -%}
+            {%- if hotspot_product != blank -%}
+              {%- render 'coszus-hotspot',
+                product: hotspot_product,
+                x: block.settings[x_key],
+                y: block.settings[y_key],
+                id: block.id,
+                index: i
+              -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </coszus-hotspots>
+      {%- endif -%}
+    </div>
+  {%- endfor -%}
+
+  {%- if slide_count > 1 -%}
+    <div class="coszus-hero__controls">
+      <div class="coszus-hero__dots">
+        {%- assign slide_number = 0 -%}
+        {%- for block in section.blocks -%}
+          {%- if block.settings.bf_only and bf_on == false -%}
+            {%- continue -%}
+          {%- endif -%}
+          {%- assign slide_number = slide_number | plus: 1 -%}
+          <button
+            type="button"
+            class="coszus-hero__dot{% if slide_number == active_number %} is-active{% endif %}"
+            data-slide-dot
+            {% if block.settings.bf_only %}
+              data-bf-slide data-bf-on
+            {% endif %}
+            aria-label="{{ 'coszus.go_to_slide' | t: number: slide_number, total: slide_count }}"
+            {% if slide_number == active_number %}
+              aria-current="true"
+            {% endif %}
+          >
+            <span class="coszus-hero__dot-track"><span
+                class="coszus-hero__dot-fill"
+                data-fill
+              ></span
+            ></span>
+          </button>
+        {%- endfor -%}
+      </div>
+    </div>
+  {%- endif -%}
+</coszus-hero>
+
+{% stylesheet %}
+  .coszus-hero {
+    --hero-top-bar: var(--coszus-top-bar-height, 0px);
+
+    position: relative;
+    display: block;
+    width: 100%;
+    height: calc(100vh - var(--hero-top-bar));
+    height: calc(100svh - var(--hero-top-bar));
+    min-height: 560px;
+    max-height: 960px;
+    overflow: hidden;
+    background: var(--coszus-ink);
+    color: #fff;
+    /* Up and down still scroll the page; sideways is the hero's swipe */
+    touch-action: pan-y;
+  }
+
+  /* Desktop: the photo can be dragged sideways to change slide */
+  @media (hover: hover) and (pointer: fine) {
+    .coszus-hero:has(.coszus-hero__controls) {
+      cursor: grab;
+    }
+  }
+
+  .coszus-hero.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .coszus-hero.is-dragging a {
+    cursor: inherit;
+  }
+
+  .coszus-hero__slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity calc(var(--coszus-motion) * 2) ease,
+      visibility 0s linear calc(var(--coszus-motion) * 2);
+  }
+
+  .coszus-hero__slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity calc(var(--coszus-motion) * 2) ease,
+      visibility 0s;
+  }
+
+  .coszus-hero__media,
+  .coszus-hero__media picture {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .coszus-hero__image,
+  .coszus-hero__video {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .coszus-hero__placeholder {
+    background: #2a2a2a;
+    fill: rgb(255 255 255 / 0.25);
+  }
+
+  /* The poster image sits under the video and shows until it plays */
+  .coszus-hero__video {
+    opacity: 0;
+    transition: opacity var(--coszus-motion) ease;
+  }
+
+  .coszus-hero__slide.is-playing .coszus-hero__video {
+    opacity: 1;
+  }
+
+  .coszus-hero__video--mobile {
+    display: none;
+  }
+
+  .coszus-hero__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.25) 45%, rgb(0 0 0 / 0.1) 100%);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .coszus-hero__slide--campaign .coszus-hero__shade {
+    opacity: 1;
+  }
+
+  .coszus-hero__cover-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  /* Button: white on photos, ink on hover (Theme settings > Buttons, secondary) */
+  .coszus-hero__button {
+    margin: 0;
+  }
+
+  /* ---------- Layout: title at the top, button at the bottom ---------- */
+  .coszus-hero__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: clamp(96px, 11vh, 128px) 20px clamp(64px, 9vh, 88px);
+    pointer-events: none;
+  }
+
+  .coszus-hero__overlay > * {
+    pointer-events: auto;
+  }
+
+  .coszus-hero__title {
+    margin: 0;
+    color: rgb(225 225 225 / 0.55);
+    font-family: 'Coszus Archivo Wide', var(--font-heading--family);
+    font-weight: 900;
+    font-size: clamp(20px, 2.4vw, 36px);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: 0 2px 18px rgb(0 0 0 / 0.3);
+  }
+
+  /* ---------- Layout: campaign copy, bottom left ---------- */
+  .coszus-hero__copy {
+    position: absolute;
+    left: max(2.4%, var(--coszus-gutter));
+    bottom: 7%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 40%;
+    text-align: left;
+  }
+
+  .coszus-hero__kicker,
+  .coszus-hero__sub {
+    margin: 0;
+    font-family: 'Coszus Archivo Wide', var(--font-heading--family);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  .coszus-hero__kicker {
+    margin-bottom: 0.5em;
+    font-size: clamp(12px, 1.05vw, 18px);
+    line-height: 1;
+  }
+
+  .coszus-hero__sub {
+    margin-top: 0.9em;
+    font-size: clamp(11px, 0.95vw, 16px);
+  }
+
+  .coszus-hero__headline {
+    margin: 0;
+    font-family: 'Coszus Marker', var(--font-heading--family);
+    font-weight: 400;
+    font-size: clamp(44px, 5.6vw, 104px);
+    line-height: 0.92;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    transform: skewX(-6deg);
+    transform-origin: left bottom;
+    color: inherit;
+  }
+
+  .coszus-hero__copy .coszus-hero__button {
+    margin-top: 18px;
+  }
+
+  /* ---------- Hotspots ---------- */
+  .coszus-hero__hotspots {
+    z-index: 3;
+  }
+
+  /* ---------- Progress: the active slide is a filling bar, the rest are dots ---------- */
+  .coszus-hero__controls {
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transform: translateX(-50%);
+    color: #fff;
+  }
+
+  .coszus-hero__dots {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Each dot is at least 24px wide and 24px tall, with a 44px tall touch area */
+  .coszus-hero__dot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    min-width: 24px;
+    margin: 0;
+    padding: 0 3px;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .coszus-hero__dot::before {
+    content: '';
+    position: absolute;
+    inset: -10px 0;
+  }
+
+  .coszus-hero__dot-track {
+    position: relative;
+    display: block;
+    width: 6px;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.55);
+    transition:
+      width var(--coszus-motion) ease,
+      height var(--coszus-motion) ease,
+      background-color var(--coszus-motion) ease;
+  }
+
+  .coszus-hero__dot.is-active .coszus-hero__dot-track {
+    width: 44px;
+    height: 3px;
+    background: rgb(255 255 255 / 0.35);
+  }
+
+  .coszus-hero__dot-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #fff;
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .coszus-hero__dot:not(.is-active) .coszus-hero__dot-fill {
+    display: none;
+  }
+
+  /* Paused (swipe, drag or reduced motion): show the whole bar so the active slide is still clear */
+  .coszus-hero.is-paused .coszus-hero__dot.is-active .coszus-hero__dot-fill {
+    transform: scaleX(1);
+  }
+
+  .coszus-hero :focus-visible {
+    outline-color: #fff;
+  }
+
+  /* ---------- Mobile: 4:5 ---------- */
+  @media screen and (max-width: 820px) {
+    .coszus-hero {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      aspect-ratio: 4 / 5;
+    }
+
+    .coszus-hero__image {
+      object-position: var(--image-position-mobile, center bottom);
+    }
+
+    .coszus-hero__video {
+      object-position: var(--video-position-mobile, 50% 50%);
+    }
+
+    .coszus-hero__slide:has(.coszus-hero__video--mobile) .coszus-hero__video--desktop {
+      display: none;
+    }
+
+    .coszus-hero__video--mobile {
+      display: block;
+    }
+
+    .coszus-hero__shade {
+      background: linear-gradient(
+        180deg,
+        rgb(0 0 0 / 0.25) 0%,
+        rgb(0 0 0 / 0) 35%,
+        rgb(0 0 0 / 0.25) 55%,
+        rgb(0 0 0 / 0.75) 100%
+      );
+    }
+
+    .coszus-hero__overlay {
+      padding: 104px 20px 44px;
+    }
+
+    .coszus-hero__title {
+      font-size: 18px;
+      letter-spacing: 0.02em;
+    }
+
+    .coszus-hero__overlay .coszus-hero__button,
+    .coszus-hero__copy .coszus-hero__button {
+      min-height: 36px;
+      padding-block: 10px;
+    }
+
+    /* Copy bottom left, button centred under it */
+    .coszus-hero__copy {
+      left: 20px;
+      right: 20px;
+      bottom: 28px;
+      max-width: none;
+    }
+
+    .coszus-hero__copy .coszus-hero__button {
+      align-self: center;
+      margin-top: 16px;
+    }
+
+    .coszus-hero__kicker {
+      margin-bottom: 0.4em;
+      font-size: 10px;
+    }
+
+    .coszus-hero__headline {
+      font-size: 38px;
+    }
+
+    .coszus-hero__sub {
+      font-size: 10px;
+    }
+
+    .coszus-hero__controls {
+      bottom: 4px;
+    }
+
+    .coszus-hero__hotspots--desktop-only {
+      display: none;
+    }
+  }
+
+  /* Tablets in portrait: 4:5, but never taller than the screen */
+  @media screen and (min-width: 600px) and (max-width: 820px) {
+    .coszus-hero {
+      aspect-ratio: auto;
+      height: min(125vw, calc(100svh - var(--hero-top-bar)));
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus hero",
+  "tag": "section",
+  "class": "coszus-hero-section",
+  "limit": 1,
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Play slides automatically",
+      "info": "Always off for visitors who ask for reduced motion.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "interval",
+      "label": "Seconds per image slide",
+      "info": "Video slides play to the end.",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "unit": "s",
+      "default": 6
+    },
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Name for screen readers",
+      "default": "Latest campaigns"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Slide",
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "bf_only",
+          "label": "Black Friday slide",
+          "default": false,
+          "info": "Only shows while Black Friday is live (Theme settings > Black Friday), as the first slide when it's first in the list."
+        },
+        {
+          "type": "select",
+          "id": "layout",
+          "label": "Layout",
+          "options": [
+            {
+              "value": "title_top",
+              "label": "Faded title at the top, button at the bottom"
+            },
+            {
+              "value": "campaign",
+              "label": "Campaign copy bottom left"
+            },
+            {
+              "value": "none",
+              "label": "Photo only"
+            }
+          ],
+          "default": "campaign"
+        },
+        {
+          "type": "header",
+          "content": "Media"
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Video",
+          "info": "Landscape. Plays muted, once, then moves to the next slide. Used instead of the image."
+        },
+        {
+          "type": "video",
+          "id": "mobile_video",
+          "label": "Mobile video",
+          "info": "Optional. Portrait cut for phones."
+        },
+        {
+          "type": "range",
+          "id": "video_position_mobile",
+          "label": "Video crop on mobile",
+          "info": "Where to centre the landscape video on phones. 0 is the left edge, 100 the right.",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50
+        },
+        {
+          "type": "image_picker",
+          "id": "poster",
+          "label": "Video poster",
+          "info": "Shows while the video loads, and for reduced motion. Defaults to the video's first frame."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "Landscape, at least 2400px wide. Set a focal point so mobile crops well."
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Mobile image",
+          "info": "Optional. 4:5. Hotspots only show on the main image."
+        },
+        {
+          "type": "text",
+          "id": "alt",
+          "label": "Image description",
+          "info": "For screen readers. Defaults to the image's alt text."
+        },
+        {
+          "type": "header",
+          "content": "Text"
+        },
+        {
+          "type": "text",
+          "id": "kicker",
+          "label": "Kicker",
+          "info": "Campaign layout. Wide Archivo."
+        },
+        {
+          "type": "textarea",
+          "id": "heading",
+          "label": "Heading",
+          "info": "Campaign layout: marker headline (new line = line break). Title layout: faded wide title."
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Subheading",
+          "info": "Campaign layout."
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "Button label",
+          "default": "Shop now"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        },
+        {
+          "type": "header",
+          "content": "Shoppable hotspots",
+          "info": "Position is a percentage of the image, from the top left. Hidden where the nav or edges would cover them."
+        },
+        {
+          "type": "product",
+          "id": "product_1",
+          "label": "Product 1"
+        },
+        {
+          "type": "range",
+          "id": "x_1",
+          "label": "Product 1 across",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 25
+        },
+        {
+          "type": "range",
+          "id": "y_1",
+          "label": "Product 1 down",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 40
+        },
+        {
+          "type": "product",
+          "id": "product_2",
+          "label": "Product 2"
+        },
+        {
+          "type": "range",
+          "id": "x_2",
+          "label": "Product 2 across",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50
+        },
+        {
+          "type": "range",
+          "id": "y_2",
+          "label": "Product 2 down",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 60
+        },
+        {
+          "type": "product",
+          "id": "product_3",
+          "label": "Product 3"
+        },
+        {
+          "type": "range",
+          "id": "x_3",
+          "label": "Product 3 across",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 75
+        },
+        {
+          "type": "range",
+          "id": "y_3",
+          "label": "Product 3 down",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus hero",
+      "blocks": [
+        {
+          "type": "slide",
+          "settings": {
+            "layout": "title_top",
+            "heading": "Speed Collection"
+          }
+        },
+        {
+          "type": "slide",
+          "settings": {
+            "layout": "none",
+            "button_label": ""
+          }
+        },
+        {
+          "type": "slide",
+          "settings": {
+            "layout": "campaign",
+            "kicker": "New in for men & women",
+            "heading": "MotoX\nCollection",
+            "subheading": "Mesh race tops & racer jackets"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

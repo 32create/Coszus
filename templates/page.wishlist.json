@@ -1,0 +1,11 @@
+{
+  "sections": {
+    "main": {
+      "type": "coszus-wishlist",
+      "settings": {}
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

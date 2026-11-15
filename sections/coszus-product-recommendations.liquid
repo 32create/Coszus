@@ -1,0 +1,149 @@
+{%- comment -%}
+  Coszus "You might also like" (HANDOFF section 6): four products from Shopify's recommendations
+  (Search & Discovery's related products when set, else Shopify's own), as Coszus product cards.
+  Desktop four across, mobile a swipe row.
+
+  Shopify only fills `recommendations` when this section is fetched from the recommendations
+  endpoint, so the page renders an empty shell and assets/coszus-product.js swaps the cards in.
+  Nothing comes back: the section stays hidden.
+{%- endcomment -%}
+
+<script
+  src="{{ 'coszus-product.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+<coszus-recommendations
+  class="coszus-recs"
+  data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ section.settings.limit }}&intent={{ section.settings.intent }}"
+  {% unless recommendations.performed and recommendations.products_count > 0 %}
+    hidden
+  {% endunless %}
+>
+  {%- if recommendations.performed and recommendations.products_count > 0 -%}
+    {%- capture image_roles -%}
+      {%- render 'coszus-image-roles' -%}
+    {%- endcapture -%}
+    <h2 class="coszus-section-heading coszus-recs__heading">{{ section.settings.heading | escape }}</h2>
+    <div class="coszus-recs__grid">
+      {%- for recommendation in recommendations.products -%}
+        {%- render 'coszus-product-card',
+          product: recommendation,
+          tags: true,
+          image_roles: image_roles,
+          sizes: '(min-width: 821px) calc((100vw - 84px) / 4), calc(42vw - 13px)'
+        -%}
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+</coszus-recommendations>
+
+{% stylesheet %}
+  .coszus-recs {
+    display: block;
+    padding: 56px var(--coszus-gutter, 24px) 40px;
+    color: var(--coszus-ink);
+  }
+
+  .coszus-recs[hidden] {
+    display: none;
+  }
+
+  .coszus-recs__heading {
+    margin-bottom: 22px;
+  }
+
+  .coszus-recs__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-recs {
+      padding: 40px 0 28px;
+    }
+
+    /* Headings share the page gutter; the card row uses the dense-grid gutter */
+    .coszus-recs__heading {
+      padding-inline: var(--coszus-gutter, 20px);
+    }
+
+    .coszus-recs__grid {
+      display: flex;
+      gap: 8px;
+      padding-inline: var(--coszus-gutter-dense, 16px);
+      overflow-x: auto;
+      /* Sideways only, as the product photos. touch-action says so up front, so iOS Safari hands a
+         sideways swipe that starts on a card to the row and an up-and-down one to the page. */
+      overflow-y: hidden;
+      overscroll-behavior-x: contain;
+      touch-action: pan-x pan-y;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--coszus-gutter-dense, 16px);
+      scrollbar-width: none;
+    }
+
+    .coszus-recs__grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    .coszus-recs__grid > * {
+      flex: 0 0 42%;
+      scroll-snap-align: start;
+      touch-action: pan-x pan-y;
+    }
+
+    /* Nothing on top of a card takes the touch: tags let it through to the card and the row */
+    .coszus-recs__grid .coszus-card__label,
+    .coszus-recs__grid img {
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus recommendations",
+  "class": "coszus-recs-section",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "You might also like"
+    },
+    {
+      "type": "select",
+      "id": "intent",
+      "label": "Products",
+      "options": [
+        { "value": "related", "label": "Related" },
+        { "value": "complementary", "label": "Complementary" }
+      ],
+      "default": "related",
+      "info": "Related: similar products. Complementary: pieces that go with it (set in Search & Discovery)."
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "Number of products",
+      "min": 2,
+      "max": 8,
+      "step": 1,
+      "default": 4
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus recommendations"
+    }
+  ]
+}
+{% endschema %}

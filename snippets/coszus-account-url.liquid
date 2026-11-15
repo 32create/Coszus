@@ -1,0 +1,33 @@
+{%- doc -%}
+  Outputs the right URL for an account link, so account links never hard-code a path or point at
+  the wrong page. /account, /account/login and /account/register become Shopify's routes (new
+  customer accounts sign-in when that's on), and a link titled Account, Sign in, Log in or Track my
+  order goes to the customer account whatever URL it was given (or with none). Anything else comes
+  back unchanged.
+
+  @param {string} [url] - The link's URL
+  @param {string} [title] - The link's text
+
+  @example
+  {%- capture link_url -%}{% render 'coszus-account-url', url: link.url, title: link.title %}{%- endcapture -%}
+{%- enddoc -%}
+
+{%- liquid
+  assign account_titles = 'account,my account,sign in,sign-in,log in,login,sign in / register,sign in or register,track my order,track order,my orders,orders' | split: ','
+  assign title_key = title | downcase | strip
+  assign path = url | split: '?' | first | split: '#' | first
+  case path
+    when '/account', '/account/'
+      echo routes.account_url
+    when '/account/login'
+      echo routes.account_login_url
+    when '/account/register'
+      echo routes.account_register_url
+    else
+      if account_titles contains title_key
+        echo routes.account_url
+      else
+        echo url
+      endif
+  endcase
+-%}

@@ -1,0 +1,605 @@
+{%- comment -%}
+  Coszus promo banner (docs/launch/black-friday.md). Built for Black Friday 2026, reusable for any
+  sale or drop. A full-width strip: Ink background, white Archivo Black headline, a subline, a
+  button and an optional countdown. Not in any template: place it in the theme editor, in the
+  header group (above or below the nav) or on a page.
+
+  Schedule: two date settings in UK time. Before "Show from" and after "Hide after" the section
+  renders nothing (server side). In the theme editor it always renders, with a note, so it can be
+  styled ahead of time. assets/coszus-promo-banner.js also hides it the minute "Hide after"
+  passes while a page is open.
+
+  Countdown: the digits are rendered here, in Liquid, so there is nothing to wait for and no layout
+  shift; the script only keeps them ticking (once a second, or once a minute with the seconds
+  hidden for visitors who ask for reduced motion) and swaps in the "done" text inside the same box.
+
+  Dates are text settings, "YYYY-MM-DD HH:MM". Shopify's date filter parses them in the shop's
+  timezone, DST included, and hands the text back unchanged when it can't read it (checked on the
+  store, 18 Oct 2026); that is how a bad value is caught. Shopify can cache a page for a few
+  minutes, so the show and hide times are accurate to about that.
+{%- endcomment -%}
+
+{%- liquid
+  assign now_ts = 'now' | date: '%s' | plus: 0
+
+  # Each date setting: 0 when blank, -1 when it can't be read, else unix seconds
+  assign countdown_raw = section.settings.countdown_to | strip
+  assign countdown_ts = 0
+  if countdown_raw != blank
+    assign parsed = countdown_raw | date: '%s'
+    if parsed == countdown_raw
+      assign countdown_ts = -1
+    else
+      assign countdown_ts = parsed | plus: 0
+    endif
+  endif
+
+  assign show_from_raw = section.settings.show_from | strip
+  assign show_from_ts = 0
+  if show_from_raw != blank
+    assign parsed = show_from_raw | date: '%s'
+    if parsed == show_from_raw
+      assign show_from_ts = -1
+    else
+      assign show_from_ts = parsed | plus: 0
+    endif
+  endif
+
+  assign hide_after_raw = section.settings.hide_after | strip
+  assign hide_after_ts = 0
+  if hide_after_raw != blank
+    assign parsed = hide_after_raw | date: '%s'
+    if parsed == hide_after_raw
+      assign hide_after_ts = -1
+    else
+      assign hide_after_ts = parsed | plus: 0
+    endif
+  endif
+
+  # Outside the schedule? '' = showing, 'before' = not yet, 'after' = over
+  assign scheduled_out = ''
+  if show_from_ts > 0 and now_ts < show_from_ts
+    assign scheduled_out = 'before'
+  endif
+  if hide_after_ts > 0 and now_ts > hide_after_ts
+    assign scheduled_out = 'after'
+  endif
+
+  assign show_countdown = false
+  if section.settings.show_countdown and countdown_ts > 0
+    assign show_countdown = true
+  endif
+  assign remaining = countdown_ts | minus: now_ts
+  if remaining < 0
+    assign remaining = 0
+  endif
+  assign cd_days = remaining | divided_by: 86400
+  assign cd_rest = remaining | modulo: 86400
+  assign cd_hours = cd_rest | divided_by: 3600
+  assign cd_rest = cd_rest | modulo: 3600
+  assign cd_minutes = cd_rest | divided_by: 60
+  assign cd_seconds = cd_rest | modulo: 60
+
+  # Button link: the setting, else the Sale collection from Theme settings, else all products
+  assign link = section.settings.link
+  if link == blank and settings.coszus_department_sale_collection != blank
+    assign link = settings.coszus_department_sale_collection.url
+  endif
+  if link == blank
+    assign link = routes.all_products_collection_url
+  endif
+
+  assign heading_font = section.settings.heading_font
+-%}
+
+{%- if scheduled_out == '' or request.design_mode -%}
+  <script
+    src="{{ 'coszus-promo-banner.js' | asset_url }}"
+    type="module"
+    fetchpriority="low"
+  ></script>
+
+  {%- if heading_font == 'wide' -%}
+    {%- comment -%} Same self-hosted file as the hero's campaign headlines {%- endcomment -%}
+    <style>
+      @font-face {
+        font-family: 'Coszus Archivo Wide';
+        src: url('{{ 'coszus-archivo-wide-black.woff2' | asset_url }}') format('woff2');
+        font-weight: 900;
+        font-style: normal;
+        font-display: swap;
+      }
+    </style>
+  {%- endif -%}
+
+  <coszus-promo-banner
+    class="coszus-promo coszus-promo--{{ section.settings.layout }} coszus-promo--font-{{ heading_font }}"
+    style="
+      --promo-background: {{ section.settings.background_color }};
+      --promo-foreground: {{ section.settings.text_color }};
+      --promo-button-background: {{ section.settings.button_background }};
+      --promo-button-foreground: {{ section.settings.button_text_color }};
+      --promo-padding: {{ section.settings.padding }}px;
+    "
+    {% if hide_after_ts > 0 %}
+      data-hide-after="{{ hide_after_ts }}"
+    {% endif %}
+  >
+    {%- if request.design_mode -%}
+      {%- comment -%} Editor only: where the schedule stands. Never rendered on the storefront. {%- endcomment -%}
+      {%- capture schedule_note -%}
+        {%- if show_from_ts == -1 or hide_after_ts == -1 or countdown_ts == -1 -%}
+          Check the date format: YYYY-MM-DD HH:MM, for example 2026-11-22 00:00.
+        {%- elsif scheduled_out == 'before' -%}
+          Scheduled: hidden on the site until {{ show_from_raw | date: '%a %-d %b, %H:%M' }}.
+        {%- elsif scheduled_out == 'after' -%}
+          Finished: hidden on the site since {{ hide_after_raw | date: '%a %-d %b, %H:%M' }}.
+        {%- elsif hide_after_ts > 0 -%}
+          Showing now, until {{ hide_after_raw | date: '%a %-d %b, %H:%M' }}.
+        {%- else -%}
+          Showing now, with no end date.
+        {%- endif -%}
+      {%- endcapture -%}
+      <p class="coszus-promo__note">{{ schedule_note | strip }}</p>
+    {%- endif -%}
+
+    <div class="coszus-promo__inner">
+      <div class="coszus-promo__copy">
+        {%- if section.settings.kicker != blank -%}
+          <p class="coszus-promo__kicker">{{ section.settings.kicker | escape }}</p>
+        {%- endif -%}
+        {%- if section.settings.heading != blank -%}
+          <h2 class="coszus-promo__heading">{{ section.settings.heading | escape }}</h2>
+        {%- endif -%}
+        {%- if section.settings.subline != blank -%}
+          <p class="coszus-promo__subline">{{ section.settings.subline | escape }}</p>
+        {%- endif -%}
+      </div>
+
+      {%- if show_countdown -%}
+        <coszus-countdown
+          class="coszus-promo__countdown"
+          data-end="{{ countdown_ts }}"
+          {% if remaining == 0 %}
+            data-done
+          {% endif %}
+          role="group"
+          aria-label="{{ section.settings.countdown_label | default: 'Countdown' | escape }}"
+        >
+          {%- if section.settings.countdown_label != blank -%}
+            <span class="coszus-promo__countdown-label" aria-hidden="true">
+              {{- section.settings.countdown_label | escape -}}
+            </span>
+          {%- endif -%}
+          <span class="coszus-promo__timer" aria-hidden="true">
+            <span class="coszus-promo__unit">
+              <span class="coszus-promo__value" data-unit="days">
+                {%- if cd_days < 10 %}0{% endif %}{{ cd_days -}}
+              </span>
+              <span class="coszus-promo__unit-label">Days</span>
+            </span>
+            <span class="coszus-promo__unit">
+              <span class="coszus-promo__value" data-unit="hours">{{ cd_hours | prepend: '0' | slice: -2, 2 }}</span>
+              <span class="coszus-promo__unit-label">Hrs</span>
+            </span>
+            <span class="coszus-promo__unit">
+              <span class="coszus-promo__value" data-unit="minutes">{{ cd_minutes | prepend: '0' | slice: -2, 2 }}</span>
+              <span class="coszus-promo__unit-label">Mins</span>
+            </span>
+            <span class="coszus-promo__unit coszus-promo__unit--seconds">
+              <span class="coszus-promo__value" data-unit="seconds">{{ cd_seconds | prepend: '0' | slice: -2, 2 }}</span>
+              <span class="coszus-promo__unit-label">Secs</span>
+            </span>
+          </span>
+          <span class="coszus-promo__done" aria-hidden="true">
+            {{- section.settings.countdown_done_text | escape -}}
+          </span>
+          <span class="visually-hidden" data-countdown-text>
+            {{- cd_days }} days, {{ cd_hours }} hours, {{ cd_minutes }} minutes
+          </span>
+        </coszus-countdown>
+      {%- endif -%}
+
+      {%- if section.settings.button_label != blank -%}
+        <a class="coszus-promo__button" href="{{ link }}">
+          {{- section.settings.button_label | escape -}}
+        </a>
+      {%- endif -%}
+    </div>
+  </coszus-promo-banner>
+{%- endif -%}
+
+{% stylesheet %}
+  .coszus-promo {
+    display: block;
+    position: relative;
+    width: 100%;
+    padding: var(--promo-padding) var(--coszus-gutter);
+    background: var(--promo-background);
+    color: var(--promo-foreground);
+    text-align: center;
+  }
+
+  .coszus-promo[hidden] {
+    display: none;
+  }
+
+  .coszus-promo__note {
+    margin: 0 0 12px;
+    padding: 6px 10px;
+    border: 1px dashed rgb(255 255 255 / 0.5);
+    border-radius: 4px;
+    font-family: var(--font-system--family);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .coszus-promo__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .coszus-promo__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .coszus-promo__kicker {
+    margin: 0;
+    font-family: var(--font-system--family);
+    font-size: var(--coszus-kicker-size);
+    font-weight: 500;
+    letter-spacing: var(--coszus-kicker-tracking);
+    line-height: 1.3;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  .coszus-promo__heading {
+    margin: 0;
+    color: inherit;
+    font-family: var(--font-accent--family);
+    font-style: var(--font-accent--style);
+    font-weight: var(--font-accent--weight);
+    font-size: clamp(28px, 3.4vw, 48px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .coszus-promo--font-wide .coszus-promo__heading {
+    font-family: 'Coszus Archivo Wide', var(--font-accent--family);
+    font-weight: 900;
+    font-size: clamp(24px, 2.9vw, 42px);
+    letter-spacing: -0.01em;
+  }
+
+  .coszus-promo__subline {
+    margin: 0;
+    font-family: var(--font-body--family);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    opacity: 0.85;
+  }
+
+  /* Countdown. Fixed-width digits and a fixed box height, so the ticking never moves anything */
+  .coszus-promo__countdown {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 58px;
+  }
+
+  .coszus-promo__countdown-label {
+    font-family: var(--font-system--family);
+    font-size: var(--coszus-kicker-size);
+    font-weight: 500;
+    letter-spacing: var(--coszus-kicker-tracking);
+    line-height: 1;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  .coszus-promo__timer {
+    display: flex;
+    gap: 14px;
+  }
+
+  .coszus-promo__unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 2.4em;
+  }
+
+  .coszus-promo__value {
+    font-family: var(--font-accent--family);
+    font-style: var(--font-accent--style);
+    font-weight: var(--font-accent--weight);
+    font-size: clamp(22px, 2.4vw, 32px);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .coszus-promo__unit-label {
+    font-family: var(--font-system--family);
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+
+  .coszus-promo__done {
+    display: none;
+    min-height: 40px;
+    font-family: var(--font-accent--family);
+    font-style: var(--font-accent--style);
+    font-weight: var(--font-accent--weight);
+    font-size: clamp(22px, 2.4vw, 32px);
+    line-height: 40px;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  .coszus-promo__countdown[data-done] .coszus-promo__timer {
+    display: none;
+  }
+
+  .coszus-promo__countdown[data-done] .coszus-promo__done {
+    display: block;
+  }
+
+  /* Button: the house spec (40px, 12px bold caps, 6px corners), white on Ink by default */
+  .coszus-promo__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 12px 24px;
+    border-radius: 6px;
+    background: var(--promo-button-background);
+    color: var(--promo-button-foreground);
+    font-family: var(--font-system--family);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1rem;
+    letter-spacing: normal;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: opacity var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-promo__button:hover {
+    opacity: 0.85;
+  }
+
+  .coszus-promo__button:focus-visible {
+    outline: var(--focus-outline-width, 2px) solid currentColor;
+    outline-offset: var(--focus-outline-offset, 2px);
+  }
+
+  /* Desktop row: copy left, countdown middle, button right */
+  @media screen and (min-width: 821px) {
+    .coszus-promo--row {
+      text-align: left;
+    }
+
+    .coszus-promo--row .coszus-promo__inner {
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 32px 48px;
+    }
+
+    .coszus-promo--row .coszus-promo__copy {
+      align-items: flex-start;
+      flex: 1 1 auto;
+    }
+
+    .coszus-promo--row .coszus-promo__countdown {
+      flex: 0 0 auto;
+    }
+
+    .coszus-promo--row .coszus-promo__button {
+      flex: 0 0 auto;
+    }
+  }
+
+  /* Reduced motion: no seconds, the script then updates once a minute */
+  @media (prefers-reduced-motion: reduce) {
+    .coszus-promo__unit--seconds {
+      display: none;
+    }
+
+    .coszus-promo__button {
+      transition: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus promo banner",
+  "tag": "section",
+  "class": "coszus-promo-section",
+  "enabled_on": {
+    "templates": ["*"],
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Full-width strip for a sale or a drop. Set the dates (UK time, YYYY-MM-DD HH:MM) and it shows and hides itself on the site; in the editor it always shows. How to run it: docs/launch/black-friday.md."
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker",
+      "info": "Small line above the headline. Optional."
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Headline",
+      "default": "Black Friday"
+    },
+    {
+      "type": "text",
+      "id": "subline",
+      "label": "Subline",
+      "default": "The sale starts Sunday 22 November"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Shop the sale"
+    },
+    {
+      "type": "url",
+      "id": "link",
+      "label": "Button link",
+      "info": "Blank goes to the Sale collection from Theme settings."
+    },
+    {
+      "type": "header",
+      "content": "Countdown"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_countdown",
+      "label": "Show countdown",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "countdown_to",
+      "label": "Count down to",
+      "default": "2026-11-22 00:00",
+      "info": "UK time, YYYY-MM-DD HH:MM. When it reaches zero the text below takes its place."
+    },
+    {
+      "type": "text",
+      "id": "countdown_label",
+      "label": "Label",
+      "default": "Starts in"
+    },
+    {
+      "type": "text",
+      "id": "countdown_done_text",
+      "label": "Text at zero",
+      "default": "Live now"
+    },
+    {
+      "type": "header",
+      "content": "Schedule"
+    },
+    {
+      "type": "text",
+      "id": "show_from",
+      "label": "Show from",
+      "info": "UK time, YYYY-MM-DD HH:MM. Blank shows it as soon as it's saved."
+    },
+    {
+      "type": "text",
+      "id": "hide_after",
+      "label": "Hide after",
+      "default": "2026-12-01 00:00",
+      "info": "UK time. Blank never hides it. Allow a few minutes either side for Shopify's page cache."
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Desktop layout",
+      "options": [
+        {
+          "value": "row",
+          "label": "One row: copy, countdown, button"
+        },
+        {
+          "value": "stacked",
+          "label": "Stacked and centred"
+        }
+      ],
+      "default": "row",
+      "info": "Phones always stack."
+    },
+    {
+      "type": "select",
+      "id": "heading_font",
+      "label": "Headline font",
+      "options": [
+        {
+          "value": "accent",
+          "label": "Archivo Black"
+        },
+        {
+          "value": "wide",
+          "label": "Archivo Wide Black (campaign)"
+        }
+      ],
+      "default": "accent"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#101010"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "Button",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text",
+      "default": "#101010"
+    },
+    {
+      "type": "range",
+      "id": "padding",
+      "label": "Top and bottom padding",
+      "min": 12,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 28
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus promo banner"
+    }
+  ]
+}
+{% endschema %}

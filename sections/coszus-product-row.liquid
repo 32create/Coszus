@@ -1,0 +1,567 @@
+{%- comment -%}
+  Coszus product row (docs/HANDOFF.md section 4.3 and 4.4). One section, two uses on the homepage:
+  - New In: a tab per department (Men / Women / Juniors), six across on desktop, drifting slowly
+    (pauses on hover, touch and keyboard focus; off for reduced motion). The header's department
+    switch picks the tab.
+  - Best Sellers: one collection in Shopify's real best-selling order, swipe row, "Shop all" link.
+
+  Best-selling order: Liquid can't sort a collection, so the row renders in the collection's own
+  order and assets/coszus-home.js swaps in /collections/<handle>?sort_by=best-selling, rendered
+  through this same section file (no blocks, so it uses the page's collection). Without JS the
+  collection order stays.
+{%- endcomment -%}
+
+{%- comment -%} Flat lay / model labels, captured once for every card in the row {%- endcomment -%}
+{%- capture image_roles -%}{%- render 'coszus-image-roles' -%}{%- endcapture -%}
+
+{%- liquid
+  assign tabs = section.blocks
+  assign limit = section.settings.limit
+  assign standalone = false
+  # Rendered on its own on a collection URL (the live best-selling fetch): use that collection
+  if tabs.size == 0 and collection != blank
+    assign standalone = true
+  endif
+
+  assign first_collection = tabs.first.settings.collection
+  assign live_url = ''
+  if section.settings.order == 'best_selling' and first_collection != blank and tabs.size == 1
+    assign live_url = first_collection.url | append: '?sort_by=best-selling&section_id=coszus-product-row'
+  endif
+
+  assign heading_id = 'CoszusRowHeading-' | append: section.id
+  assign label = ''
+  if section.settings.show_new_label
+    assign label = section.settings.new_label
+  endif
+-%}
+
+<script
+  src="{{ 'coszus-home.js' | asset_url }}"
+  type="module"
+></script>
+
+<coszus-product-row
+  class="coszus-row"
+  data-drift="{{ section.settings.drift }}"
+  data-speed="{{ section.settings.speed }}"
+  {% if live_url != blank %}
+    data-live-url="{{ live_url }}"
+  {% endif %}
+  style="
+    --row-padding-top: {{ section.settings.padding_top }}px;
+    --row-padding-bottom: {{ section.settings.padding_bottom }}px;
+  "
+>
+  {%- if standalone -%}
+    <div data-row-panel>
+      <div
+        class="coszus-row__track"
+        data-row-track
+      >
+        {%- for product in collection.products limit: limit -%}
+          <div
+            class="coszus-row__item"
+            role="listitem"
+          >
+            {%- render 'coszus-product-card', product: product, label: label, image_roles: image_roles -%}
+          </div>
+        {%- endfor -%}
+      </div>
+    </div>
+  {%- else -%}
+    <div class="coszus-row__head">
+      {%- if section.settings.heading != blank -%}
+        <h2
+          id="{{ heading_id }}"
+          class="coszus-section-heading"
+        >
+          {{ section.settings.heading | escape }}
+        </h2>
+      {%- endif -%}
+
+      {%- if tabs.size > 1 -%}
+        <div
+          class="coszus-row__tabs"
+          role="tablist"
+          {% if section.settings.heading != blank %}
+            aria-labelledby="{{ heading_id }}"
+          {% endif %}
+        >
+          {%- for block in tabs -%}
+            <button
+              type="button"
+              role="tab"
+              class="coszus-row__tab"
+              id="CoszusRowTab-{{ block.id }}"
+              aria-controls="CoszusRowPanel-{{ block.id }}"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              tabindex="{% if forloop.first %}0{% else %}-1{% endif %}"
+              data-department="{{ block.settings.department | default: block.settings.label | handleize }}"
+              {{ block.shopify_attributes }}
+            >
+              {{- block.settings.label | escape -}}
+            </button>
+          {%- endfor -%}
+        </div>
+      {%- elsif section.settings.link_label != blank -%}
+        {%- assign link = section.settings.link | default: first_collection.url | default: routes.all_products_collection_url -%}
+        <a
+          class="coszus-row__link"
+          href="{{ link }}"
+        >
+          {{- section.settings.link_label | escape -}}
+        </a>
+      {%- endif -%}
+    </div>
+
+    {%- for block in tabs -%}
+      {%- assign tab_collection = block.settings.collection -%}
+      <div
+        class="coszus-row__panel"
+        data-row-panel
+        {% if tabs.size > 1 %}
+          id="CoszusRowPanel-{{ block.id }}"
+          role="tabpanel"
+          aria-labelledby="CoszusRowTab-{{ block.id }}"
+          {% unless forloop.first %}
+            hidden
+          {% endunless %}
+        {% else %}
+          {{ block.shopify_attributes }}
+        {% endif %}
+      >
+        <div
+          class="coszus-row__track{% if section.settings.drift %} coszus-row__track--drift{% endif %}"
+          data-row-track
+          {% if section.settings.heading != blank %}
+            role="list"
+            aria-labelledby="{{ heading_id }}"
+          {% endif %}
+        >
+          {%- if tab_collection != blank and tab_collection.products_count > 0 -%}
+            {%- for product in tab_collection.products limit: limit -%}
+              {%- liquid
+                # Tabs whose collection isn't all new (e.g. Juniors shop all) label only products tagged "new"
+                assign card_label = label
+                if block.settings.label_rule == 'tagged'
+                  assign card_tags = product.tags | join: ',' | downcase | split: ','
+                  unless card_tags contains 'new'
+                    assign card_label = ''
+                  endunless
+                endif
+              -%}
+              <div
+                class="coszus-row__item"
+                role="listitem"
+              >
+                {%- render 'coszus-product-card', product: product, label: card_label, image_roles: image_roles -%}
+              </div>
+            {%- endfor -%}
+          {%- else -%}
+            {%- for i in (1..6) -%}
+              <div
+                class="coszus-row__item"
+                role="listitem"
+              >
+                <a
+                  class="coszus-card"
+                  href="{{ routes.all_products_collection_url }}"
+                >
+                  <span class="coszus-card__media">
+                    {{- 'product-apparel-1' | placeholder_svg_tag: 'coszus-card__image coszus-card__placeholder' -}}
+                  </span>
+                  <span class="coszus-card__meta">
+                    <span class="coszus-card__title">{{ 'coszus.choose_collection' | t }}</span>
+                  </span>
+                </a>
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endfor -%}
+  {%- endif -%}
+</coszus-product-row>
+
+{% stylesheet %}
+  .coszus-row {
+    display: block;
+    padding-block: var(--row-padding-top) var(--row-padding-bottom);
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+  }
+
+  .coszus-row__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-inline: var(--coszus-gutter);
+  }
+
+  .coszus-row__head .coszus-section-heading {
+    line-height: 1;
+  }
+
+  .coszus-row__tabs {
+    display: inline-flex;
+    gap: 36px;
+    border-bottom: 1px solid var(--coszus-line);
+  }
+
+  .coszus-row__tab {
+    position: relative;
+    margin: 0;
+    padding: 0 0 10px;
+    border: 0;
+    background: none;
+    color: var(--coszus-muted);
+    font-family: var(--font-subheading--family);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-row__tab:hover,
+  .coszus-row__tab[aria-selected='true'] {
+    color: var(--coszus-ink);
+  }
+
+  .coszus-row__tab[aria-selected='true']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: currentcolor;
+  }
+
+  .coszus-row__link {
+    color: var(--coszus-ink);
+    font-family: var(--font-subheading--family);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    white-space: nowrap;
+  }
+
+  .coszus-row__panel[hidden] {
+    display: none;
+  }
+
+  /* Six across on desktop: gutter, five 16px gaps, gutter */
+  .coszus-row__track {
+    --row-gap: 16px;
+    --row-columns: 6;
+
+    display: flex;
+    gap: var(--row-gap);
+    padding-inline: var(--coszus-gutter);
+    overflow-x: auto;
+    /* Sideways only: overflow-x: auto on its own makes overflow-y auto too, so a drag on a phone
+       could pull the row down. The page still scrolls past it. */
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--coszus-gutter);
+    scrollbar-width: none;
+  }
+
+  .coszus-row__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Drifting rows move by themselves; snapping would fight it */
+  .coszus-row__track--drift {
+    scroll-snap-type: none;
+  }
+
+  /*
+    The drift: once assets/coszus-home.js has copied the cards (data-looped), every card slides
+    left by one full set of cards, then repeats, so the copies take over with no jump. A transform
+    animation runs off the main thread; JS only adds .is-drifting while the row should move
+    (on screen, no hover, touch or focus). 100% here is the card's own width.
+  */
+  @keyframes coszus-row-drift {
+    to {
+      transform: translateX(calc(var(--drift-cards) * (-100% - var(--row-gap))));
+    }
+  }
+
+  .coszus-row__track[data-looped] > * {
+    animation: coszus-row-drift var(--drift-duration, 60s) linear infinite;
+    animation-play-state: paused;
+  }
+
+  .coszus-row__track[data-looped].is-drifting > * {
+    animation-play-state: running;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .coszus-row__track[data-looped] > * {
+      animation: none;
+    }
+  }
+
+  .coszus-row__track > * {
+    flex: 0 0 calc((100% - (var(--row-columns) - 1) * var(--row-gap)) / var(--row-columns));
+    min-width: 0;
+    scroll-snap-align: start;
+    touch-action: pan-x pan-y;
+  }
+
+  /* Tags and photos never take the touch from the card and the row */
+  .coszus-row__track .coszus-card__label,
+  .coszus-row__track img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-row__head {
+      margin-bottom: 20px;
+    }
+
+    .coszus-row__tabs {
+      gap: 24px;
+    }
+
+    /* 44px tall touch area; the negative margin keeps the line where it was */
+    .coszus-row__tab {
+      margin-top: -20px;
+      padding-top: 20px;
+      font-size: 0.75rem;
+    }
+
+    /* Three across with a peek of the fourth */
+    .coszus-row__track {
+      --row-gap: 8px;
+    }
+
+    .coszus-row__track > * {
+      flex-basis: 31%;
+    }
+  }
+
+  @media screen and (max-width: 420px) {
+    .coszus-row__head:has(.coszus-row__tabs) {
+      flex-wrap: wrap;
+      align-items: center;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus product row",
+  "tag": "section",
+  "class": "coszus-row-section",
+  "max_blocks": 4,
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "New In"
+    },
+    {
+      "type": "text",
+      "id": "link_label",
+      "label": "Link label",
+      "info": "Shows next to the heading when there's one collection (no tabs).",
+      "default": "Shop all"
+    },
+    {
+      "type": "url",
+      "id": "link",
+      "label": "Link",
+      "info": "Defaults to the collection."
+    },
+    {
+      "type": "select",
+      "id": "order",
+      "label": "Product order",
+      "options": [
+        {
+          "value": "collection",
+          "label": "Collection order"
+        },
+        {
+          "value": "best_selling",
+          "label": "Best selling (live)"
+        }
+      ],
+      "default": "collection",
+      "info": "Best selling works with one collection. It loads Shopify's best-selling order as the row comes into view."
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "Products per collection",
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "checkbox",
+      "id": "show_new_label",
+      "label": "Show label on cards",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "new_label",
+      "label": "Label",
+      "default": "New"
+    },
+    {
+      "type": "header",
+      "content": "Drift"
+    },
+    {
+      "type": "checkbox",
+      "id": "drift",
+      "label": "Drift slowly sideways",
+      "info": "Pauses on hover, touch and keyboard focus. Off for visitors who ask for reduced motion.",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "label": "Drift speed",
+      "min": 8,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "info": "Pixels per second.",
+      "default": 24
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 38
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection",
+      "name": "Collection",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Tab label",
+          "default": "Men"
+        },
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection"
+        },
+        {
+          "type": "text",
+          "id": "department",
+          "label": "Header department",
+          "info": "The header department that opens this tab (its name, e.g. Women). Defaults to the tab label."
+        },
+        {
+          "type": "select",
+          "id": "label_rule",
+          "label": "Card label",
+          "options": [
+            {
+              "value": "all",
+              "label": "Every product"
+            },
+            {
+              "value": "tagged",
+              "label": "Only products tagged \"new\""
+            }
+          ],
+          "default": "all",
+          "info": "When \"Show label on cards\" is on. Use \"Every product\" for a New In collection, and \"Only products tagged new\" for a collection with older stock in it."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus New In",
+      "settings": {
+        "heading": "New In",
+        "show_new_label": true,
+        "drift": true
+      },
+      "blocks": [
+        {
+          "type": "collection",
+          "settings": {
+            "label": "Men"
+          }
+        },
+        {
+          "type": "collection",
+          "settings": {
+            "label": "Women"
+          }
+        },
+        {
+          "type": "collection",
+          "settings": {
+            "label": "Juniors"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coszus Best Sellers",
+      "settings": {
+        "heading": "Best Sellers",
+        "order": "best_selling",
+        "padding_top": 8
+      },
+      "blocks": [
+        {
+          "type": "collection",
+          "settings": {
+            "label": "Best sellers"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

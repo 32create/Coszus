@@ -1,0 +1,132 @@
+{%- doc -%}
+  Coszus "Complete the set" card (HANDOFF section 6): the matching piece with its own size buttons,
+  each adding that size straight to the bag through Horizon's product-form-component (so the bag
+  drawer opens and the count updates, as on the main button). No size option: one Add button.
+
+  @param {product} partner - The matching product
+  @param {string} heading - "Complete the set", "Goes well with" or, on a set, "You might also like"
+  @param {string} section_id - The section ID
+
+  @example
+  {% render 'coszus-set-card', partner: partner, heading: heading, section_id: section.id %}
+{%- enddoc -%}
+
+{%- liquid
+  assign size_option = null
+  for option in partner.options_with_values
+    assign option_name = option.name | downcase
+    if option_name contains 'size'
+      assign size_option = option
+      break
+    endif
+  endfor
+  if size_option
+    assign size_key = 'option' | append: size_option.position
+  endif
+
+  assign form_id = 'CoszusSet-' | append: section_id | append: '-' | append: partner.id
+
+  assign image = partner.featured_image
+-%}
+
+<div
+  class="coszus-set"
+  data-mp-set
+>
+  <a
+    class="coszus-set__image"
+    href="{{ partner.url }}"
+    tabindex="-1"
+    aria-hidden="true"
+  >
+    {%- if image -%}
+      {{
+        image
+        | image_url: width: 200
+        | image_tag: widths: '100, 200', sizes: '48px', loading: 'lazy', alt: '', class: 'coszus-set__img'
+      }}
+    {%- endif -%}
+  </a>
+  <div class="coszus-set__body">
+    <span class="coszus-set__kicker">{{ heading | escape }}</span>
+    <a
+      class="coszus-set__title"
+      href="{{ partner.url }}"
+    >
+      {{- partner.title | escape -}}
+    </a>
+    <span class="coszus-set__meta">
+      {%- if partner.compare_at_price > partner.price -%}
+        <s class="coszus-set__compare">{{ partner.compare_at_price | money }}</s>
+      {%- endif -%}
+      {{- partner.price | money -}}
+    </span>
+
+    {%- if partner.available -%}
+      <product-form-component
+        class="coszus-set__form"
+        data-section-id="{{ section_id }}"
+        data-product-id="{{ partner.id }}"
+        on:submit="/handleSubmit"
+      >
+        <div
+          class="visually-hidden"
+          aria-live="assertive"
+          role="status"
+          aria-atomic="true"
+          ref="liveRegion"
+        ></div>
+        {%- form 'product', partner, id: form_id, novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+          <input
+            type="hidden"
+            name="id"
+            ref="variantId"
+            value="{{ partner.selected_or_first_available_variant.id }}"
+          >
+          <input
+            type="hidden"
+            name="quantity"
+            value="1"
+          >
+          <div
+            class="coszus-set__sizes"
+            role="group"
+            aria-label="{{ 'coszus.product.set_sizes' | t: product: partner.title | escape }}"
+          >
+            {%- if size_option -%}
+              {%- for variant in partner.variants -%}
+                <button
+                  type="button"
+                  class="coszus-set__size"
+                  data-mp-set-variant="{{ variant.id }}"
+                  aria-label="{{ 'coszus.product.set_add_size' | t: size: variant[size_key], product: partner.title | escape }}"
+                  {% unless variant.available %}
+                    disabled
+                  {% endunless %}
+                >
+                  {{- variant[size_key] -}}
+                </button>
+              {%- endfor -%}
+            {%- else -%}
+              <button
+                type="button"
+                class="coszus-set__size coszus-set__size--wide"
+                data-mp-set-variant="{{ partner.selected_or_first_available_variant.id }}"
+              >
+                {{- 'coszus.product.add_to_bag' | t -}}
+              </button>
+            {%- endif -%}
+          </div>
+        {%- endform -%}
+      </product-form-component>
+      <p
+        class="coszus-set__error"
+        role="alert"
+        data-mp-set-error
+        hidden
+      ></p>
+    {%- else -%}
+      <span class="coszus-set__meta">{{ 'coszus.product.sold_out' | t }}</span>
+    {%- endif -%}
+  </div>
+</div>

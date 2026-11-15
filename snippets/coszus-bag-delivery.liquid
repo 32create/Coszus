@@ -1,0 +1,96 @@
+{%- doc -%}
+  Free UK delivery bar at the top of the bag drawer (docs/HANDOFF.md section 3): yellow to green,
+  with a finish marker ("£79.99 / Free delivery") that fills green with a tick once reached.
+
+  Only for UK visitors paying in pounds: the threshold is a UK rate in GBP, so anyone else would
+  be shown a promise that doesn't apply to them. The threshold is a theme setting because Liquid
+  can't read shipping rates; keep it in step with Settings > Shipping and delivery.
+
+  Rendered inside `.cart-drawer__inner`, so Horizon's cart morph keeps it current.
+
+  @param {number} [free_delivery_threshold] - Pence, from snippets/coszus-free-delivery-threshold.liquid
+    (0 = doesn't apply). cart-drawer.liquid passes it; worked out here if not passed.
+
+  @example
+  {% render 'coszus-bag-delivery', free_delivery_threshold: free_delivery_threshold %}
+{%- enddoc -%}
+
+{%- liquid
+  if free_delivery_threshold == nil
+    capture free_delivery_threshold
+      render 'coszus-free-delivery-threshold'
+    endcapture
+  endif
+  assign threshold = free_delivery_threshold | strip | plus: 0
+  assign show_bar = false
+  if settings.coszus_free_delivery and threshold > 0
+    assign show_bar = true
+  endif
+-%}
+
+{%- if show_bar -%}
+  {%- liquid
+    assign total = cart.total_price
+    assign away = threshold | minus: total
+    assign reached = false
+    if away <= 0 and cart.item_count > 0
+      assign reached = true
+    endif
+    assign progress = total | times: 100 | divided_by: threshold
+    if progress > 100
+      assign progress = 100
+    endif
+
+    assign threshold_money = threshold | money
+    assign threshold_html = '<b>' | append: threshold_money | append: '</b>'
+    if cart.item_count == 0
+      assign message = settings.coszus_free_delivery_intro | escape | replace: '[amount]', threshold_html
+    elsif reached
+      assign message = settings.coszus_free_delivery_done | escape | prepend: '<b>' | append: '</b>'
+    else
+      assign away_html = away | money | prepend: '<b>' | append: '</b>'
+      assign message = settings.coszus_free_delivery_away | escape | replace: '[amount]', away_html
+    endif
+  -%}
+  <div
+    class="coszus-bag-delivery{% if reached %} coszus-bag-delivery--done{% endif %}"
+    style="--coszus-bag-progress: {{ progress }}%;"
+  >
+    <p class="coszus-bag-delivery__text">{{ message }}</p>
+    <div class="coszus-bag-delivery__track">
+      <div
+        class="coszus-bag-delivery__bar"
+        role="progressbar"
+        aria-label="{{ 'coszus.cart.free_delivery_progress' | t | escape }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ progress }}"
+      >
+        <span class="coszus-bag-delivery__fill"></span>
+      </div>
+      <span
+        class="coszus-bag-delivery__goal"
+        aria-hidden="true"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="12"
+          height="12"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          focusable="false"
+        >
+          <path d="M5 12.5l4.5 4.5L19 7.5"/>
+        </svg>
+      </span>
+    </div>
+    <p
+      class="coszus-bag-delivery__goal-label"
+      aria-hidden="true"
+    >
+      <b>{{ threshold_money }}</b>
+      <span>{{ settings.coszus_free_delivery_goal | escape }}</span>
+    </p>
+  </div>
+{%- endif -%}

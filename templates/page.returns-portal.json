@@ -1,0 +1,26 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "coszus-returns-portal",
+      "settings": {
+        "heading": "Returns & exchanges",
+        "text": "<p>Enter your order number and email to start a return or exchange.</p>",
+        "portal_url": "",
+        "help_label": "Read our returns policy",
+        "help_link": ""
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

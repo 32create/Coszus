@@ -1,0 +1,508 @@
+{%- comment -%}
+  Coszus Steal Their Style (docs/HANDOFF.md section 4.7). Community photos with + hotspots that open
+  a product card. "Tag @coszus to get featured" + Follow button below the photos.
+  Five across on desktop, one swipe row on mobile (where the card sits along the photo's bottom
+  edge so it never spills out of the row). Each photo is a block (up to 10) with up to two products;
+  a block with no photo is hidden on the live site.
+{%- endcomment -%}
+
+<script
+  src="{{ 'coszus-home.js' | asset_url }}"
+  type="module"
+></script>
+
+{%- liquid
+  # Looks with no photo don't show on the live site (the editor still shows a placeholder to fill)
+  assign look_count = 0
+  for block in section.blocks
+    if block.settings.image != blank or request.design_mode
+      assign look_count = look_count | plus: 1
+    endif
+  endfor
+-%}
+
+<div
+  class="coszus-sts"
+  {% if section.settings.anchor != blank %}
+    id="{{ section.settings.anchor | handleize }}"
+  {% endif %}
+  style="
+    --sts-padding-top: {{ section.settings.padding_top }}px;
+    --sts-padding-bottom: {{ section.settings.padding_bottom }}px;
+    --sts-columns: {{ look_count | at_least: 1 | at_most: 5 }};
+  "
+>
+  {%- if section.settings.heading != blank -%}
+    <div class="coszus-sts__head">
+      <h2 class="coszus-section-heading">{{ section.settings.heading | escape }}</h2>
+    </div>
+  {%- endif -%}
+
+  <div
+    class="coszus-sts__track{% if look_count > 5 %} coszus-sts__track--scroll{% endif %}"
+    role="list"
+  >
+    {%- for block in section.blocks -%}
+      {%- assign image = block.settings.image -%}
+      {%- if image == blank and request.design_mode == false -%}
+        {%- continue -%}
+      {%- endif -%}
+      <div
+        class="coszus-sts__photo"
+        role="listitem"
+        {{ block.shopify_attributes }}
+      >
+        {%- if image != blank -%}
+          {%- assign image_focal = 'object-position: ' | append: image.presentation.focal_point -%}
+          {{-
+            image
+            | image_url: width: 900
+            | image_tag:
+              widths: '300, 450, 600, 900',
+              sizes: '(min-width: 821px) calc(20vw - 10px), calc(44vw - 18px)',
+              loading: 'lazy',
+              alt: image.alt,
+              class: 'coszus-sts__image',
+              style: image_focal,
+              data-hotspot-image: true
+          -}}
+        {%- else -%}
+          {{- 'lifestyle-1' | placeholder_svg_tag: 'coszus-sts__image coszus-sts__placeholder' -}}
+        {%- endif -%}
+
+        {%- comment -%}
+          In the theme editor the dots are always there, so selecting this block can number them and
+          show a dashed dot for an empty product slot (see coszus-hotspot.liquid).
+        {%- endcomment -%}
+        {%- if block.settings.product_1 != blank
+          or block.settings.product_2 != blank
+          or request.design_mode
+        -%}
+          <coszus-hotspots
+            class="coszus-hotspots"
+            data-block-id="{{ block.id }}"
+            {% if image != blank %}
+              data-width="{{ image.width }}"
+              data-height="{{ image.height }}"
+            {% endif %}
+          >
+            {%- for i in (1..2) -%}
+              {%- liquid
+                assign key = 'product_' | append: i
+                assign x_key = 'x_' | append: i
+                assign y_key = 'y_' | append: i
+                assign hotspot_product = block.settings[key]
+              -%}
+              {%- if hotspot_product != blank -%}
+                {%- render 'coszus-hotspot',
+                  product: hotspot_product,
+                  x: block.settings[x_key],
+                  y: block.settings[y_key],
+                  id: block.id,
+                  index: i
+                -%}
+              {%- elsif request.design_mode -%}
+                <div
+                  class="coszus-hotspot coszus-hotspot--empty"
+                  data-hotspot
+                  data-x="{{ block.settings[x_key] }}"
+                  data-y="{{ block.settings[y_key] }}"
+                  style="--x: {{ block.settings[x_key] }}%; --y: {{ block.settings[y_key] }}%;"
+                >
+                  <span
+                    class="coszus-hotspot__toggle"
+                    aria-hidden="true"
+                  >
+                    <span class="coszus-hotspot__number">{{ i }}</span>
+                  </span>
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </coszus-hotspots>
+        {%- endif -%}
+      </div>
+    {%- endfor -%}
+  </div>
+
+  {%- if section.settings.caption != blank or section.settings.follow_label != blank -%}
+    <div class="coszus-sts__foot">
+      {%- if section.settings.caption != blank -%}
+        <span>{{ section.settings.caption }}</span>
+      {%- endif -%}
+      {%- if section.settings.follow_label != blank and section.settings.follow_link != blank -%}
+        <a
+          class="coszus-sts__follow"
+          href="{{ section.settings.follow_link }}"
+          target="_blank"
+          rel="noopener"
+        >
+          {{- section.settings.follow_label | escape -}}
+        </a>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+</div>
+
+{% stylesheet %}
+  .coszus-sts {
+    padding-block: var(--sts-padding-top) var(--sts-padding-bottom);
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+  }
+
+  .coszus-sts__head {
+    margin-bottom: 20px;
+    padding-inline: var(--coszus-gutter);
+  }
+
+  /* Up to five photos fill the row on desktop and the cards can spill over neighbours */
+  .coszus-sts__track {
+    display: grid;
+    grid-template-columns: repeat(var(--sts-columns), minmax(0, 1fr));
+    margin-inline: var(--coszus-gutter);
+  }
+
+  .coszus-sts__track--scroll {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .coszus-sts__track--scroll .coszus-sts__photo {
+    flex: 0 0 20%;
+  }
+
+  /* Each photo stacks its own dots, so an open card sits over the next photo's dots too */
+  .coszus-sts__photo {
+    position: relative;
+    z-index: 0;
+    aspect-ratio: 1;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-sts__photo:has(.is-open) {
+    z-index: 1;
+  }
+
+  .coszus-sts__image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .coszus-sts__placeholder {
+    fill: var(--coszus-concrete);
+    opacity: 0.4;
+  }
+
+  .coszus-sts__foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 18px;
+    padding-inline: var(--coszus-gutter);
+    color: var(--coszus-muted);
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  .coszus-sts__foot p {
+    display: inline;
+    margin: 0;
+  }
+
+  .coszus-sts__foot a:not(.coszus-sts__follow) {
+    color: inherit;
+  }
+
+  .coszus-sts__follow {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 14px;
+    border: 1px solid var(--coszus-ink);
+    border-radius: var(--style-border-radius-buttons-primary, 6px);
+    color: var(--coszus-ink);
+    font-family: var(--font-system--family);
+    font-size: var(--coszus-kicker-size);
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition:
+      background-color var(--coszus-motion-fast) ease,
+      color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-sts__follow:hover {
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-sts {
+      padding-top: min(var(--sts-padding-top), 32px);
+      padding-bottom: min(var(--sts-padding-bottom), 24px);
+    }
+
+    .coszus-sts__head {
+      margin-bottom: 14px;
+    }
+
+    /* One swipe row */
+    .coszus-sts__track,
+    .coszus-sts__track--scroll {
+      display: flex;
+      gap: 6px;
+      margin: 0;
+      padding-inline: var(--coszus-gutter);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--coszus-gutter);
+      scrollbar-width: none;
+    }
+
+    .coszus-sts__track::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Wide enough for the product card along the bottom, with the next photo peeking in */
+    .coszus-sts__photo,
+    .coszus-sts__track--scroll .coszus-sts__photo {
+      flex: 0 0 44%;
+      scroll-snap-align: start;
+    }
+
+    /* The card sits along the bottom edge of the photo, inside it, so it never spills out of the row */
+    .coszus-sts .coszus-hotspot[data-side] .coszus-hotspot__card {
+      --card-nudge: 6px;
+
+      top: auto;
+      bottom: 4px;
+      left: 4px;
+      right: 4px;
+      gap: 6px;
+      width: auto;
+      min-width: 0;
+      max-width: none;
+      padding: 4px;
+      translate: none;
+      transform-origin: center bottom;
+    }
+
+    .coszus-sts .coszus-hotspot__image {
+      width: 28px;
+      height: 35px;
+    }
+
+    .coszus-sts .coszus-hotspot__text {
+      gap: 1px;
+      font-size: 0.625rem;
+    }
+
+    .coszus-sts .coszus-hotspot__title {
+      letter-spacing: 0.01em;
+    }
+
+    .coszus-sts .coszus-hotspot__go {
+      width: 22px;
+      height: 22px;
+    }
+
+    .coszus-sts .coszus-hotspot__go svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .coszus-sts__foot {
+      gap: 10px;
+      margin-top: 14px;
+      font-size: var(--coszus-kicker-size);
+    }
+
+    .coszus-sts__follow {
+      position: relative;
+      height: 26px;
+      padding: 0 10px;
+    }
+
+    /* 44px tall tap area around the 26px pill */
+    .coszus-sts__follow::before {
+      content: '';
+      position: absolute;
+      inset: -9px 0;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus steal their style",
+  "tag": "section",
+  "class": "coszus-sts-section",
+  "max_blocks": 10,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Each photo is a block. Select one to swap the photo, pick its products and move their dots. Five sit in a row on desktop; on mobile they swipe."
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Steal Their Style"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "caption",
+      "label": "Caption",
+      "default": "Tag @coszus to get featured"
+    },
+    {
+      "type": "text",
+      "id": "follow_label",
+      "label": "Follow button",
+      "default": "Follow"
+    },
+    {
+      "type": "url",
+      "id": "follow_link",
+      "label": "Follow link"
+    },
+    {
+      "type": "text",
+      "id": "anchor",
+      "label": "Link anchor",
+      "info": "Lets links jump here, e.g. /#steal-their-style",
+      "default": "steal-their-style"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 22
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 48
+    }
+  ],
+  "blocks": [
+    {
+      "type": "photo",
+      "name": "Photo",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "To swap a photo: pick a new one below, choose the products, then move each dot onto the garment. While this photo is selected, its dots are numbered 1 and 2 on the preview."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Photo: square, at least 1000px",
+          "info": "Shown square. Other shapes are cropped around the photo's focal point (Edit image > focal point; set it on the face so heads stay in), and the dots stay on the right spot. No photo: the look is hidden."
+        },
+        {
+          "type": "header",
+          "content": "Product 1",
+          "info": "Leave a product empty to hide its dot."
+        },
+        {
+          "type": "product",
+          "id": "product_1",
+          "label": "Product 1"
+        },
+        {
+          "type": "range",
+          "id": "x_1",
+          "label": "Product 1 dot: across",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50,
+          "info": "0 is the left edge, 100 the right."
+        },
+        {
+          "type": "range",
+          "id": "y_1",
+          "label": "Product 1 dot: down",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 35,
+          "info": "0 is the top, 100 the bottom."
+        },
+        {
+          "type": "header",
+          "content": "Product 2"
+        },
+        {
+          "type": "product",
+          "id": "product_2",
+          "label": "Product 2"
+        },
+        {
+          "type": "range",
+          "id": "x_2",
+          "label": "Product 2 dot: across",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50,
+          "info": "0 is the left edge, 100 the right."
+        },
+        {
+          "type": "range",
+          "id": "y_2",
+          "label": "Product 2 dot: down",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 75,
+          "info": "0 is the top, 100 the bottom."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus steal their style",
+      "blocks": [
+        {
+          "type": "photo"
+        },
+        {
+          "type": "photo"
+        },
+        {
+          "type": "photo"
+        },
+        {
+          "type": "photo"
+        },
+        {
+          "type": "photo"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

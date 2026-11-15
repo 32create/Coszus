@@ -1,0 +1,245 @@
+{%- doc -%}
+  One filter group in the Coszus collection filter drawer (sections/coszus-collection.liquid).
+  Search & Discovery filters: "size" filters as size boxes, colour filters as swatch pills,
+  price as bands, everything else as checkboxes.
+
+  @param {object} filter - A collection filter
+  @param {boolean} open_by_default - Whether the group starts open
+  @param {string} price_bands - Comma-separated price split points in pounds, e.g. "30, 50"
+  @param {string} section_id - The section ID
+
+  @example
+  {% render 'coszus-filter-group', filter: filter, open_by_default: true, price_bands: '30, 50', section_id: section.id %}
+{%- enddoc -%}
+
+{%- liquid
+  assign filter_open = false
+  if open_by_default
+    assign filter_open = true
+  endif
+  if filter.active_values.size > 0 or filter.min_value.value != null or filter.max_value.value != null
+    assign filter_open = true
+  endif
+
+  assign filter_label_lower = filter.label | downcase
+  assign has_swatches = false
+  if filter.presentation == 'swatch'
+    assign has_swatches = true
+  else
+    for value in filter.values
+      if value.swatch
+        assign has_swatches = true
+        break
+      endif
+    endfor
+  endif
+  if filter_label_lower contains 'colour' or filter_label_lower contains 'color'
+    assign has_swatches = true
+  endif
+-%}
+<details
+  class="coszus-filter__group"
+  {% if filter_open %}
+    open
+  {% endif %}
+>
+  <summary>{{ filter.label }}</summary>
+  {%- case filter.type -%}
+    {%- when 'price_range' -%}
+      {%- liquid
+        assign bands = price_bands | split: ','
+        assign current_min = filter.min_value.value
+        assign current_max = filter.max_value.value
+        assign band_active = false
+      -%}
+      <div class="coszus-filter__options coszus-filter__options--list">
+        <input
+          type="hidden"
+          name="{{ filter.min_value.param_name }}"
+          value="{% if current_min != null %}{{ current_min | divided_by: 100.0 }}{% endif %}"
+          data-mc-price="gte"
+        >
+        <input
+          type="hidden"
+          name="{{ filter.max_value.param_name }}"
+          value="{% if current_max != null %}{{ current_max | divided_by: 100.0 }}{% endif %}"
+          data-mc-price="lte"
+        >
+        {%- assign previous = 0 -%}
+        {%- for band in bands -%}
+          {%- liquid
+            assign upper = band | strip | plus: 0
+            if upper <= previous
+              continue
+            endif
+            assign upper_cents = upper | times: 100
+            assign lower_cents = previous | times: 100
+            assign lte = upper_cents | minus: 1
+            assign checked = false
+            if previous == 0
+              if current_min == null and current_max == lte
+                assign checked = true
+              endif
+              assign upper_money = upper_cents | money_without_trailing_zeros | strip_html
+              assign band_label = 'coszus.collection.price_under' | t: price: upper_money
+            else
+              if current_min == lower_cents and current_max == lte
+                assign checked = true
+              endif
+              assign lower_money = lower_cents | money_without_trailing_zeros | strip_html
+              assign upper_money = upper_cents | money_without_trailing_zeros | strip_html
+              assign band_label = 'coszus.collection.price_between' | t: min: lower_money, max: upper_money
+            endif
+            if checked
+              assign band_active = true
+            endif
+          -%}
+          <label class="coszus-filter__check">
+            <input
+              type="radio"
+              name="coszus-price-{{ section_id }}"
+              {% if previous > 0 %}
+                data-gte="{{ previous }}"
+              {% endif %}
+              data-lte="{{ lte | divided_by: 100.0 }}"
+              {% if checked %}
+                checked
+              {% endif %}
+            >
+            <span>{{ band_label }}</span>
+          </label>
+          {%- assign previous = upper -%}
+        {%- endfor -%}
+        {%- if previous > 0 -%}
+          {%- liquid
+            assign lower_cents = previous | times: 100
+            assign checked = false
+            if current_min == lower_cents and current_max == null
+              assign checked = true
+              assign band_active = true
+            endif
+            assign lower_money = lower_cents | money_without_trailing_zeros | strip_html
+          -%}
+          <label class="coszus-filter__check">
+            <input
+              type="radio"
+              name="coszus-price-{{ section_id }}"
+              data-gte="{{ previous }}"
+              {% if checked %}
+                checked
+              {% endif %}
+            >
+            <span>{{ 'coszus.collection.price_over' | t: price: lower_money }}</span>
+          </label>
+        {%- endif -%}
+        <label class="coszus-filter__check">
+          <input
+            type="radio"
+            name="coszus-price-{{ section_id }}"
+            {% if band_active == false %}
+              checked
+            {% endif %}
+          >
+          <span>{{ 'coszus.collection.price_any' | t }}</span>
+        </label>
+      </div>
+
+    {%- when 'boolean' -%}
+      <div class="coszus-filter__options coszus-filter__options--list">
+        {%- for value in filter.values -%}
+          {%- if value.value != '1' and value.value != 'true' -%}
+            {%- continue -%}
+          {%- endif -%}
+          <label class="coszus-filter__check">
+            <input
+              type="checkbox"
+              name="{{ value.param_name }}"
+              value="{{ value.value }}"
+              {% if value.active %}
+                checked
+              {% endif %}
+              {% if value.count == 0 and value.active == false %}
+                disabled
+              {% endif %}
+            >
+            <span>{{ filter.label }}</span>
+          </label>
+        {%- endfor -%}
+      </div>
+
+    {%- else -%}
+      {%- if has_swatches -%}
+        <div class="coszus-filter__options coszus-filter__options--colours">
+          {%- for value in filter.values -%}
+            {%- liquid
+              if value.swatch.image
+                assign dot = value.swatch.image | image_url: width: 40 | prepend: 'url(' | append: ') center / cover'
+              elsif value.swatch.color
+                assign dot = value.swatch.color
+              else
+                assign dot = value.label | downcase | remove: ' ' | remove: '-'
+              endif
+            -%}
+            <label class="coszus-filter__pill">
+              <input
+                class="coszus-filter__input"
+                type="checkbox"
+                name="{{ value.param_name }}"
+                value="{{ value.value }}"
+                {% if value.active %}
+                  checked
+                {% endif %}
+                {% if value.count == 0 and value.active == false %}
+                  disabled
+                {% endif %}
+              >
+              <i
+                style="background: {{ dot }};"
+                aria-hidden="true"
+              ></i>
+              <span>{{ value.label }}</span>
+            </label>
+          {%- endfor -%}
+        </div>
+      {%- elsif filter_label_lower contains 'size' -%}
+        <div class="coszus-filter__options coszus-filter__options--sizes">
+          {%- for value in filter.values -%}
+            <label class="coszus-filter__size">
+              <input
+                class="coszus-filter__input"
+                type="checkbox"
+                name="{{ value.param_name }}"
+                value="{{ value.value }}"
+                {% if value.active %}
+                  checked
+                {% endif %}
+                {% if value.count == 0 and value.active == false %}
+                  disabled
+                {% endif %}
+              >
+              <span>{{ value.label }}</span>
+            </label>
+          {%- endfor -%}
+        </div>
+      {%- else -%}
+        <div class="coszus-filter__options coszus-filter__options--list">
+          {%- for value in filter.values -%}
+            <label class="coszus-filter__check">
+              <input
+                type="checkbox"
+                name="{{ value.param_name }}"
+                value="{{ value.value }}"
+                {% if value.active %}
+                  checked
+                {% endif %}
+                {% if value.count == 0 and value.active == false %}
+                  disabled
+                {% endif %}
+              >
+              <span>{{ value.label }}</span>
+            </label>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+  {%- endcase -%}
+</details>

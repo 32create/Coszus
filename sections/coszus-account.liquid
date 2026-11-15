@@ -1,0 +1,662 @@
+{%- comment -%}
+  Coszus Account page (docs/HANDOFF.md section 7).
+
+  The store uses Shopify's new customer accounts: sign in (email code or Shop), order pages,
+  addresses and profile editing are hosted by Shopify, not the theme, and are styled in
+  Settings > Customer accounts / the checkout editor. This page is the Coszus front door to them:
+
+  - Signed out: Sign in (to Shopify's sign-in page), Sign in with Shop, and the New here? panel.
+  - Signed in: Hi [name], the Coszus Rewards card, and tabs for Overview, Orders, Addresses and
+    My details, read from the signed-in customer. Changes link through to Shopify's account pages.
+
+  Points balance comes from Smile through assets/coszus-smile.js (Smile.customerPointsWallet.get(),
+  needs the JavaScript SDK on in Smile Admin): it fires `coszus:points` on document and the card
+  fills itself (assets/coszus-pages.js). Anything else that sets `window.CoszusPoints` or fires
+  the event works too. Until then the card shows the earning rate. Smile has no VIP
+  tiers, so the card has no tier.
+{%- endcomment -%}
+
+{%- liquid
+  assign rate = settings.coszus_points_per_pound | default: 1
+  comment
+    "[rate] points" reads "1 point" when the rate is 1, so copy can say "[rate] points per £1".
+  endcomment
+  assign rate_points = rate | append: ' points'
+  if rate == 1
+    assign rate_points = '1 point'
+  endif
+  assign wishlist_url = section.settings.wishlist_link | default: '/pages/wishlist'
+  assign points_url = section.settings.points_link | default: '/pages/coszus-points'
+  assign account_url = routes.account_url
+
+  if section.settings.coin
+    assign coin_url = section.settings.coin | image_url: width: 240
+  else
+    assign coin_url = 'coszus-points-coin-medium.gif' | asset_url
+  endif
+
+  assign birthday = ''
+  if customer
+    for tag in customer.tags
+      if tag contains 'birthday:'
+        assign birthday = tag | remove_first: 'birthday:' | replace: '-', ' / '
+        break
+      endif
+    endfor
+  endif
+-%}
+
+<script
+  src="{{ 'coszus-pages.js' | asset_url }}"
+  type="module"
+></script>
+<noscript>
+  <style>
+    /* No JavaScript: every panel shows, spaced out */
+    .coszus-tabs:not(.is-ready) .coszus-tabs__panel + .coszus-tabs__panel {
+      display: block;
+      margin-top: 48px;
+    }
+  </style>
+</noscript>
+
+<div class="coszus-page coszus-account">
+  {%- if customer == null -%}
+    <div class="coszus-account__out">
+      <div class="coszus-account__col">
+        <h1 class="coszus-section-heading coszus-page__title">{{ section.settings.sign_in_heading | escape }}</h1>
+        <p class="coszus-page__sub">{{ section.settings.sign_in_text | escape }}</p>
+        <a
+          class="button coszus-account__wide"
+          href="{{ routes.account_login_url }}"
+        >
+          {{- section.settings.sign_in_button | escape -}}
+        </a>
+        {%- if section.settings.show_shop_login -%}
+          <div
+            class="coszus-account__or"
+            aria-hidden="true"
+          >
+            <span>{{ 'coszus.or' | t }}</span>
+          </div>
+          <div class="coszus-account__shop">{{ shop | login_button }}</div>
+        {%- endif -%}
+      </div>
+      <div class="coszus-account__col coszus-account__new">
+        <h2 class="coszus-section-heading">{{ section.settings.new_heading | escape }}</h2>
+        <p class="coszus-page__sub">{{ section.settings.new_text | escape }}</p>
+        {%- assign perks = section.settings.new_perks | newline_to_br | split: '<br />' -%}
+        <ul class="coszus-tick">
+          {%- for perk in perks -%}
+            {%- assign perk = perk | strip -%}
+            {%- if perk != blank -%}
+              <li>{{ perk | escape }}</li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ul>
+        <a
+          class="button-secondary"
+          href="{{ routes.account_register_url }}"
+        >
+          {{- section.settings.new_button | escape -}}
+        </a>
+      </div>
+    </div>
+  {%- else -%}
+    <div class="coszus-account__top">
+      <div>
+        <p class="coszus-kicker">{{ section.settings.kicker | escape }}</p>
+        <h1 class="coszus-section-heading coszus-page__title">
+          {%- if customer.first_name != blank -%}
+            {{ 'content.account_title_personalized' | t: first_name: customer.first_name }}
+          {%- else -%}
+            {{ section.settings.kicker | escape }}
+          {%- endif -%}
+        </h1>
+      </div>
+      <a
+        class="coszus-link coszus-account__sign-out"
+        href="{{ routes.account_logout_url }}"
+      >
+        {{- 'coszus.account.sign_out' | t -}}
+      </a>
+    </div>
+
+    <coszus-tabs class="coszus-tabs coszus-account__tabs">
+      <nav
+        class="coszus-tabs__nav"
+        aria-label="{{ section.settings.kicker | escape }}"
+      >
+        <a
+          class="coszus-tabs__link"
+          href="#overview"
+          data-tab-link
+        >
+          {{- 'coszus.account.overview' | t -}}
+        </a>
+        <a
+          class="coszus-tabs__link"
+          href="#orders"
+          data-tab-link
+        >
+          {{- 'coszus.account.orders' | t -}}
+        </a>
+        <a
+          class="coszus-tabs__link"
+          href="#addresses"
+          data-tab-link
+        >
+          {{- 'coszus.account.addresses' | t -}}
+        </a>
+        <a
+          class="coszus-tabs__link"
+          href="#details"
+          data-tab-link
+        >
+          {{- 'coszus.account.details' | t -}}
+        </a>
+        {%- if settings.wishlist_enabled -%}
+          <a
+            class="coszus-tabs__link"
+            href="{{ wishlist_url }}"
+          >
+            {{- 'coszus.wishlist' | t -}}
+          </a>
+        {%- endif -%}
+        {%- if points_url != blank -%}
+          <a
+            class="coszus-tabs__link"
+            href="{{ points_url }}"
+          >
+            {{- 'coszus.points' | t -}}
+          </a>
+        {%- endif -%}
+      </nav>
+
+      <div class="coszus-tabs__main">
+        <div
+          class="coszus-tabs__panel"
+          id="overview"
+          tabindex="-1"
+          data-tab-panel
+        >
+          <h2 class="visually-hidden">{{ 'coszus.account.overview' | t }}</h2>
+          <coszus-points-card
+            class="coszus-points-card"
+            data-points-text-template="{{ section.settings.points_balance_text | escape }}"
+          >
+            <img
+              class="coszus-points-card__coin"
+              src="{{ coin_url }}"
+              alt=""
+              width="84"
+              height="84"
+              loading="lazy"
+            >
+            <div class="coszus-points-card__body">
+              <p class="coszus-kicker">{{ 'coszus.points' | t }}</p>
+              <p
+                class="coszus-points-card__balance"
+                data-points-balance
+                hidden
+              ></p>
+              <div
+                class="coszus-points-card__bar"
+                data-points-bar
+                hidden
+              >
+                <i></i>
+              </div>
+              <p
+                class="coszus-points-card__text"
+                data-points-text
+              >
+                {{ section.settings.points_text | replace: '[rate] points', rate_points | replace: '[rate]', rate | escape }}
+              </p>
+            </div>
+            {%- if points_url != blank -%}
+              <a
+                class="button-secondary coszus-button-sm"
+                href="{{ points_url }}"
+              >
+                {{- section.settings.points_button | escape -}}
+              </a>
+            {%- endif -%}
+          </coszus-points-card>
+
+          <h3 class="coszus-account__subheading">{{ 'coszus.account.recent_orders' | t }}</h3>
+          {%- if customer.orders_count > 0 -%}
+            {%- for order in customer.orders limit: 3 -%}
+              {%- render 'coszus-account-order', order: order -%}
+            {%- endfor -%}
+            <p class="coszus-account__more">
+              <a
+                class="coszus-link"
+                href="#orders"
+              >
+                {{- 'coszus.account.all_orders' | t -}}
+              </a>
+            </p>
+          {%- else -%}
+            <p class="coszus-page__sub">{{ 'coszus.account.no_orders' | t }}</p>
+            <a
+              class="button"
+              href="{{ routes.all_products_collection_url }}"
+            >
+              {{- 'coszus.shop_now' | t -}}
+            </a>
+          {%- endif -%}
+        </div>
+
+        <div
+          class="coszus-tabs__panel"
+          id="orders"
+          tabindex="-1"
+          data-tab-panel
+        >
+          <h2 class="coszus-account__subheading">{{ 'coszus.account.orders' | t }}</h2>
+          {%- if customer.orders_count > 0 -%}
+            {%- for order in customer.orders limit: 20 -%}
+              {%- render 'coszus-account-order', order: order -%}
+            {%- endfor -%}
+            <p class="coszus-account__more">
+              <a
+                class="coszus-link"
+                href="{{ account_url }}"
+              >
+                {{- 'coszus.account.manage_orders' | t -}}
+              </a>
+            </p>
+          {%- else -%}
+            <p class="coszus-page__sub">{{ 'coszus.account.no_orders' | t }}</p>
+          {%- endif -%}
+        </div>
+
+        <div
+          class="coszus-tabs__panel"
+          id="addresses"
+          tabindex="-1"
+          data-tab-panel
+        >
+          <h2 class="coszus-account__subheading">{{ 'coszus.account.addresses' | t }}</h2>
+          {%- if customer.addresses_count > 0 -%}
+            <div class="coszus-account__addresses">
+              {%- for address in customer.addresses -%}
+                <div class="coszus-box">
+                  {%- if address == customer.default_address -%}
+                    <b>{{ 'coszus.account.default_address' | t }}</b>
+                  {%- endif -%}
+                  <p>{{ address | format_address }}</p>
+                </div>
+              {%- endfor -%}
+            </div>
+          {%- else -%}
+            <p class="coszus-page__sub">{{ 'coszus.account.no_addresses' | t }}</p>
+          {%- endif -%}
+          <a
+            class="button-secondary coszus-button-sm"
+            href="{{ account_url }}"
+          >
+            {{- 'coszus.account.manage_addresses' | t -}}
+          </a>
+        </div>
+
+        <div
+          class="coszus-tabs__panel"
+          id="details"
+          tabindex="-1"
+          data-tab-panel
+        >
+          <h2 class="coszus-account__subheading">{{ 'coszus.account.details' | t }}</h2>
+          <dl class="coszus-account__details">
+            <div>
+              <dt>{{ 'coszus.account.name' | t }}</dt>
+              <dd>{{ customer.name | default: '–' | escape }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'coszus.account.email' | t }}</dt>
+              <dd>{{ customer.email | default: '–' | escape }}</dd>
+            </div>
+            {%- if customer.phone != blank -%}
+              <div>
+                <dt>{{ 'coszus.account.phone' | t }}</dt>
+                <dd>{{ customer.phone | escape }}</dd>
+              </div>
+            {%- endif -%}
+            {%- if birthday != blank -%}
+              <div>
+                <dt>{{ 'coszus.account.birthday' | t }}</dt>
+                <dd>{{ birthday | escape }}</dd>
+              </div>
+            {%- endif -%}
+          </dl>
+          <a
+            class="button-secondary coszus-button-sm"
+            href="{{ account_url }}"
+          >
+            {{- 'coszus.account.edit_details' | t -}}
+          </a>
+        </div>
+      </div>
+    </coszus-tabs>
+  {%- endif -%}
+</div>
+
+{% stylesheet %}
+  /* Signed out */
+  .coszus-account__out {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    max-width: 960px;
+  }
+
+  .coszus-account__col {
+    max-width: 420px;
+  }
+
+  .coszus-account__new {
+    align-self: start;
+    padding: 32px;
+    border-radius: 8px;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-account__new .coszus-section-heading {
+    margin-bottom: 10px;
+  }
+
+  .coszus-account__wide {
+    width: 100%;
+  }
+
+  .coszus-account__or {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0;
+    font-size: 0.75rem;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-account__or::before,
+  .coszus-account__or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--coszus-line);
+  }
+
+  /* Shop's own button: Shop's colours can't be changed, only its size */
+  .coszus-account__shop {
+    width: 100%;
+  }
+
+  /* Signed in */
+  .coszus-account__top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+
+  .coszus-account__top .coszus-kicker {
+    margin: 0 0 10px;
+  }
+
+  .coszus-account__sign-out {
+    font-size: 0.8125rem;
+  }
+
+  .coszus-account__tabs {
+    margin-top: 0;
+  }
+
+  .coszus-account__subheading {
+    margin: 28px 0 12px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .coszus-tabs__panel > .coszus-account__subheading:first-child {
+    margin-top: 0;
+  }
+
+  .coszus-account__more {
+    margin: 16px 0 0;
+    font-size: 0.8125rem;
+  }
+
+  .coszus-points-card {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 24px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--coszus-ink), var(--coszus-petrol));
+    color: var(--coszus-paper);
+  }
+
+  .coszus-points-card__coin {
+    flex: none;
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+  }
+
+  .coszus-points-card__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .coszus-points-card .coszus-kicker {
+    margin: 0 0 8px;
+    color: rgb(255 255 255 / 0.75);
+  }
+
+  .coszus-points-card__balance {
+    margin: 0 0 10px;
+    font-size: 2.375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .coszus-points-card__balance span {
+    font-size: 0.875rem;
+    font-weight: 400;
+    opacity: 0.75;
+  }
+
+  .coszus-points-card__bar {
+    max-width: 320px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: rgb(255 255 255 / 0.2);
+  }
+
+  .coszus-points-card__bar i {
+    display: block;
+    width: var(--points-progress, 0%);
+    height: 100%;
+    background: var(--coszus-progress-gradient);
+  }
+
+  .coszus-points-card__text {
+    margin: 8px 0 0;
+    font-size: 0.8125rem;
+    opacity: 0.85;
+  }
+
+  .coszus-points-card [hidden] {
+    display: none;
+  }
+
+  .coszus-account__addresses {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .coszus-account__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+    max-width: 640px;
+    margin: 0 0 22px;
+  }
+
+  .coszus-account__details dt {
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .coszus-account__details dd {
+    margin: 0;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-account__out {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 28px;
+    }
+
+    .coszus-account__new {
+      padding: 22px;
+    }
+
+    .coszus-points-card {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .coszus-account__details {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus account",
+  "tag": "section",
+  "class": "coszus-account-section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Sign in, orders, addresses and profile edits are Shopify's customer account pages. This page shows the customer's details and links through. Style Shopify's pages in Settings > Customer accounts."
+    },
+    {
+      "type": "header",
+      "content": "Signed out"
+    },
+    {
+      "type": "text",
+      "id": "sign_in_heading",
+      "label": "Heading",
+      "default": "Sign in"
+    },
+    {
+      "type": "text",
+      "id": "sign_in_text",
+      "label": "Text",
+      "default": "Track orders, check your Coszus Rewards and save your favourites."
+    },
+    {
+      "type": "text",
+      "id": "sign_in_button",
+      "label": "Sign in button",
+      "default": "Sign in"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_shop_login",
+      "label": "Sign in with Shop",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "new_heading",
+      "label": "New here heading",
+      "default": "New here?"
+    },
+    {
+      "type": "text",
+      "id": "new_text",
+      "label": "New here text",
+      "default": "Create an account and you'll get:"
+    },
+    {
+      "type": "textarea",
+      "id": "new_perks",
+      "label": "New here list",
+      "info": "One per line.",
+      "default": "Coszus Rewards on every order\nFirst access to drops\nFaster checkout and order tracking"
+    },
+    {
+      "type": "text",
+      "id": "new_button",
+      "label": "Create account button",
+      "default": "Create account"
+    },
+    {
+      "type": "header",
+      "content": "Signed in"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker",
+      "default": "My account"
+    },
+    {
+      "type": "image_picker",
+      "id": "coin",
+      "label": "Points coin",
+      "info": "Defaults to the animated gold coin (assets/coszus-points-coin-medium.gif)."
+    },
+    {
+      "type": "text",
+      "id": "points_text",
+      "label": "Points text",
+      "default": "You earn [rate] points for every £1 you spend. 100 points = £5 off.",
+      "info": "\"[rate]\" is the points rate (Theme settings > Coszus Rewards). Replaced by the balance once Smile is connected."
+    },
+    {
+      "type": "text",
+      "id": "points_balance_text",
+      "label": "Text under the balance",
+      "default": "[left] points until your next £[value] off",
+      "info": "Shown once Smile has given the balance. [left] = points still needed, [value] = the reward value, [balance] = the balance (Theme settings > Coszus Rewards)."
+    },
+    {
+      "type": "text",
+      "id": "points_button",
+      "label": "Points button",
+      "default": "How points work"
+    },
+    {
+      "type": "url",
+      "id": "points_link",
+      "label": "Coszus Rewards page"
+    },
+    {
+      "type": "url",
+      "id": "wishlist_link",
+      "label": "Wishlist page",
+      "info": "Defaults to /pages/wishlist."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus account"
+    }
+  ]
+}
+{% endschema %}

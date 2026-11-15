@@ -1,0 +1,39 @@
+{%- doc -%}
+  One order row on the Account page: number, date and item count, status tag, total, and a link to
+  Shopify's order page (new customer accounts).
+
+  @param {order} order - The order
+
+  @example
+  {% render 'coszus-account-order', order: order %}
+{%- enddoc -%}
+
+{%- liquid
+  assign status_class = 'coszus-order__tag--sent'
+  assign status = order.fulfillment_status_label
+  if order.cancelled
+    assign status_class = 'coszus-order__tag--cancelled'
+    assign status = 'coszus.account.cancelled' | t
+  elsif order.fulfillment_status != 'fulfilled'
+    assign status_class = 'coszus-order__tag--open'
+  endif
+-%}
+
+<div class="coszus-order">
+  <div class="coszus-order__id">
+    <b>{{ order.name }}</b>
+    <span>
+      {{- order.created_at | time_tag: format: 'date' }} ·
+      {{ 'coszus.account.items' | t: count: order.item_count -}}
+    </span>
+  </div>
+  <span class="coszus-order__tag {{ status_class }}">{{ status }}</span>
+  <b class="coszus-order__total">{{ order.total_price | money }}</b>
+  <a
+    class="coszus-link"
+    href="{{ order.customer_url }}"
+    aria-label="{{ 'coszus.account.view_order' | t: order: order.name | escape }}"
+  >
+    {{- 'coszus.account.view' | t -}}
+  </a>
+</div>

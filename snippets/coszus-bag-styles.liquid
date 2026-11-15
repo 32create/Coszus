@@ -1,0 +1,702 @@
+{%- doc -%}
+  Coszus restyle of Horizon's cart drawer (docs/HANDOFF.md section 3, docs/design/01-homepage.html).
+  Horizon's markup, behaviour and cart updates are untouched; this only styles them and the Coszus
+  pieces rendered into them (snippets/coszus-bag-*.liquid). Everything is scoped to #cart-drawer,
+  so the cart page keeps Horizon's look.
+
+  @example
+  {% render 'coszus-bag-styles' %}
+{%- enddoc -%}
+
+{% stylesheet %}
+  /* ---------- Panel ---------- */
+  #cart-drawer .theme-drawer__dialog {
+    --theme-drawer-width: min(440px, 100vw);
+    --theme-drawer-padding: 22px;
+    --coszus-bag-line: #efefef;
+    --coszus-bag-green-text: color-mix(in srgb, var(--coszus-progress-end) 75%, #000);
+
+    font-family: var(--font-body--family);
+    color: var(--coszus-ink);
+  }
+
+  @media screen and (max-width: 820px) {
+    #cart-drawer .theme-drawer__dialog {
+      --theme-drawer-width: 100vw;
+      --theme-drawer-padding: 18px;
+    }
+  }
+
+  /* Horizon's drawer motion tokens are zero (assets/coszus.css). The bag brings its own slide. */
+  #cart-drawer .theme-drawer__dialog--opening,
+  #cart-drawer .theme-drawer__dialog--closing {
+    animation-duration: calc(var(--coszus-motion) + 0.05s);
+    animation-timing-function: var(--coszus-ease);
+  }
+
+  #cart-drawer .theme-drawer__dialog::backdrop {
+    background: rgb(16 16 16 / 0.45);
+  }
+
+  /* The page dims as the bag slides in, and clears as it slides out. The drawer is always modal
+     (`modal` on #cart-drawer), so this backdrop shows on desktop too, over the fixed header. */
+  #cart-drawer .theme-drawer__dialog--opening::backdrop {
+    animation: coszus-bag-dim-in calc(var(--coszus-motion) + 0.05s) var(--coszus-ease) both;
+  }
+
+  #cart-drawer .theme-drawer__dialog--closing::backdrop {
+    animation: coszus-bag-dim-out calc(var(--coszus-motion) + 0.05s) var(--coszus-ease) forwards;
+  }
+
+  @keyframes coszus-bag-dim-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes coszus-bag-dim-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #cart-drawer .theme-drawer__dialog--opening,
+    #cart-drawer .theme-drawer__dialog--closing,
+    #cart-drawer .theme-drawer__dialog--opening::backdrop,
+    #cart-drawer .theme-drawer__dialog--closing::backdrop {
+      animation-duration: 0s;
+    }
+  }
+
+  /* ---------- Header: "Your bag" + count in a black circle ---------- */
+  #cart-drawer .theme-drawer__header {
+    padding: 20px var(--theme-drawer-padding) 14px;
+  }
+
+  #cart-drawer .theme-drawer__title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    gap: 8px;
+  }
+
+  #cart-drawer .theme-drawer__badge {
+    min-width: 22px;
+    height: 22px;
+    padding-inline: 6px;
+    border-radius: 999px;
+    background-color: var(--coszus-ink);
+    color: var(--coszus-paper);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  #cart-drawer .theme-drawer__badge[data-maintain-ratio] {
+    padding-inline: 0;
+  }
+
+  /* ---------- Free delivery bar ---------- */
+  .coszus-bag-delivery {
+    flex-shrink: 0;
+    margin: 0 var(--theme-drawer-padding);
+    padding-block: 4px 12px;
+    font-size: 13px;
+  }
+
+  .coszus-bag-delivery__text {
+    margin: 0 0 12px;
+    line-height: 1.35;
+  }
+
+  .coszus-bag-delivery__text b {
+    font-weight: 700;
+    color: var(--coszus-bag-green-text);
+  }
+
+  .coszus-bag-delivery__track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding-inline-end: 12px;
+  }
+
+  .coszus-bag-delivery__bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 4px;
+    background: #eef0ec;
+    overflow: hidden;
+  }
+
+  /* The fill is the full gradient, clipped to the progress, so the colour says how close you are */
+  .coszus-bag-delivery__fill {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(
+      90deg,
+      var(--coszus-progress-start) 0%,
+      color-mix(in srgb, var(--coszus-progress-start), var(--coszus-progress-end)) 55%,
+      var(--coszus-progress-end) 100%
+    );
+    clip-path: inset(0 calc(100% - var(--coszus-bag-progress, 0%)) 0 0 round 4px);
+    transition: clip-path var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-bag-delivery__goal {
+    position: absolute;
+    inset-inline-end: 0;
+    top: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 50%;
+    background: #eef0ec;
+    color: var(--coszus-paper);
+    transition: background-color var(--coszus-motion) var(--coszus-ease),
+      transform var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-bag-delivery__goal svg {
+    opacity: 0;
+    transition: opacity var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-bag-delivery--done .coszus-bag-delivery__goal {
+    background: var(--coszus-progress-end);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--coszus-progress-end) 40%, transparent);
+    transform: scale(1.1);
+  }
+
+  .coszus-bag-delivery--done .coszus-bag-delivery__goal svg {
+    opacity: 1;
+  }
+
+  .coszus-bag-delivery__goal-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .coszus-bag-delivery__goal-label b {
+    font-size: 12px;
+  }
+
+  .coszus-bag-delivery__goal-label span {
+    color: var(--coszus-muted);
+  }
+
+  /* The bag's scroll stops at its own bottom: no scrolling on into the page behind, or the
+     outer list carrying on once the items run out (same as the filter drawer and side menu) */
+  #cart-drawer .theme-drawer__dialog,
+  #cart-drawer .cart-drawer__content,
+  #cart-drawer .cart-drawer__items {
+    overscroll-behavior: contain;
+  }
+
+  /* ---------- Line items ---------- */
+  #cart-drawer .cart-drawer__items {
+    padding-block: 6px 18px;
+  }
+
+  #cart-drawer .cart-drawer__items .cart-items__table-row {
+    padding-block: 18px;
+    padding-bottom: 18px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--coszus-bag-line);
+  }
+
+  #cart-drawer .cart-drawer__items .cart-items__table-row:last-child {
+    padding-bottom: 18px;
+  }
+
+  #cart-drawer .cart-items__table-row--full-width-variants {
+    grid-template-columns: 104px minmax(0, 1fr) auto;
+    grid-template-rows: repeat(4, min-content) 1fr min-content;
+    grid-template-areas:
+      'media details price'
+      'media coszus coszus'
+      'media variants variants'
+      'media unit_price unit_price'
+      'media quantity quantity'
+      'media error error';
+    column-gap: 16px;
+  }
+
+  #cart-drawer .cart-items__media-container {
+    aspect-ratio: 104 / 136;
+    border-radius: 4px;
+    background-color: var(--coszus-off-white);
+  }
+
+  /* The whole product in the box, not a crop. Pinned to the box: Safari doesn't resolve a 100%
+     height inside the aspect-ratio box, so the photo grew to its own height and showed zoomed in. */
+  #cart-drawer .cart-items__media-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+  }
+
+  #cart-drawer .cart-items__details * {
+    font-size: 12.5px;
+  }
+
+  #cart-drawer .cart-items__title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--coszus-ink);
+  }
+
+  /* Options come from snippets/coszus-bag-line.liquid as "Size M" */
+  #cart-drawer .cart-items__variants {
+    display: none;
+  }
+
+  #cart-drawer .cart-items__variants-wrapper:not(:has(:not(.cart-items__variants))) {
+    display: none;
+  }
+
+  #cart-drawer .cart-items__price {
+    font-size: 14px;
+    color: var(--coszus-ink);
+  }
+
+  /* The unit price only earns its place when it shows the old price struck through */
+  #cart-drawer .cart-items__unit-price-wrapper:not(:has(.compare-at-price)) {
+    display: none;
+  }
+
+  #cart-drawer .cart-items__unit-price-wrapper {
+    margin-block-start: 4px;
+    color: var(--coszus-ink);
+  }
+
+  #cart-drawer .cart-items__unit-price-wrapper .compare-at-price {
+    margin-inline-start: 6px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-line {
+    grid-area: coszus;
+    margin-block-start: 4px;
+  }
+
+  .coszus-bag-line p {
+    margin: 0;
+  }
+
+  .coszus-bag-line__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-line__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-block-start: 8px !important;
+  }
+
+  #cart-drawer .coszus-bag-line__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--coszus-off-white);
+    color: var(--coszus-ink);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  #cart-drawer .coszus-bag-line__tag--set {
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  /* Quantity +/- and a plain "Remove" */
+  #cart-drawer .cart-items__quantity {
+    align-self: end;
+    width: 100%;
+    margin-block-start: 12px;
+  }
+
+  #cart-drawer .cart-items__quantity-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  #cart-drawer .cart-items__quantity .quantity-selector {
+    --quantity-selector-height: 30px;
+
+    height: 30px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  /* 44px wide; ::after stretches the hit area to 44px tall without changing the 30px box */
+  #cart-drawer .cart-items__quantity .quantity-selector :is(.quantity-minus, .quantity-plus) {
+    position: relative;
+    width: 44px;
+    height: 28px;
+  }
+
+  #cart-drawer .cart-items__quantity .quantity-selector :is(.quantity-minus, .quantity-plus)::after {
+    content: '';
+    position: absolute;
+    inset: -8px 0;
+  }
+
+  /* 24px minimum target (WCAG 2.2) between the two 44px buttons */
+  #cart-drawer .cart-items__quantity .quantity-selector input {
+    min-width: 24px;
+    min-height: 24px;
+    font-size: 12px;
+  }
+
+  #cart-drawer .cart-items__remove {
+    width: auto;
+    height: var(--minimum-touch-target);
+    padding: 0;
+    color: var(--coszus-muted);
+  }
+
+  #cart-drawer .cart-items__remove:has(.coszus-bag-remove) > svg {
+    display: none;
+  }
+
+  .coszus-bag-remove {
+    font-size: 11px;
+    font-weight: 400;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  #cart-drawer .cart-items__remove:hover .coszus-bag-remove {
+    color: var(--coszus-ink);
+  }
+
+  @media screen and (max-width: 820px) {
+    #cart-drawer .cart-items__table-row--full-width-variants {
+      grid-template-columns: 92px minmax(0, 1fr) auto;
+    }
+
+    #cart-drawer .cart-items__media-container {
+      aspect-ratio: 92 / 120;
+    }
+  }
+
+  /* ---------- Add-ons ---------- */
+  .coszus-bag-addons {
+    margin-block-start: 20px;
+  }
+
+  #cart-drawer .coszus-bag-addons__title {
+    margin: 0 0 10px;
+    font-family: var(--font-body--family);
+    font-size: var(--coszus-kicker-size, 11px);
+    font-weight: 500;
+    letter-spacing: var(--coszus-kicker-tracking, 0.16em);
+    line-height: 1.4;
+    text-transform: uppercase;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-addons__list {
+    display: grid;
+    grid-template-columns: repeat(var(--coszus-bag-addons, 4), minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .coszus-bag-addon__link {
+    display: block;
+    color: var(--coszus-ink);
+    text-decoration: none;
+  }
+
+  .coszus-bag-addon__media {
+    display: block;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-bag-addon__image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    transform: scale(1.1);
+    transition: transform var(--coszus-motion) var(--coszus-ease);
+  }
+
+  @media (hover: hover) {
+    .coszus-bag-addon__link:hover .coszus-bag-addon__image {
+      transform: scale(1.15);
+    }
+  }
+
+  .coszus-bag-addon__title {
+    display: -webkit-box;
+    margin-top: 6px;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .coszus-bag-addon__price {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-addon__price s {
+    margin-inline-end: 4px;
+    color: var(--coszus-concrete);
+  }
+
+  /* ---------- Footer ---------- */
+  #cart-drawer .cart-drawer__summary {
+    gap: 12px;
+    padding: 16px var(--theme-drawer-padding) 18px;
+    border-top: 1px solid var(--coszus-bag-line);
+    mask-image: none;
+  }
+
+  #cart-drawer .cart-drawer__summary .cart-totals {
+    gap: 10px;
+    padding-block-start: 0;
+    border-block-start: none;
+  }
+
+  #cart-drawer .cart-totals__tax-note {
+    display: none;
+  }
+
+  #cart-drawer .cart-totals__total {
+    align-items: baseline;
+    font-size: 15px;
+  }
+
+  #cart-drawer .cart-totals__total-label {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* Total, then the full price struck through and "Save £X" */
+  #cart-drawer .cart-totals__total-value {
+    margin-inline-start: auto;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .coszus-bag-total__savings {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-inline-start: 8px;
+  }
+
+  .coszus-bag-total__was {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--coszus-concrete);
+  }
+
+  .coszus-bag-total__save {
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: var(--coszus-rouge);
+    color: var(--coszus-paper);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    align-self: center;
+  }
+
+  .coszus-bag-rows p {
+    margin: 0;
+  }
+
+  .coszus-bag-rows__delivery {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-rows__points {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-block-start: 8px !important;
+    font-size: 12px;
+  }
+
+  .coszus-bag-rows__points b {
+    font-weight: 700;
+  }
+
+  .coszus-bag-rows__points img {
+    flex: none;
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Checkout securely: 48px, Ink, Petrol on hover, lock icon */
+  #cart-drawer .cart__ctas {
+    gap: 8px;
+  }
+
+  #cart-drawer .cart__ctas .cart__checkout-button {
+    height: 48px;
+    padding-inline: 24px;
+    border-radius: 6px;
+    letter-spacing: 0.06em;
+  }
+
+  /* Centred, like the Shop Pay / PayPal / Google Pay buttons under it (the label stretches to the
+     button's width, so its lock and text are centred inside it) */
+  #cart-drawer .cart__checkout-button .button-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  #cart-drawer .cart__checkout-button .button-text::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    background: currentcolor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+
+  /* Shop Pay, Apple Pay, Google Pay: Shopify's own buttons, sized to the design */
+  #cart-drawer .additional-checkout-buttons {
+    --shopify-accelerated-checkout-button-block-size: 38px;
+    --shopify-accelerated-checkout-button-border-radius: 6px;
+    --shopify-accelerated-checkout-row-gap: 6px;
+  }
+
+  .coszus-bag-clearpay {
+    margin: 2px 0 0;
+    font-size: 11px;
+    text-align: center;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-trust {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--coszus-bag-line);
+  }
+
+  .coszus-bag-trust li,
+  .coszus-bag-trust a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--coszus-ink);
+    text-decoration: none;
+  }
+
+  .coszus-bag-trust a:hover span {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* The rating star is green, never Rouge or Gold */
+  .coszus-bag-trust li:first-child a[target] svg {
+    color: var(--coszus-progress-end);
+  }
+
+  @media screen and (max-width: 820px) {
+    #cart-drawer .additional-checkout-buttons {
+      --shopify-accelerated-checkout-button-block-size: 42px;
+    }
+  }
+
+  /* ---------- Empty bag ---------- */
+  #cart-drawer .cart-drawer--empty .cart-drawer__content,
+  #cart-drawer cart-drawer-component:not(:has(.cart-form)) .cart-drawer__content {
+    justify-content: flex-start;
+    padding: 40px var(--theme-drawer-padding) 18px;
+  }
+
+  #cart-drawer .cart-drawer__content > .theme-drawer__title {
+    justify-content: center;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Horizon's own empty content (sign-in line, Continue shopping) gives way to the Shop buttons */
+  #cart-drawer .cart-items__wrapper--drawer-empty > * {
+    display: none;
+  }
+
+  #cart-drawer .cart-drawer__items:has(.coszus-bag-empty) {
+    width: 100%;
+  }
+
+  .coszus-bag-empty {
+    width: 100%;
+    text-align: center;
+  }
+
+  .coszus-bag-empty__text {
+    margin: 0 0 22px;
+    font-size: 12px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-bag-empty__links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #cart-drawer .coszus-bag-empty__link {
+    justify-content: center;
+    width: 100%;
+    height: 42px;
+    word-spacing: 0.12em;
+  }
+{% endstylesheet %}

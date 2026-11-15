@@ -1,0 +1,138 @@
+{%- doc -%}
+  Coszus card tag (HANDOFF section 5), plain text top left. One tag per card, most urgent first:
+  Sold out, Low stock (Rouge), New / custom.badge, Best Seller (grey: products in the Best Seller
+  collections picked in Theme settings → Product cards, or tagged best-seller), then Sale (only with Theme settings → Product
+  cards → "Show Sale tag on cards", and only for products in the Sale collections picked there,
+  see snippets/coszus-on-sale.liquid). Shared by Horizon's card (blocks/_product-card-gallery.liquid)
+  and Coszus's card (snippets/coszus-product-card.liquid) so both follow the same rules.
+
+  @param {product} product - The product
+  @param {string} [style] - 'badge' for Horizon's product-badges markup, else a .coszus-card__label
+
+  @example
+  {% render 'coszus-card-tag', product: product, style: 'badge' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign coszus_tag = ''
+  assign coszus_tag_class = ''
+  assign discounted = false
+  if product.compare_at_price > product.price
+    assign discounted = true
+  endif
+  capture on_sale
+    render 'coszus-on-sale', product: product, discounted: discounted
+  endcapture
+  assign on_sale = on_sale | strip
+  if on_sale == 'true'
+    assign on_sale = true
+  else
+    assign on_sale = false
+  endif
+
+  if product.available == false
+    assign coszus_tag = 'content.product_badge_sold_out' | t
+    assign coszus_tag_class = 'sold-out'
+  else
+    # Low stock: every variant is tracked by Shopify and the total left is at or under the threshold
+    if settings.card_low_stock_threshold > 0
+      assign stock_total = 0
+      assign stock_tracked = true
+      for variant in product.variants
+        if variant.inventory_management != 'shopify' or variant.inventory_policy == 'continue'
+          assign stock_tracked = false
+          break
+        endif
+        if variant.inventory_quantity > 0
+          assign stock_total = stock_total | plus: variant.inventory_quantity
+        endif
+      endfor
+      if stock_tracked and stock_total > 0 and stock_total <= settings.card_low_stock_threshold
+        assign coszus_tag = 'coszus.collection.low_stock' | t
+        assign coszus_tag_class = 'low-stock'
+      endif
+    endif
+
+    # New: custom.badge wins, then the `new` tag, then recently published (never on sale items)
+    if coszus_tag == ''
+      assign custom_badge = product.metafields.custom.badge.value | strip
+      if custom_badge != blank
+        assign coszus_tag = custom_badge
+      elsif on_sale == false
+        assign tags_lower = product.tags | join: ',' | downcase | split: ','
+        if tags_lower contains 'new'
+          assign coszus_tag = 'coszus.collection.new' | t
+        elsif settings.card_new_days > 0 and product.published_at
+          assign now_seconds = 'now' | date: '%s'
+          assign published_seconds = product.published_at | date: '%s'
+          assign age_seconds = now_seconds | minus: published_seconds
+          assign new_seconds = settings.card_new_days | times: 86400
+          if age_seconds < new_seconds
+            assign coszus_tag = 'coszus.collection.new' | t
+          endif
+        endif
+      endif
+    endif
+
+    # Best Seller (grey): in a Best Seller collection picked in Theme settings, or tagged best-seller
+    if coszus_tag == '' and settings.card_show_best_seller
+      assign tags_lower = product.tags | join: ',' | downcase | split: ','
+      if tags_lower contains 'best-seller' or tags_lower contains 'bestseller'
+        assign coszus_tag = 'coszus.collection.best_seller' | t
+      else
+        assign product_handles = product.collections | map: 'handle'
+        for n in (1..2)
+          assign best_key = 'coszus_best_seller_collection_' | append: n
+          assign best_handle = settings[best_key].handle
+          if best_handle != blank and product_handles contains best_handle
+            assign coszus_tag = 'coszus.collection.best_seller' | t
+            break
+          endif
+        endfor
+      endif
+      if coszus_tag != ''
+        assign coszus_tag_class = 'best-seller'
+      endif
+    endif
+
+    # HANDOFF: no red Sale tags in grids unless turned on; the struck-through price shows the sale
+    if coszus_tag == '' and on_sale and settings.card_show_sale_badge
+      assign coszus_tag = 'content.product_badge_sale' | t
+      assign coszus_tag_class = 'sale'
+    endif
+  endif
+-%}
+
+{%- if coszus_tag != '' -%}
+  {%- if style == 'badge' -%}
+    {%- liquid
+      case coszus_tag_class
+        when 'sold-out'
+          assign badge_class = 'color-custom-badge-sold-out'
+        when 'low-stock'
+          assign badge_class = 'product-badges__badge--low-stock'
+        when 'sale'
+          assign badge_class = 'color-custom-badge-sale'
+        when 'best-seller'
+          assign badge_class = 'product-badges__badge--best-seller'
+        else
+          assign badge_class = ''
+      endcase
+    -%}
+    <div
+      class="product-badges product-badges--{{ settings.badge_position }}"
+      style="
+          --badge-border-radius: {{ settings.badge_corner_radius }}px;
+          --badge-font-family: var(--font-{{ settings.badge_font_family }}--family); --badge-font-weight: var(--font-{{ settings.badge_font_family }}--weight); --badge-text-transform: {{ settings.badge_text_transform }};
+      "
+    >
+      <div class="product-badges__badge product-badges__badge--rectangle {{ badge_class }}">
+        {{- coszus_tag | escape -}}
+      </div>
+    </div>
+  {%- else -%}
+    <span class="coszus-card__label{% if coszus_tag_class != '' %} coszus-card__label--{{ coszus_tag_class }}{% endif %}">
+      {{- coszus_tag | escape -}}
+    </span>
+  {%- endif -%}
+{%- endif -%}

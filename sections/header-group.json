@@ -1,1 +1,186 @@
-{"name":"t:sections.header.name","type":"header","sections":{"ss_announcement_bar_slideshow_E9KGAB":{"type":"ss-announcement-bar-slideshow","blocks":{"item_qiqAJH":{"type":"item","settings":{"text":"<p><strong>FREE 24HR SHIPPING ON UK ORDERS OVER £80+<\/strong><\/p>"}},"item_mnNbXN":{"type":"item","settings":{"text":"<p><strong>NO TAX ON ALL EU ORDERS*<\/strong><\/p>"}},"item_qKtEcE":{"type":"item","settings":{"text":"<p><strong>OVER 5000+ WORLDWIDE CUSTOMERS<\/strong><\/p>"}}},"block_order":["item_qiqAJH","item_mnNbXN","item_qKtEcE"],"custom_css":[".announcement-thumbs-sections--26611284115840__ss_announcement_bar_slideshow_E9KGAB {display: none !important;}"],"name":"SS - Announcement bar (slideshow)","settings":{"insert_css_class_target":"","text_custom":false,"text_font":"josefin_sans_n4","text_size":13,"text_size_mobile":11,"text_height":150,"text_align":"center","text_align_mobile":"center","text_color":"#000000","progress_default_color":"#afafaf","progress_color":"#121212","play_icon_color":"#121212","play_border_color":"#121212","background_color":"#ebeced","background_gradient":"","border_color":"#121212","margin_top":0,"margin_bottom":0,"padding_top":12,"padding_bottom":12,"padding_horizontal":5,"padding_horizontal_mobile":0,"full_width":false,"content_width":1200,"border_thickness":0}},"header":{"type":"header","custom_css":["@media only screen and (max-width: 749px) {slideshow-component .slideshow.banner {height: 99vh; }}"],"settings":{"logo_position":"middle-left","menu":"main-menu","menu_type_desktop":"dropdown","drawer_menu_handle":"drawer-menu","drawer_show_search":true,"drawer_search_placeholder":"Search","drawer_show_social":true,"drawer_show_account":true,"drawer_account_label":"MY ACCOUNT","sticky_header_type":"always","show_line_separator":true,"color_scheme":"scheme-1","menu_color_scheme":"scheme-1","enable_country_selector":false,"enable_language_selector":true,"enable_customer_avatar":true,"mobile_logo_position":"center","margin_bottom":0,"padding_top":0,"padding_bottom":0}}},"order":["ss_announcement_bar_slideshow_E9KGAB","header"]}
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "type": "header",
+  "name": "t:names.header",
+  "sections": {
+    "coszus_top_bar": {
+      "type": "coszus-top-bar",
+      "blocks": {
+        "message_join": {
+          "type": "message",
+          "settings": {
+            "text": "<a href=\"/account/register\">Join</a> Coszus Rewards for rewards",
+            "uk_only": false,
+            "international_text": "Worldwide delivery | duties shown at checkout",
+            "show_pay_later_badges": false
+          }
+        },
+        "message_pay_later": {
+          "type": "message",
+          "settings": {
+            "text": "Klarna &amp; Clearpay available",
+            "uk_only": false,
+            "international_text": "Worldwide delivery | duties shown at checkout",
+            "show_pay_later_badges": true
+          }
+        },
+        "message_student": {
+          "type": "message",
+          "disabled": true,
+          "settings": {
+            "text": "Student discount: 15% off",
+            "uk_only": false,
+            "international_text": "Worldwide delivery | duties shown at checkout",
+            "show_pay_later_badges": false
+          }
+        },
+        "message_delivery": {
+          "type": "message",
+          "settings": {
+            "text": "Free UK delivery over £79.99",
+            "uk_only": true,
+            "international_text": "Worldwide delivery | duties shown at checkout",
+            "show_pay_later_badges": false
+          }
+        }
+      },
+      "block_order": [
+        "message_join",
+        "message_pay_later",
+        "message_student",
+        "message_delivery"
+      ],
+      "settings": {
+        "speed_desktop": 24,
+        "speed_mobile": 42,
+        "background_color": "#000000",
+        "text_color": "#ffffff",
+        "label": "Why shop with Coszus"
+      }
+    },
+    "coszus_header": {
+      "type": "coszus-header",
+      "blocks": {
+        "department_men": {
+          "type": "department",
+          "settings": {
+            "label": "Men",
+            "short_label": "M",
+            "collection": "mens-shop-all",
+            "menu": "v3-men",
+            "bf_sale": "men",
+            "glass_color": "#101010",
+            "glass_opacity": 58
+          }
+        },
+        "department_women": {
+          "type": "department",
+          "settings": {
+            "label": "Women",
+            "short_label": "W",
+            "collection": "womens-shop-all",
+            "menu": "v3-women",
+            "bf_sale": "women",
+            "glass_color": "#f4f4f2",
+            "glass_opacity": 68
+          }
+        },
+        "department_juniors": {
+          "type": "department",
+          "settings": {
+            "label": "Juniors",
+            "short_label": "J",
+            "collection": "juniors",
+            "menu": "v3-juniors",
+            "bf_sale": "juniors",
+            "glass_color": "#2a3855",
+            "glass_opacity": 60
+          }
+        },
+        "points_earn": {
+          "type": "points_link",
+          "settings": {
+            "icon": "earn",
+            "title": "Ways to earn",
+            "text": "1 point per £1, plus 50 for joining",
+            "link": ""
+          }
+        },
+        "points_spend": {
+          "type": "points_link",
+          "settings": {
+            "icon": "spend",
+            "title": "Ways to spend",
+            "text": "100 points = £5 off, or free delivery",
+            "link": ""
+          }
+        },
+        "points_refer": {
+          "type": "points_link",
+          "disabled": true,
+          "settings": {
+            "icon": "refer",
+            "title": "Refer a friend",
+            "text": "Give £[x], get £[x]",
+            "link": ""
+          }
+        }
+      },
+      "block_order": [
+        "department_men",
+        "department_women",
+        "department_juniors",
+        "points_earn",
+        "points_spend",
+        "points_refer"
+      ],
+      "settings": {
+        "recolour_logo": true,
+        "logo_height": 24,
+        "logo_height_mobile": 20,
+        "home_department_links": "link",
+        "overlap_home": true,
+        "overlap_collection": true,
+        "show_search": true,
+        "show_wishlist": true,
+        "wishlist_url": "",
+        "show_points": false,
+        "points_smile": true,
+        "show_account": true,
+        "account_url": "",
+        "points_kicker": "Coszus Rewards",
+        "points_heading": "Welcome to the family",
+        "points_text": "Earn points on every order and spend them on the next. Free to join.",
+        "points_join_label": "Join now",
+        "points_join_url": "/account/register",
+        "points_sign_in_text": "Already a member?",
+        "points_sign_in_label": "Sign in",
+        "points_text_signed_in": "Earn on every order. Your points and rewards live in your account.",
+        "points_account_label": "My account",
+        "side_menu_search_label": "Search Coszus",
+        "side_menu_secondary": "v3-extras",
+        "side_menu_bold_first": true,
+        "side_menu_help": "v3-help",
+        "side_menu_account": true,
+        "side_menu_sign_in_label": "Sign in",
+        "side_menu_account_label": "My account",
+        "instagram_url": "",
+        "tiktok_url": "",
+        "follow_text": "Follow us, get <strong>20 points</strong>",
+        "show_country": true
+      }
+    }
+  },
+  "order": [
+    "coszus_top_bar",
+    "coszus_header"
+  ]
+}

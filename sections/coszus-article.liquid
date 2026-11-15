@@ -1,0 +1,132 @@
+{%- comment -%}
+  Coszus Latest News article (docs/HANDOFF.md section 7): back link, category and date, title,
+  photo and the post. Buttons (RSVP, Shop the drop) go in the post itself as links.
+{%- endcomment -%}
+
+<div class="coszus-page coszus-article">
+  <article class="coszus-article__inner">
+    <a
+      class="coszus-link coszus-article__back"
+      href="{{ blog.url }}"
+    >
+      <span aria-hidden="true">&larr;</span>
+      {{ section.settings.back_label | default: blog.title | escape -}}
+    </a>
+    <p class="coszus-kicker">
+      {%- if article.tags.size > 0 -%}
+        {{ article.tags.first | escape }} ·
+      {% endif -%}
+      {{- article.published_at | time_tag: format: 'date' -}}
+    </p>
+    <h1 class="coszus-article__title">{{ article.title | escape }}</h1>
+    {%- if article.image -%}
+      {{-
+        article.image
+        | image_url: width: 1600
+        | image_tag:
+          widths: '600, 900, 1200, 1600',
+          sizes: '(min-width: 821px) 760px, 100vw',
+          fetchpriority: 'high',
+          alt: article.image.alt,
+          class: 'coszus-article__image'
+      -}}
+    {%- endif -%}
+    <div class="coszus-article__content">{{ article.content }}</div>
+  </article>
+</div>
+
+{% stylesheet %}
+  .coszus-article__inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .coszus-article__back {
+    display: inline-block;
+    margin-bottom: 26px;
+    font-size: 0.8125rem;
+    text-decoration: none;
+  }
+
+  .coszus-article .coszus-kicker {
+    margin: 0 0 10px;
+  }
+
+  .coszus-article__title {
+    margin: 0;
+    font-family: var(--font-h2--family);
+    font-size: clamp(30px, 3.6vw, 48px);
+    font-weight: var(--font-h2--weight);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .coszus-article__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    margin: 18px 0 26px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+
+  .coszus-article__content {
+    margin-top: 18px;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+
+  .coszus-article__content > p:first-child {
+    font-size: 1.25rem;
+  }
+
+  .coszus-article__content :is(p, ul, ol) {
+    margin: 0 0 16px;
+  }
+
+  .coszus-article__content img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .coszus-article__content a {
+    color: var(--coszus-ink);
+    text-underline-offset: 3px;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-article__content {
+      font-size: 0.9375rem;
+    }
+
+    .coszus-article__content > p:first-child {
+      font-size: 1.125rem;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus news article",
+  "tag": "section",
+  "class": "coszus-article-section",
+  "enabled_on": {
+    "templates": ["article"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "back_label",
+      "label": "Back link",
+      "default": "Latest News",
+      "info": "Defaults to the blog's title."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus news article"
+    }
+  ]
+}
+{% endschema %}

@@ -1,1 +1,43 @@
-{"sections":{"main":{"type":"main-404","settings":{}}},"order":["main"]}
+{
+  "sections": {
+    "main": {
+      "type": "coszus-404",
+      "blocks": {
+        "shop_button_1": {
+          "type": "shop_button",
+          "settings": {
+            "label": "Shop men",
+            "link": "shopify://collections/mens-shop-all"
+          }
+        },
+        "shop_button_2": {
+          "type": "shop_button",
+          "settings": {
+            "label": "Shop women",
+            "link": "shopify://collections/womens-shop-all"
+          }
+        },
+        "shop_button_3": {
+          "type": "shop_button",
+          "settings": {
+            "label": "Shop juniors",
+            "link": "shopify://collections/juniors"
+          }
+        }
+      },
+      "block_order": [
+        "shop_button_1",
+        "shop_button_2",
+        "shop_button_3"
+      ],
+      "settings": {
+        "heading": "This page has gone off the grid",
+        "text": "The link might be old or the product's sold out. Try one of these instead.",
+        "search_label": "Or search Coszus"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

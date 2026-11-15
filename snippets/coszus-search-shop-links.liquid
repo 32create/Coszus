@@ -1,0 +1,40 @@
+{%- doc -%}
+  "No results" links for the search panel and the results page (docs/HANDOFF.md section 3):
+  New In, then Men, Women and Juniors. New In is Theme settings > Search > "New In collection";
+  the departments come from Theme settings > Departments. Links without a collection are left out.
+
+  @param {string} [class] - Extra class on the list
+
+  @example
+  {% render 'coszus-search-shop-links' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign keys = 'new_in,men,women,juniors' | split: ','
+-%}
+
+<ul class="coszus-search-shop-links list-unstyled {{ class }}">
+  {%- for key in keys -%}
+    {%- liquid
+      if key == 'new_in'
+        assign link_collection = settings.coszus_search_new_in_collection
+        assign link_label = settings.coszus_search_new_in_label | default: link_collection.title
+      else
+        assign label_key = 'coszus_department_' | append: key | append: '_label'
+        assign collection_key = 'coszus_department_' | append: key | append: '_collection'
+        assign link_collection = settings[collection_key]
+        assign link_label = settings[label_key] | default: link_collection.title
+      endif
+    -%}
+    {%- if link_collection != blank and link_label != blank -%}
+      <li>
+        <a
+          class="coszus-search-shop-links__link"
+          href="{{ link_collection.url }}"
+        >
+          {{- link_label | escape -}}
+        </a>
+      </li>
+    {%- endif -%}
+  {%- endfor -%}
+</ul>

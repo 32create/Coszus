@@ -1,0 +1,184 @@
+{%- comment -%}
+  One saved product on the Wishlist page. Never added in the editor: the Wishlist page fetches it
+  for each saved product with the Section Rendering API
+  (/products/<handle>?section_id=coszus-wishlist-item), so it renders in that product's context.
+
+  The Coszus card (no bookmark), a remove button, and size buttons that add straight to the bag
+  through Horizon's product-form-component (the quick add markup, always shown here, touch included).
+  Products with no Size option get one Add to bag button.
+{%- endcomment -%}
+
+{%- liquid
+  assign size_option = null
+  for option in product.options_with_values
+    assign option_name = option.name | downcase
+    if option_name contains 'size'
+      assign size_option = option
+      break
+    endif
+  endfor
+  assign single_variant = product.selected_or_first_available_variant
+  assign form_id = 'CoszusWishlistAdd-' | append: product.id
+-%}
+
+{%- if product != blank -%}
+  <div
+    class="coszus-wishlist__item"
+    data-wishlist-item="{{ product.handle }}"
+    role="listitem"
+  >
+    <div class="coszus-wishlist__card">
+      {%- render 'coszus-product-card',
+        product: product,
+        tags: true,
+        no_wishlist: true,
+        sizes: '(min-width: 821px) calc((100vw - 96px) / 4), 46vw'
+      -%}
+      <button
+        type="button"
+        class="coszus-wishlist__remove"
+        data-wishlist-remove="{{ product.handle }}"
+        aria-label="{{ 'coszus.wishlist_remove' | t: product: product.title | escape }}"
+      >
+        {%- render 'coszus-icon', icon: 'close', px: 14 -%}
+      </button>
+    </div>
+
+    {%- if product.available == false -%}
+      <p class="coszus-wishlist__status">{{ 'coszus.product.sold_out' | t }}</p>
+    {%- elsif size_option -%}
+      {%- render 'coszus-quick-add', product: product, size_option: size_option, section_id: 'coszus-wishlist' -%}
+    {%- else -%}
+      <coszus-quick-add class="coszus-quick-add">
+        <product-form-component
+          class="coszus-quick-add__form"
+          data-section-id="coszus-wishlist"
+          data-product-id="{{ product.id }}"
+          on:submit="/handleSubmit"
+        >
+          <div
+            class="visually-hidden"
+            aria-live="assertive"
+            role="status"
+            aria-atomic="true"
+            ref="liveRegion"
+          ></div>
+          {%- form 'product', product, id: form_id, novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+            <input
+              type="hidden"
+              name="id"
+              ref="variantId"
+              value="{{ single_variant.id }}"
+            >
+            <input
+              type="hidden"
+              name="quantity"
+              value="{{ single_variant.quantity_rule.min | default: 1 }}"
+            >
+            <div class="coszus-quick-add__sizes">
+              <button
+                type="button"
+                class="coszus-quick-add__size coszus-wishlist__add"
+                data-coszus-quick-size="{{ single_variant.id }}"
+              >
+                {{- 'coszus.product.add_to_bag' | t -}}
+              </button>
+            </div>
+          {%- endform -%}
+        </product-form-component>
+      </coszus-quick-add>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .coszus-wishlist__card {
+    position: relative;
+  }
+
+  .coszus-wishlist__card .coszus-card__meta {
+    margin-inline: 0;
+  }
+
+  .coszus-wishlist__remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    cursor: pointer;
+  }
+
+  .coszus-wishlist__remove::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+
+  /* Size buttons always shown here, touch included (the collection's quick add is desktop only) */
+  .coszus-wishlist .coszus-quick-add {
+    position: static;
+    display: block;
+    margin-top: 10px;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .coszus-wishlist .coszus-quick-add form {
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .coszus-wishlist .coszus-quick-add__label {
+    display: none;
+  }
+
+  .coszus-wishlist .coszus-quick-add__sizes {
+    justify-content: flex-start;
+  }
+
+  .coszus-wishlist .coszus-quick-add__size {
+    flex: 1;
+    min-width: 34px;
+    height: 32px;
+  }
+
+  .coszus-wishlist__add {
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .coszus-wishlist__status {
+    margin: 10px 0 0;
+    font-size: 0.8125rem;
+    color: var(--coszus-muted);
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-wishlist .coszus-quick-add__size {
+      height: 44px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus wishlist item",
+  "tag": "div",
+  "class": "coszus-wishlist-item-section",
+  "settings": []
+}
+{% endschema %}

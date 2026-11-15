@@ -1,0 +1,62 @@
+{%- doc -%}
+  Looks at a size table (one row per line, cells split by "|", first line the header) and prints
+  what's in it, so a guide that's still all dashes can say "coming soon" instead of showing an
+  empty table. Prints a comma separated list, empty when the table has nothing:
+  - `filled`: at least one cell after the size column has something other than a dash
+  - `measured`: at least one of those cells is a number or a range ("96-100"), so a measurement
+
+  @param {string} table - The table text
+
+  @example
+  {%- capture check -%}{% render 'coszus-table-check', table: guide_table %}{%- endcapture -%}
+  {%- if check contains 'measured' -%}…{%- endif -%}
+{%- enddoc -%}
+
+{%- liquid
+  assign filled = false
+  assign measured = false
+  assign digits = '0,1,2,3,4,5,6,7,8,9' | split: ','
+  assign rows = table | strip | newline_to_br | split: '<br />'
+
+  for row in rows offset: 1
+    assign cells = row | strip | split: '|'
+    for cell in cells offset: 1
+      assign cell_text = cell | strip
+      if cell_text == blank or cell_text == '–' or cell_text == '-' or cell_text == '—'
+        continue
+      endif
+      assign filled = true
+
+      # A number or a range: every part is digits with at most one decimal point
+      assign parts = cell_text | replace: '–', '-' | split: '-'
+      if parts.size > 0 and parts.size < 3
+        assign numeric = true
+        for part in parts
+          assign part = part | strip
+          assign leftover = part | remove_first: '.'
+          for digit in digits
+            assign leftover = leftover | remove: digit
+          endfor
+          if part == blank or leftover != blank
+            assign numeric = false
+            break
+          endif
+        endfor
+        if numeric
+          assign measured = true
+          break
+        endif
+      endif
+    endfor
+    if measured
+      break
+    endif
+  endfor
+
+  if filled
+    echo 'filled'
+  endif
+  if measured
+    echo ',measured'
+  endif
+-%}

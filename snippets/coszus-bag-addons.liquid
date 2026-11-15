@@ -1,0 +1,172 @@
+{%- doc -%}
+  Add-ons under the bag drawer items (docs/HANDOFF.md section 3): small cards (image, name, price)
+  that link to the product. One source at a time, so the title is always true:
+
+  1. "Complete the set": the Set partner (custom.set_partner) of anything in the bag.
+  2. "Goes well with": the store's old Cart Product Upsell / Upsell Products fields. They mix real
+     set partners with socks and boxers, so they never get the set title.
+  3. The "Otherwise, add-ons from" collection: "Add £X for free delivery" while under the free UK
+     delivery threshold (pieces that would get there first), else "Goes well with".
+
+  Products already in the bag, sold out or unpublished are skipped.
+
+  @param {number} [free_delivery_threshold] - Pence, from snippets/coszus-free-delivery-threshold.liquid
+    (0 = doesn't apply). cart-drawer.liquid passes it; worked out here if not passed.
+
+  @example
+  {% render 'coszus-bag-addons' %}
+{%- enddoc -%}
+
+{%- if settings.coszus_bag_addons and cart.item_count > 0 -%}
+{%- liquid
+  assign limit = settings.coszus_bag_addons_count
+  assign seen = cart.items | map: 'product_id' | join: ',' | prepend: ',' | append: ','
+  assign shown = 0
+  assign cards = ''
+  assign title = ''
+
+  # 1. Set partners
+  for item in cart.items
+    assign candidate = item.product.metafields.custom.set_partner.value
+    if candidate == blank or candidate.available == false
+      continue
+    endif
+    assign key = ',' | append: candidate.id | append: ','
+    if seen contains key
+      continue
+    endif
+    assign seen = seen | append: candidate.id | append: ','
+    capture card
+      render 'coszus-bag-addon', product: candidate
+    endcapture
+    assign cards = cards | append: card
+    assign shown = shown | plus: 1
+    if shown >= limit
+      break
+    endif
+  endfor
+  if shown > 0
+    assign title = settings.coszus_bag_addons_set
+  endif
+
+  # 2. The store's Upsell fields, as "Goes well with"
+  if shown == 0 and settings.coszus_bag_addons_upsell
+    for item in cart.items
+      # Position 0 is Cart Product Upsell (one product), then the Upsell Products list
+      assign single = item.product.metafields.custom.cart_product_upsell.value
+      assign upsells = item.product.metafields.custom.upsell_products.value
+      assign last = upsells.size | default: 0
+      # Capped like the fallback collection: a long Upsell Products list shouldn't be walked in full
+      for n in (0..last) limit: 24
+        if n == 0
+          assign candidate = single
+        else
+          assign i = n | minus: 1
+          assign candidate = upsells[i]
+        endif
+        if candidate == blank or candidate.available == false
+          continue
+        endif
+        assign key = ',' | append: candidate.id | append: ','
+        if seen contains key
+          continue
+        endif
+        assign seen = seen | append: candidate.id | append: ','
+        capture card
+          render 'coszus-bag-addon', product: candidate
+        endcapture
+        assign cards = cards | append: card
+        assign shown = shown | plus: 1
+        if shown >= limit
+          break
+        endif
+      endfor
+      if shown >= limit
+        break
+      endif
+    endfor
+    if shown > 0
+      assign title = settings.coszus_bag_addons_other
+    endif
+  endif
+
+  # 3. Fallback collection
+  if shown == 0 and settings.coszus_bag_addons_collection != blank
+    if free_delivery_threshold == nil
+      capture free_delivery_threshold
+        render 'coszus-free-delivery-threshold'
+      endcapture
+    endif
+    assign threshold = free_delivery_threshold | strip | plus: 0
+    assign away = 0
+    if settings.coszus_free_delivery and threshold > 0
+      assign away = threshold | minus: cart.total_price
+    endif
+
+    # Under the threshold, pieces that would reach it go first
+    for pass in (1..2)
+      if pass == 1 and away <= 0
+        continue
+      endif
+      for candidate in settings.coszus_bag_addons_collection.products limit: 24
+        if candidate.available == false
+          continue
+        endif
+        if pass == 1 and candidate.price < away
+          continue
+        endif
+        assign key = ',' | append: candidate.id | append: ','
+        if seen contains key
+          continue
+        endif
+        assign seen = seen | append: candidate.id | append: ','
+        capture card
+          render 'coszus-bag-addon', product: candidate
+        endcapture
+        assign cards = cards | append: card
+        assign shown = shown | plus: 1
+        if shown >= limit
+          break
+        endif
+      endfor
+      if shown >= limit
+        break
+      endif
+    endfor
+
+    if shown > 0
+      if away > 0
+        assign away_money = away | money
+        assign title = settings.coszus_bag_addons_free | replace: '[amount]', away_money
+      else
+        assign title = settings.coszus_bag_addons_other
+      endif
+    endif
+  endif
+-%}
+
+{%- if shown > 0 -%}
+  <section
+    class="coszus-bag-addons"
+    aria-labelledby="CoszusBagAddonsTitle"
+  >
+    <h3
+      class="coszus-bag-addons__title"
+      id="CoszusBagAddonsTitle"
+    >
+      {{ title | escape }}
+    </h3>
+    {%- comment -%}
+      Always the configured number of columns, so one or two add-ons stay small cards like the design
+      (docs/design/03-product.html, four across) and don't push Checkout below the fold.
+    {%- endcomment -%}
+    {%- assign columns = limit | at_least: 2 -%}
+    <ul
+      class="coszus-bag-addons__list list-unstyled"
+      style="--coszus-bag-addons: {{ columns }};"
+    >
+      {{ cards }}
+    </ul>
+  </section>
+{%- endif -%}
+{%- endif -%}

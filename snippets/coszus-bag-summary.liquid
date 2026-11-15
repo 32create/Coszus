@@ -1,0 +1,199 @@
+{%- doc -%}
+  Coszus additions to Horizon's cart summary in the bag drawer (docs/HANDOFF.md section 3).
+  snippets/cart-drawer.liquid captures each part and hands it to snippets/cart-summary.liquid.
+
+  - `savings`: after the total, the full price struck through and "Save £X" when anything is on
+    sale (compare-at) or discounted.
+  - `rows`: Delivery ("Free" once over the free UK delivery threshold, else "Calculated at
+    checkout") and "You'll earn X Coszus Rewards" (theme setting Points per £1, on the total after
+    discounts, rounded down).
+  - `after`: under the checkout and express buttons, the Clearpay split and the trust row. The
+    rating only shows when it's switched on, has its text and links to the live score. No score
+    ships by default.
+
+  @param {string} part - 'savings', 'rows' or 'after'
+  @param {number} [free_delivery_threshold] - Pence, from snippets/coszus-free-delivery-threshold.liquid
+    (0 = doesn't apply). cart-drawer.liquid passes it; worked out here if not passed.
+
+  @example
+  {% render 'coszus-bag-summary', part: 'rows' %}
+{%- enddoc -%}
+
+{%- case part -%}
+  {%- when 'savings' -%}
+    {%- liquid
+      assign full_total = 0
+      for item in cart.items
+        assign unit = item.original_price
+        if item.variant.compare_at_price > unit
+          assign unit = item.variant.compare_at_price
+        endif
+        assign line = unit | times: item.quantity
+        assign full_total = full_total | plus: line
+      endfor
+      assign saved = full_total | minus: cart.total_price
+    -%}
+    {%- if saved > 0 -%}
+      <span class="coszus-bag-total__savings">
+        <s class="coszus-bag-total__was">
+          <span class="visually-hidden">{{ 'content.price_regular' | t }}</span>
+          {{- full_total | money -}}
+        </s>
+        {%- if settings.coszus_bag_save != blank -%}
+          {%- assign saved_money = saved | money -%}
+          <span class="coszus-bag-total__save">{{ settings.coszus_bag_save | escape | replace: '[amount]', saved_money }}</span>
+        {%- endif -%}
+      </span>
+    {%- endif -%}
+
+  {%- when 'rows' -%}
+    {%- liquid
+      if free_delivery_threshold == nil
+        capture free_delivery_threshold
+          render 'coszus-free-delivery-threshold'
+        endcapture
+      endif
+      assign threshold = free_delivery_threshold | strip | plus: 0
+      # Free once over the threshold, whether or not the bar is shown ("Show free delivery bar")
+      assign free = false
+      if threshold > 0 and cart.total_price >= threshold
+        assign free = true
+      endif
+      assign rate = settings.coszus_points_per_pound | default: 0
+      assign points = cart.total_price | times: rate | divided_by: 100 | floor
+    -%}
+    <div class="coszus-bag-rows">
+      <p class="coszus-bag-rows__delivery">
+        <span>{{ settings.coszus_bag_delivery_label | escape }}</span>
+        <span>
+          {%- if free -%}
+            {{ settings.coszus_bag_delivery_free | escape }}
+          {%- else -%}
+            {{ settings.coszus_bag_delivery_later | escape }}
+          {%- endif -%}
+        </span>
+      </p>
+      {%- if settings.coszus_bag_points and rate > 0 and points > 0 -%}
+        {%- capture points_html %}<b>{{ points }}</b>{% endcapture -%}
+        <p class="coszus-bag-rows__points">
+          <img
+            src="{{ 'coszus-points-coin-small.gif' | asset_url }}"
+            alt=""
+            width="16"
+            height="16"
+            loading="lazy"
+          >
+          <span>{{ settings.coszus_bag_points_text | escape | replace: '[points]', points_html }}</span>
+        </p>
+      {%- endif -%}
+    </div>
+
+  {%- when 'after' -%}
+    {%- liquid
+      assign clearpay_max = settings.coszus_bag_clearpay_max | default: 0 | times: 100
+      assign show_clearpay = false
+      if settings.coszus_bag_clearpay and settings.coszus_bag_clearpay_text != blank and cart.currency.iso_code == 'GBP' and cart.total_price > 0
+        if clearpay_max == 0 or cart.total_price <= clearpay_max
+          assign show_clearpay = true
+        endif
+      endif
+
+      assign show_rating = false
+      if settings.coszus_bag_rating and settings.coszus_bag_rating_text != blank and settings.coszus_bag_rating_url != blank
+        assign show_rating = true
+      endif
+
+      # Delivery and returns lines are UK facts. Outside the UK the delivery line is hidden and the
+      # returns line uses its international text (hidden when blank). Same rule as the product page.
+      assign trust_delivery = settings.coszus_bag_trust_delivery
+      assign trust_returns = settings.coszus_bag_trust_returns
+      unless localization.country.iso_code == 'GB'
+        assign trust_delivery = ''
+        assign trust_returns = settings.coszus_bag_trust_returns_international
+      endunless
+    -%}
+    {%- if show_clearpay -%}
+      {%- assign instalment = cart.total_price | plus: 3 | divided_by: 4 | money -%}
+      <p class="coszus-bag-clearpay">
+        {{- settings.coszus_bag_clearpay_text | escape | replace: '[amount]', instalment -}}
+      </p>
+    {%- endif -%}
+
+    {%- if show_rating or trust_delivery != blank or trust_returns != blank -%}
+      <ul class="coszus-bag-trust list-unstyled">
+        {%- if show_rating -%}
+          <li>
+            <a
+              href="{{ settings.coszus_bag_rating_url }}"
+              target="_blank"
+              rel="noopener"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M12 2.5l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.7l7.1-.6z" fill="currentColor"/>
+              </svg>
+              <span>
+                {%- if settings.coszus_bag_rating_title != blank -%}
+                  {{- settings.coszus_bag_rating_title | escape -}}
+                  <br>
+                {%- endif -%}
+                {{- settings.coszus_bag_rating_text | escape -}}
+              </span>
+              <span class="visually-hidden">{{ 'coszus.cart.opens_in_new_tab' | t }}</span>
+            </a>
+          </li>
+        {%- endif -%}
+        {%- if trust_delivery != blank -%}
+          <li>
+            {%- if settings.coszus_bag_trust_delivery_url != blank -%}
+              <a href="{{ settings.coszus_bag_trust_delivery_url }}">
+            {%- endif -%}
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M2.5 6.5h11v9h-11zM13.5 9.5h4l3 3v3h-7z"/><circle cx="6.5" cy="17" r="1.6"/><circle cx="17" cy="17" r="1.6"/>
+            </svg>
+            <span>{{ trust_delivery | escape }}</span>
+            {%- if settings.coszus_bag_trust_delivery_url != blank -%}
+              </a>
+            {%- endif -%}
+          </li>
+        {%- endif -%}
+        {%- if trust_returns != blank -%}
+          <li>
+            {%- if settings.coszus_bag_trust_returns_url != blank -%}
+              <a href="{{ settings.coszus_bag_trust_returns_url }}">
+            {%- endif -%}
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-2"/>
+            </svg>
+            <span>{{ trust_returns | escape }}</span>
+            {%- if settings.coszus_bag_trust_returns_url != blank -%}
+              </a>
+            {%- endif -%}
+          </li>
+        {%- endif -%}
+      </ul>
+    {%- endif -%}
+{%- endcase -%}

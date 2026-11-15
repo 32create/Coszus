@@ -1,0 +1,85 @@
+{%- doc -%}
+  Extra line under a bag drawer item (docs/HANDOFF.md section 3): the options as "Size M", then
+  the tags. "Sale" on items with a compare-at price (returns are refunded
+  as store credit, section 9). "✓ Full set" when the item and its Set partner
+  (custom.set_partner, either direction) are both in the bag. Nothing else claims a set, so until
+  that field is filled in the tag never shows.
+
+  @param {object} item - The cart line item
+
+  @example
+  {% render 'coszus-bag-line', item: item %}
+{%- enddoc -%}
+
+{%- liquid
+  assign in_set = false
+  if settings.coszus_bag_set_tag != blank
+    assign partner = item.product.metafields.custom.set_partner.value
+    for other in cart.items
+      if other.product_id == item.product_id
+        continue
+      endif
+      if partner and other.product_id == partner.id
+        assign in_set = true
+        break
+      endif
+      assign other_partner = other.product.metafields.custom.set_partner.value
+      if other_partner and other_partner.id == item.product_id
+        assign in_set = true
+        break
+      endif
+    endfor
+  endif
+
+  # Sale tag: products in the Sale collections (Theme settings > Product cards), else anything
+  # with a compare-at price (snippets/coszus-on-sale.liquid)
+  assign on_sale = false
+  if settings.coszus_bag_sale_tag != blank
+    assign discounted = false
+    if item.variant.compare_at_price > item.original_price
+      assign discounted = true
+    endif
+    capture sale_check
+      render 'coszus-on-sale', product: item.product, discounted: discounted
+    endcapture
+    assign sale_check = sale_check | strip
+    if sale_check == 'true'
+      assign on_sale = true
+    endif
+  endif
+-%}
+
+<div class="coszus-bag-line">
+  {%- unless item.product.has_only_default_variant or item.item_components.size > 0 -%}
+    <p class="coszus-bag-line__options">
+      {%- for option in item.options_with_values -%}
+        <span>{{ option.name | escape }} {{ option.value | escape }}</span>
+      {%- endfor -%}
+    </p>
+  {%- endunless -%}
+
+  {%- if in_set or on_sale -%}
+    <p class="coszus-bag-line__tags">
+      {%- if in_set -%}
+        <span class="coszus-bag-line__tag coszus-bag-line__tag--set">
+          <svg
+            viewBox="0 0 24 24"
+            width="11"
+            height="11"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M5 12.5l4.5 4.5L19 7.5"/>
+          </svg>
+          {{- settings.coszus_bag_set_tag | escape -}}
+        </span>
+      {%- endif -%}
+      {%- if on_sale -%}
+        <span class="coszus-bag-line__tag">{{ settings.coszus_bag_sale_tag | escape }}</span>
+      {%- endif -%}
+    </p>
+  {%- endif -%}
+</div>

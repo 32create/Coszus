@@ -1,0 +1,66 @@
+{%- doc -%}
+  An editorial (campaign) tile inside the Coszus collection grid. Two columns wide on desktop,
+  full width at 4:5 on mobile (sections/coszus-collection.liquid).
+
+  @param {object} block - The section's editorial block (sections/coszus-collection.liquid)
+
+  @example
+  {% render 'coszus-editorial-tile', block: block %}
+{%- enddoc -%}
+
+<li
+  class="coszus-collection__item coszus-collection__item--editorial"
+  {{ block.shopify_attributes }}
+>
+  {%- if block.settings.link != blank -%}
+    <a
+      class="coszus-collection__editorial"
+      href="{{ block.settings.link }}"
+    >
+  {%- else -%}
+    <div class="coszus-collection__editorial">
+  {%- endif -%}
+  {%- if block.settings.image -%}
+    <picture>
+      {%- if block.settings.image_mobile -%}
+        <source
+          media="(max-width: 820px)"
+          srcset="
+            {{ block.settings.image_mobile | image_url: width: 500 }} 500w,
+            {{ block.settings.image_mobile | image_url: width: 800 }} 800w,
+            {{ block.settings.image_mobile | image_url: width: 1100 }} 1100w
+          "
+          sizes="100vw"
+        >
+      {%- endif -%}
+      {%- assign editorial_focal = 'object-position: ' | append: block.settings.image.presentation.focal_point -%}
+      {%- assign editorial_alt = block.settings.image.alt | default: block.settings.heading -%}
+      {{
+        block.settings.image
+        | image_url: width: 1600
+        | image_tag:
+          widths: '500, 800, 1100, 1400, 1600',
+          sizes: '(min-width: 821px) 50vw, 100vw',
+          loading: 'lazy',
+          style: editorial_focal,
+          alt: editorial_alt
+      }}
+    </picture>
+  {%- endif -%}
+  <span class="coszus-collection__editorial-copy">
+    {%- if block.settings.kicker != blank -%}
+      <span class="coszus-collection__editorial-kicker">{{ block.settings.kicker }}</span>
+    {%- endif -%}
+    {%- if block.settings.heading != blank -%}
+      <span class="coszus-collection__editorial-heading">{{ block.settings.heading }}</span>
+    {%- endif -%}
+    {%- if block.settings.button_label != blank and block.settings.link != blank -%}
+      <span class="coszus-collection__editorial-button">{{ block.settings.button_label }}</span>
+    {%- endif -%}
+  </span>
+  {%- if block.settings.link != blank -%}
+    </a>
+  {%- else -%}
+    </div>
+  {%- endif -%}
+</li>

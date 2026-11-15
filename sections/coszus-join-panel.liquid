@@ -1,0 +1,15 @@
+{%- comment -%}
+  The wishlist's Join the Family panel. Never placed in a template: assets/coszus-join-panel.js
+  fetches it with the Section Rendering API (?section_id=coszus-join-panel) after a guest's first
+  save, so pages don't carry it. Copy: Theme settings > Join the Family.
+{%- endcomment -%}
+
+{%- render 'coszus-join-dialog', source: 'wishlist' -%}
+
+{% schema %}
+{
+  "name": "Join the Family panel",
+  "tag": "div",
+  "settings": []
+}
+{% endschema %}

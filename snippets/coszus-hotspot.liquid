@@ -1,0 +1,370 @@
+{%- doc -%}
+  One shoppable hotspot: a white + that opens a small product card (image, name, price, arrow).
+  Goes inside <coszus-hotspots>, which places it on the photo and handles open, close and Escape.
+
+  @param {product} product - The product the hotspot opens
+  @param {number} x - Across the photo, 0 to 100 (%)
+  @param {number} y - Down the photo, 0 to 100 (%)
+  @param {string} id - Unique id prefix (block id)
+  @param {number} index - Hotspot number within the block
+
+  @example
+  {% render 'coszus-hotspot', product: block.settings.product_1, x: 22, y: 34, id: block.id, index: 1 %}
+{%- enddoc -%}
+
+{%- liquid
+  assign card_id = 'Hotspot-' | append: id | append: '-' | append: index
+  assign image = product.featured_image
+  assign side = 'below'
+  if y > 55
+    assign side = 'above'
+  endif
+  assign align = 'center'
+  if x < 20
+    assign align = 'start'
+  elsif x > 80
+    assign align = 'end'
+  endif
+-%}
+
+<div
+  class="coszus-hotspot"
+  data-hotspot
+  data-x="{{ x }}"
+  data-y="{{ y }}"
+  data-side="{{ side }}"
+  data-align="{{ align }}"
+  style="--x: {{ x }}%; --y: {{ y }}%;"
+>
+  <button
+    type="button"
+    class="coszus-hotspot__toggle"
+    data-hotspot-toggle
+    aria-expanded="false"
+    aria-controls="{{ card_id }}"
+    aria-label="{{ 'coszus.shop_product' | t: product: product.title | escape }}"
+  >
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 12 12"
+      width="11"
+      height="11"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.3"
+    >
+      <path d="M6 0v12M0 6h12"/>
+    </svg>
+    {%- comment -%} Theme editor only: which product slider moves this dot {%- endcomment -%}
+    <span
+      class="coszus-hotspot__number"
+      aria-hidden="true"
+      >{{ index }}</span
+    >
+  </button>
+  <a
+    id="{{ card_id }}"
+    class="coszus-hotspot__card"
+    href="{{ product.url }}"
+  >
+    {%- if image -%}
+      {{-
+        image
+        | image_url: width: 132
+        | image_tag: widths: '44, 88, 132', sizes: '44px', loading: 'lazy', alt: '', class: 'coszus-hotspot__image'
+      -}}
+    {%- else -%}
+      <span class="coszus-hotspot__image"></span>
+    {%- endif -%}
+    <span class="coszus-hotspot__text">
+      <span class="coszus-hotspot__title">{{ product.title | escape }}</span>
+      <span class="coszus-hotspot__price">
+        {%- if product.compare_at_price > product.price -%}
+          <s>{{ product.compare_at_price | money }}</s>
+        {%- endif -%}
+        {{ product.price | money -}}
+      </span>
+    </span>
+    <span
+      class="coszus-hotspot__go"
+      aria-hidden="true"
+    >
+      <svg
+        focusable="false"
+        viewBox="0 0 14 14"
+        width="14"
+        height="14"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M2 7h10M8 3l4 4-4 4"/>
+      </svg>
+    </span>
+    <span class="visually-hidden">{{ 'coszus.shop_now' | t }}</span>
+  </a>
+</div>
+
+{% stylesheet %}
+  /* Container: covers the photo. Children are placed with --x / --y (px from JS, % before it runs). */
+  .coszus-hotspots {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  .coszus-hotspot {
+    display: contents;
+  }
+
+  .coszus-hotspot[hidden] {
+    display: none;
+  }
+
+  .coszus-hotspot__toggle,
+  .coszus-hotspot__card {
+    pointer-events: auto;
+  }
+
+  .coszus-hotspot__toggle {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--coszus-ink);
+    box-shadow:
+      0 0 0 3px rgb(255 255 255 / 0.45),
+      0 2px 6px rgb(0 0 0 / 0.25);
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    transition: transform var(--coszus-motion-fast) var(--coszus-ease);
+  }
+
+  /* Bigger hit area than the dot */
+  .coszus-hotspot__toggle::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
+
+  .coszus-hotspot.is-open .coszus-hotspot__toggle {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  @media (hover: hover) {
+    .coszus-hotspot__toggle:hover {
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+  }
+
+  .coszus-hotspot__toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+  }
+
+  /*
+    The card: one soft rounded row. Image, name and price, arrow.
+    Fades and nudges in on open and out on close (display transitions with @starting-style; older
+    browsers just show and hide it). Closed cards take no space, so they never widen a scroll row.
+    `translate` lines the card up with the dot; `transform` is only the open/close nudge.
+  */
+  .coszus-hotspot__card {
+    --card-nudge: -6px;
+
+    position: absolute;
+    left: var(--x);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    min-width: 190px;
+    max-width: 250px;
+    padding: 6px 8px 6px 6px;
+    border-radius: var(--coszus-card-radius, 4px);
+    background: #fff;
+    color: var(--coszus-ink);
+    text-decoration: none;
+    box-shadow:
+      0 12px 32px rgb(16 16 16 / 0.16),
+      0 1px 3px rgb(16 16 16 / 0.1);
+    translate: -50% 0;
+    opacity: 0;
+    transform: translateY(var(--card-nudge)) scale(0.97);
+    transform-origin: center top;
+    transition:
+      opacity var(--coszus-motion-fast) ease,
+      transform var(--coszus-motion-fast) var(--coszus-ease),
+      display var(--coszus-motion-fast) allow-discrete;
+  }
+
+  .coszus-hotspot:not(.is-open) .coszus-hotspot__card {
+    display: none;
+  }
+
+  .coszus-hotspot.is-open .coszus-hotspot__card {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--coszus-motion-fast) ease,
+      transform var(--coszus-motion) var(--coszus-ease),
+      display var(--coszus-motion) allow-discrete;
+  }
+
+  @starting-style {
+    .coszus-hotspot.is-open .coszus-hotspot__card {
+      opacity: 0;
+      transform: translateY(var(--card-nudge)) scale(0.97);
+    }
+  }
+
+  .coszus-hotspot[data-side='below'] .coszus-hotspot__card {
+    top: calc(var(--y) + 20px);
+  }
+
+  .coszus-hotspot[data-side='above'] .coszus-hotspot__card {
+    --card-nudge: 6px;
+
+    bottom: calc(100% - var(--y) + 20px);
+    transform-origin: center bottom;
+  }
+
+  .coszus-hotspot[data-align='start'] .coszus-hotspot__card {
+    translate: -22px 0;
+    transform-origin: left top;
+  }
+
+  .coszus-hotspot[data-align='end'] .coszus-hotspot__card {
+    translate: calc(-100% + 22px) 0;
+    transform-origin: right top;
+  }
+
+  .coszus-hotspot__image {
+    flex: none;
+    width: 44px;
+    height: 55px;
+    border-radius: max(var(--coszus-card-radius, 4px) - 2px, 2px);
+    object-fit: cover;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-hotspot__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-family: var(--font-body--family);
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  .coszus-hotspot__title {
+    display: -webkit-box;
+    overflow: hidden;
+    font-weight: 600;
+    text-transform: uppercase;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .coszus-hotspot__price {
+    color: var(--coszus-muted);
+  }
+
+  .coszus-hotspot__price s {
+    margin-right: 4px;
+    color: var(--coszus-concrete);
+  }
+
+  /* The arrow: the obvious "this takes you to the product" */
+  .coszus-hotspot__go {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--coszus-ink);
+    color: #fff;
+    transition: background-color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-hotspot__card:hover .coszus-hotspot__go {
+    background: var(--coszus-petrol);
+  }
+
+  .coszus-hotspot__card:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Theme editor: numbered dots while the photo's block is selected ---------- */
+  .coszus-hotspot__number {
+    display: none;
+    font-family: var(--font-body--family);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .coszus-hotspots[data-editing] .coszus-hotspot__toggle {
+    outline: 2px solid var(--coszus-bleu);
+    outline-offset: 2px;
+  }
+
+  .coszus-hotspots[data-editing] .coszus-hotspot__toggle svg {
+    display: none;
+  }
+
+  .coszus-hotspots[data-editing] .coszus-hotspot__number {
+    display: block;
+  }
+
+  /* Editing shows every dot, even one the crop would hide, so the sliders always move something */
+  .coszus-hotspots[data-editing] .coszus-hotspot[hidden] {
+    display: contents;
+  }
+
+  /* An empty product slot: a dashed dot, only while editing */
+  .coszus-hotspot--empty {
+    display: none;
+  }
+
+  .coszus-hotspots[data-editing] .coszus-hotspot--empty {
+    display: contents;
+  }
+
+  .coszus-hotspots[data-editing] .coszus-hotspot--empty .coszus-hotspot__toggle {
+    background: rgb(255 255 255 / 0.6);
+    outline-style: dashed;
+    cursor: default;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-hotspot__toggle {
+      width: 22px;
+      height: 22px;
+    }
+
+    .coszus-hotspot__toggle::before {
+      inset: -11px;
+    }
+  }
+{% endstylesheet %}

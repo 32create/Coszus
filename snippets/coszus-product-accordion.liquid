@@ -1,0 +1,145 @@
+{%- doc -%}
+  One accordion row on the Coszus product page (HANDOFF section 6), from a section block of the
+  product section: Description, Size & fit, Delivery & returns (label / text rows, as on Reprimo),
+  Care, or a custom row. Rows with nothing to show render nothing.
+
+  @param {object} block - The section block
+  @param {product} product - The product
+  @param {string} [model_line] - The fit and model line, e.g. "Boxy fit. Model is 6ft 1 and wears M."
+  @param {string} [guide_id] - ID of the size guide dialog, when the product has one
+  @param {boolean} [is_uk] - The visitor is in the UK. Otherwise Delivery shows the international rows.
+
+  @example
+  {% render 'coszus-product-accordion', block: block, product: product, model_line: model_line, guide_id: guide_id, is_uk: true %}
+{%- enddoc -%}
+
+{%- case block.type -%}
+  {%- when 'description' -%}
+    {%- if product.description != blank -%}
+      <details
+        class="coszus-accordion__row"
+        {% if block.settings.open %}
+          open
+        {% endif %}
+        {{ block.shopify_attributes }}
+      >
+        <summary>{{ block.settings.heading | escape }}</summary>
+        <div class="coszus-accordion__body rte">{{ product.description }}</div>
+      </details>
+    {%- endif -%}
+  {%- when 'size_fit' -%}
+    <details
+      class="coszus-accordion__row"
+      {% if block.settings.open %}
+        open
+      {% endif %}
+      {{ block.shopify_attributes }}
+    >
+      <summary>{{ block.settings.heading | escape }}</summary>
+      <div class="coszus-accordion__body rte">
+        {%- if model_line != blank -%}
+          <p>{{ model_line | escape }}</p>
+        {%- endif -%}
+        {{ block.settings.text }}
+        {%- if guide_id != blank -%}
+          <p>
+            <button
+              type="button"
+              class="coszus-accordion__link"
+              data-mp-open="{{ guide_id }}"
+            >
+              {{- 'coszus.product.open_size_guide' | t -}}
+            </button>
+          </p>
+        {%- endif -%}
+      </div>
+    </details>
+  {%- when 'delivery_returns' -%}
+    <details
+      class="coszus-accordion__row"
+      {% if block.settings.open %}
+        open
+      {% endif %}
+      {{ block.shopify_attributes }}
+    >
+      <summary>{{ block.settings.heading | escape }}</summary>
+      <div class="coszus-accordion__body coszus-dr">
+        {%- for group in (1..2) -%}
+          {%- liquid
+            if group == 1
+              assign group_title = block.settings.delivery_title
+              assign group_rows = block.settings.delivery_rows
+              unless is_uk
+                assign group_rows = block.settings.delivery_rows_international
+              endunless
+            else
+              assign group_title = block.settings.returns_title
+              assign group_rows = block.settings.returns_rows
+            endif
+            assign group_lines = group_rows | strip | newline_to_br | split: '<br />'
+          -%}
+          {%- if group_rows == blank -%}
+            {%- continue -%}
+          {%- endif -%}
+          {%- if group_title != blank -%}
+            <h2 class="coszus-dr__title">{{ group_title | escape }}</h2>
+          {%- endif -%}
+          <dl class="coszus-dr__rows">
+            {%- for line in group_lines -%}
+              {%- assign line_parts = line | strip | split: '|' -%}
+              {%- if line_parts.size == 0 -%}
+                {%- continue -%}
+              {%- endif -%}
+              <div class="coszus-dr__row">
+                <dt>{{ line_parts[0] | strip }}</dt>
+                <dd>{{ line_parts[1] | strip }}</dd>
+              </div>
+            {%- endfor -%}
+          </dl>
+        {%- endfor -%}
+        {%- if block.settings.delivery_link != blank or block.settings.returns_link != blank -%}
+          <p class="coszus-dr__links">
+            {%- if block.settings.delivery_link != blank -%}
+              <a href="{{ block.settings.delivery_link }}">{{ block.settings.delivery_link_label | escape }}</a>
+            {%- endif -%}
+            {%- if block.settings.returns_link != blank -%}
+              <a href="{{ block.settings.returns_link }}">{{ block.settings.returns_link_label | escape }}</a>
+            {%- endif -%}
+          </p>
+        {%- endif -%}
+      </div>
+    </details>
+  {%- when 'care' -%}
+    {%- assign care = product.metafields.custom.materials_care.value | strip -%}
+    {%- if care != blank or block.settings.text != blank -%}
+      <details
+        class="coszus-accordion__row"
+        {% if block.settings.open %}
+          open
+        {% endif %}
+        {{ block.shopify_attributes }}
+      >
+        <summary>{{ block.settings.heading | escape }}</summary>
+        <div class="coszus-accordion__body rte">
+          {%- if care != blank -%}
+            <p>{{ care | escape | newline_to_br }}</p>
+          {%- else -%}
+            {{ block.settings.text }}
+          {%- endif -%}
+        </div>
+      </details>
+    {%- endif -%}
+  {%- when 'accordion' -%}
+    {%- if block.settings.heading != blank and block.settings.text != blank -%}
+      <details
+        class="coszus-accordion__row"
+        {% if block.settings.open %}
+          open
+        {% endif %}
+        {{ block.shopify_attributes }}
+      >
+        <summary>{{ block.settings.heading | escape }}</summary>
+        <div class="coszus-accordion__body rte">{{ block.settings.text }}</div>
+      </details>
+    {%- endif -%}
+{%- endcase -%}

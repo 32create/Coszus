@@ -1,0 +1,38 @@
+{
+  "sections": {
+    "main": {
+      "type": "coszus-black-friday",
+      "blocks": {
+        "tile_men": {
+          "type": "tile",
+          "settings": {
+            "label": "Men",
+            "sale": "men",
+            "link": ""
+          }
+        },
+        "tile_women": {
+          "type": "tile",
+          "settings": {
+            "label": "Women",
+            "sale": "women",
+            "link": ""
+          }
+        },
+        "tile_juniors": {
+          "type": "tile",
+          "settings": {
+            "label": "Juniors",
+            "sale": "juniors",
+            "link": ""
+          }
+        }
+      },
+      "block_order": ["tile_men", "tile_women", "tile_juniors"],
+      "settings": {
+        "button_label": "Shop sale"
+      }
+    }
+  },
+  "order": ["main"]
+}

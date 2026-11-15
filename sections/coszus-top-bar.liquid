@@ -1,0 +1,420 @@
+{%- comment -%}
+  Coszus top bar (docs/HANDOFF.md section 3).
+  Black bar that scrolls continuously, pauses while a mouse is over it and scrolls away with the page.
+  Each message is a block. assets/coszus-top-bar.js copies the messages until the loop has no gap
+  and sets a constant speed; without JS the two Liquid copies below loop on most screens. The copies
+  are hidden from screen readers and the keyboard but still take clicks and taps: most of the time
+  the message on screen is a copy, so an inert copy swallowed the Join link.
+
+  UK-only messages (the free delivery threshold) show their International text to visitors outside
+  the UK, or nothing when that's blank. Same rule as the bag bar and the product page.
+{%- endcomment -%}
+
+{%- liquid
+  assign is_uk = false
+  if localization.country.iso_code == 'GB'
+    assign is_uk = true
+  endif
+
+  # Account links in messages use Shopify's routes (new customer accounts sign-in when that's on),
+  # not hard-coded paths
+  assign register_href = 'href="' | append: routes.account_register_url | append: '"'
+  assign login_href = 'href="' | append: routes.account_login_url | append: '"'
+  assign account_href = 'href="' | append: routes.account_url | append: '"'
+
+  # Messages this visitor sees: a UK-only message with no International text is left out
+  assign message_count = 0
+  for block in section.blocks
+    assign message_text = block.settings.text
+    if block.settings.uk_only and is_uk == false
+      assign message_text = block.settings.international_text
+    endif
+    if message_text != blank
+      assign message_count = message_count | plus: 1
+    endif
+  endfor
+  # Black Friday (Theme settings > Black Friday): two messages at the front, in the Top bar message
+  # colour (white by default), shown only while
+  # it's live (snippets/coszus-bf-state.liquid). Not counted for the no-JS loop speed.
+  assign bf_messages = '' | split: '|'
+  if settings.bf_enabled or request.design_mode and settings.bf_editor_preview
+    assign bf_messages = settings.bf_tagline | append: '|' | append: settings.bf_ticker_gift | split: '|' | compact
+  endif
+
+  assign visible_count = message_count
+  if message_count == 0
+    assign message_count = 1
+  endif
+-%}
+
+<script
+  src="{{ 'coszus-top-bar.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+<div
+  class="coszus-top-bar"
+  style="
+    --top-bar-background: {{ section.settings.background_color }};
+    --top-bar-foreground: {{ section.settings.text_color }};
+    --top-bar-count: {{ message_count }};
+  "
+>
+  {%- if visible_count > 0 -%}
+    <coszus-top-bar
+      class="coszus-top-bar__viewport"
+      data-speed-desktop="{{ section.settings.speed_desktop }}"
+      data-speed-mobile="{{ section.settings.speed_mobile }}"
+    >
+      <div class="coszus-top-bar__track">
+        {%- for copy in (1..2) -%}
+          <ul
+            class="coszus-top-bar__group"
+            {% if copy > 1 %}
+              aria-hidden="true" data-copy
+            {% else %}
+              aria-label="{{ section.settings.label | escape }}"
+            {% endif %}
+          >
+            {%- for bf_message in bf_messages -%}
+              {%- if bf_message == blank -%}
+                {%- continue -%}
+              {%- endif -%}
+              <li
+                class="coszus-top-bar__message coszus-top-bar__message--bf"
+                style="color: {{ settings.bf_ticker_color }};"
+                data-bf-on
+              >
+                <span class="coszus-top-bar__text">{{ bf_message | escape }}</span>
+              </li>
+            {%- endfor -%}
+            {%- for block in section.blocks -%}
+              {%- liquid
+                assign message_text = block.settings.text
+                if block.settings.uk_only and is_uk == false
+                  assign message_text = block.settings.international_text
+                endif
+              -%}
+              {%- if message_text == blank -%}
+                {%- continue -%}
+              {%- endif -%}
+              {%- assign message_text = message_text
+                | replace: 'href="/account/register"', register_href
+                | replace: 'href="/account/login"', login_href
+                | replace: 'href="/account"', account_href
+              -%}
+              {%- if copy > 1 -%}
+                {%- assign message_text = message_text | replace: '<a ', '<a tabindex="-1" ' -%}
+              {%- endif -%}
+              <li
+                class="coszus-top-bar__message"
+                {% if copy == 1 %}
+                  {{ block.shopify_attributes }}
+                {% endif %}
+              >
+                {%- if block.settings.show_pay_later_badges -%}
+                  <span class="coszus-top-bar__badges">
+                    <span class="coszus-pay-badge coszus-pay-badge--clearpay">
+                      {%- render 'coszus-icon', icon: 'clearpay', px: 13 -%}
+                      <span class="visually-hidden">Clearpay</span>
+                    </span>
+                    <span
+                      class="coszus-pay-badge coszus-pay-badge--klarna"
+                      aria-hidden="true"
+                    >
+                      Klarna
+                    </span>
+                  </span>
+                {%- endif -%}
+                <span class="coszus-top-bar__text">{{ message_text }}</span>
+              </li>
+            {%- endfor -%}
+          </ul>
+        {%- endfor -%}
+      </div>
+    </coszus-top-bar>
+  {%- endif -%}
+</div>
+
+{% style %}
+  :root {
+    --coszus-top-bar-height: {% if visible_count > 0 %}28px{% else %}0px{% endif %};
+  }
+{% endstyle %}
+
+{% stylesheet %}
+  .coszus-top-bar {
+    position: relative;
+    z-index: var(--layer-raised);
+    height: var(--coszus-top-bar-height, 28px);
+    overflow: hidden;
+    background: var(--top-bar-background);
+    color: var(--top-bar-foreground);
+    font-family: var(--font-system--family);
+    font-size: 0.6875rem;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .coszus-top-bar__viewport {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .coszus-top-bar__track {
+    --top-bar-gap: 56px;
+
+    display: flex;
+    flex: none;
+    width: max-content;
+    animation: coszus-top-bar var(--top-bar-duration, calc(var(--top-bar-count) * 6s)) linear infinite;
+    will-change: transform;
+  }
+
+  .coszus-top-bar__group {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--top-bar-gap);
+    margin: 0;
+    padding: 0 var(--top-bar-gap) 0 0;
+    list-style: none;
+  }
+
+  .coszus-top-bar__message {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  /* Links fill the bar's height (a 28px tall hit area) without moving the text, above the track */
+  .coszus-top-bar__text a {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    margin: -8px -4px;
+    padding: 8px 4px;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-top-bar__text a:hover {
+    opacity: 0.75;
+  }
+
+  .coszus-top-bar__text p {
+    display: inline;
+    margin: 0;
+  }
+
+  .coszus-top-bar__badges {
+    display: inline-flex;
+    gap: 6px;
+    margin-inline-end: 4px;
+  }
+
+  .coszus-pay-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 17px;
+    border-radius: 3px;
+    color: #0a0b09;
+    text-transform: none;
+  }
+
+  .coszus-pay-badge--clearpay {
+    width: 26px;
+    background: #b2fce4;
+  }
+
+  .coszus-pay-badge--klarna {
+    padding: 0 5px;
+    background: #ffb3c7;
+    font-weight: 800;
+    font-size: 0.59375rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* Keyboard users stop it by focusing a link, mouse users by pointing at it, so a link holds still */
+  .coszus-top-bar__viewport:focus-within .coszus-top-bar__track {
+    animation-play-state: paused;
+  }
+
+  @media (hover: hover) {
+    .coszus-top-bar__viewport:hover .coszus-top-bar__track {
+      animation-play-state: paused;
+    }
+  }
+
+  @media screen and (min-width: 821px) {
+    .coszus-top-bar__track {
+      --top-bar-gap: 120px;
+
+      animation-duration: var(--top-bar-duration, calc(var(--top-bar-count) * 14s));
+    }
+  }
+
+  @keyframes coszus-top-bar {
+    to {
+      transform: translateX(calc(-1 * var(--top-bar-shift, 50%)));
+    }
+  }
+
+  /* Reduced motion: no marquee. The first set of messages can be swiped instead. */
+  @media (prefers-reduced-motion: reduce) {
+    .coszus-top-bar__viewport {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .coszus-top-bar__viewport::-webkit-scrollbar {
+      display: none;
+    }
+
+    .coszus-top-bar__track {
+      animation: none;
+      padding-inline-start: var(--coszus-gutter);
+    }
+
+    .coszus-top-bar__group[data-copy] {
+      display: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus top bar",
+  "tag": "div",
+  "class": "coszus-top-bar-section",
+  "enabled_on": {
+    "groups": ["header"]
+  },
+  "max_blocks": 8,
+  "blocks": [
+    {
+      "type": "message",
+      "name": "Message",
+      "settings": [
+        {
+          "type": "inline_richtext",
+          "id": "text",
+          "label": "Text",
+          "default": "New message"
+        },
+        {
+          "type": "checkbox",
+          "id": "uk_only",
+          "label": "UK-only message",
+          "info": "Tick for anything only true in the UK, like the free delivery threshold. Visitors outside the UK see the International text instead, or nothing if it's blank.",
+          "default": false
+        },
+        {
+          "type": "inline_richtext",
+          "id": "international_text",
+          "label": "International text",
+          "default": "Worldwide delivery | duties shown at checkout",
+          "visible_if": "{{ block.settings.uk_only }}"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_pay_later_badges",
+          "label": "Show Clearpay and Klarna badges",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Scrolls continuously and doesn't pause on hover. It stops for visitors who ask for reduced motion."
+    },
+    {
+      "type": "range",
+      "id": "speed_desktop",
+      "label": "Speed on desktop",
+      "min": 10,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 24,
+      "info": "Pixels per second"
+    },
+    {
+      "type": "range",
+      "id": "speed_mobile",
+      "label": "Speed on mobile",
+      "min": 10,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 42,
+      "info": "Pixels per second"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Label for screen readers",
+      "default": "Why shop with Coszus"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus top bar",
+      "blocks": [
+        {
+          "type": "message",
+          "settings": {
+            "text": "<a href=\"/account/register\">Join</a> Coszus Rewards for rewards",
+            "uk_only": false
+          }
+        },
+        {
+          "type": "message",
+          "settings": {
+            "text": "Klarna & Clearpay available",
+            "uk_only": false,
+            "show_pay_later_badges": true
+          }
+        },
+        {
+          "type": "message",
+          "settings": {
+            "text": "Student discount: 15% off",
+            "uk_only": false
+          }
+        },
+        {
+          "type": "message",
+          "settings": {
+            "text": "Free UK delivery over £79.99",
+            "uk_only": true,
+            "international_text": "Worldwide delivery | duties shown at checkout"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

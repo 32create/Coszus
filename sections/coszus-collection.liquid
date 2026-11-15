@@ -1,0 +1,2269 @@
+{%- comment -%}
+  Coszus collection page (docs/HANDOFF.md section 5, docs/design/02-collection.html).
+
+  One template for Men, Women, Juniors and Sale. Department blocks pick the hero and the category
+  tiles for whichever collection is open; category tiles link to real collections. Below: the bar
+  (count, Filter, Sort), the filter drawer (Search & Discovery filters; right drawer on desktop,
+  bottom sheet on mobile), the grid with editorial tiles, and Load more.
+
+  Filters, sort and Load more fetch this section with the Section Rendering API
+  (assets/coszus-collection.js). Without JS the tiles, sort and Load more still work as links.
+  Product cards are `snippets/coszus-product-card.liquid` with tags and quick add, as on the homepage.
+  Department, Category and Editorial are section blocks: a section can't read a theme block's settings.
+{%- endcomment -%}
+
+{%- liquid
+  assign current_handle = collection.handle
+
+  # Which department is this collection in, and which tile is active?
+  # Blocks are tracked by their position in the block list
+  assign department_index = -1
+  assign active = ''
+  assign active_index = -1
+  assign active_label = ''
+  assign current_department_index = -1
+  assign department_number = 0
+  for block in section.blocks
+    case block.type
+      when 'department'
+        assign current_department_index = forloop.index0
+        assign department_number = department_number | plus: 1
+        if block.settings.collection.handle == current_handle
+          assign department_index = forloop.index0
+          assign active = 'all'
+        elsif block.settings.sale_collection.handle == current_handle
+          assign department_index = forloop.index0
+          assign active = 'sale'
+        else
+          for also in block.settings.also_on
+            if also.handle == current_handle
+              assign department_index = forloop.parentloop.index0
+              assign active = 'none'
+              break
+            endif
+          endfor
+        endif
+      when 'category'
+        # Tiles with a product type are filtered views of their collection, matched after this loop
+        if current_department_index >= 0 and block.settings.collection.handle == current_handle and block.settings.product_type == blank
+          assign department_index = current_department_index
+          assign active = 'tile'
+          assign active_index = forloop.index0
+          assign active_label = block.settings.label | default: block.settings.collection.title
+        endif
+    endcase
+    if department_index >= 0
+      break
+    endif
+  endfor
+
+  # Product type tiles (e.g. Juniors Hoodies): active when this collection is filtered to
+  # exactly that one product type
+  if department_index >= 0
+    assign active_type = ''
+    for filter in collection.filters
+      if filter.param_name == 'filter.p.product_type' and filter.active_values.size == 1
+        assign active_type = filter.active_values.first.value
+      endif
+    endfor
+
+    if active_type != ''
+      assign in_department = false
+      for block in section.blocks
+        if block.type == 'department'
+          if forloop.index0 == department_index
+            assign in_department = true
+          elsif in_department
+            break
+          endif
+          continue
+        endif
+        if in_department and block.type == 'category' and block.settings.collection.handle == current_handle and block.settings.product_type == active_type
+          assign active = 'tile'
+          assign active_index = forloop.index0
+          assign active_label = block.settings.label | default: active_type
+          break
+        endif
+      endfor
+    endif
+  endif
+
+  assign department = null
+  if department_index >= 0
+    assign department = section.blocks[department_index]
+  endif
+
+  # Hero content: the department's, else the collection's own
+  if department
+    assign hero_title = department.settings.title | default: department.settings.collection.title
+    assign hero_image = department.settings.image | default: department.settings.collection.image
+    assign hero_image_mobile = department.settings.image_mobile
+    assign hero_intro = department.settings.intro
+    assign department_url = department.settings.collection.url
+  else
+    assign hero_title = collection.title
+    assign hero_image = collection.image
+    assign hero_image_mobile = null
+    assign hero_intro = collection.description | strip_html | truncatewords: 24
+  endif
+  # A category tile can carry its own banner (e.g. Denim): on that category's page it replaces
+  # the department's image, keeping the department name and intro
+  if active == 'tile' and active_index >= 0
+    assign active_block = section.blocks[active_index]
+    if active_block.settings.hero_image != blank
+      assign hero_image = active_block.settings.hero_image
+      assign hero_image_mobile = active_block.settings.hero_image_mobile
+    endif
+  endif
+  assign hero_image = hero_image | default: section.settings.fallback_image
+
+  # Sale pages: a Rouge banner with the department name plus Sale, no photo
+  assign hero_sale = false
+  if active == 'sale' and section.settings.sale_hero_red
+    assign hero_sale = true
+    assign hero_image = null
+    assign hero_image_mobile = null
+    assign sale_word = 'coszus.collection.sale' | t
+    assign hero_title = hero_title | append: ' ' | append: sale_word
+  endif
+
+  case active
+    when 'all', ''
+      assign bar_label = 'coszus.collection.all' | t
+    when 'sale'
+      assign bar_label = 'coszus.collection.sale' | t
+    when 'none'
+      assign bar_label = collection.title
+    when 'tile'
+      assign bar_label = active_label
+  endcase
+
+  # The page's h1 is the hero name on a department's own page, else the category in the bar
+  assign hero_is_h1 = true
+  if department and active != 'all'
+    assign hero_is_h1 = false
+  endif
+  if section.settings.show_hero == false
+    assign hero_is_h1 = false
+  endif
+
+  # Active filters (count for the Filter button, and editorial tiles hide while filtering)
+  assign active_filter_count = 0
+  for filter in collection.filters
+    if filter.type == 'price_range'
+      if filter.min_value.value != null or filter.max_value.value != null
+        assign active_filter_count = active_filter_count | plus: 1
+      endif
+    else
+      assign active_filter_count = active_filter_count | plus: filter.active_values.size
+    endif
+  endfor
+
+  # sort_by from the URL is only used when it's one of this collection's sort options
+  # (filters, not an if: the section is at theme check's Liquid complexity limit)
+  assign requested_sort = collection.sort_by | default: ''
+  assign safe_sort = collection.sort_options | where: 'value', requested_sort | map: 'value' | first
+  assign current_sort = safe_sort | default: collection.default_sort_by
+  assign per_page = section.settings.products_per_page
+  assign show_filters = false
+  if section.settings.enable_filtering and collection.filters.size > 0
+    assign show_filters = true
+  endif
+
+  assign hero_font = settings.type_heading_font | font_modify: 'weight', '700'
+-%}
+
+<script
+  src="{{ 'coszus-collection.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+{%- if section.settings.show_hero and hero_font -%}
+  {% style %}
+    {{ hero_font | font_face: font_display: 'swap' }}
+  {% endstyle %}
+{%- endif -%}
+
+<coszus-collection
+  class="coszus-collection"
+  data-section-id="{{ section.id }}"
+  style="
+    --mc-columns: {{ section.settings.columns_desktop }};
+    --mc-gap-x: {{ section.settings.gap_x }}px;
+    --mc-gap-y: {{ section.settings.gap_y }}px;
+    --mc-gap-x-mobile: {{ section.settings.gap_x_mobile }}px;
+    --mc-gap-y-mobile: {{ section.settings.gap_y_mobile }}px;
+    --mc-edge: {{ section.settings.edge }}px;
+    --mc-edge-mobile: {{ section.settings.edge_mobile }}px;
+    {% if hero_font %}--mc-hero-font: "{{ hero_font.family }}", {{ hero_font.fallback_families }};{% endif %}
+  "
+>
+  {%- if section.settings.show_view_toggle -%}
+    {%- comment -%} Apply the visitor's Plain/Model choice before the grid paints {%- endcomment -%}
+    <script>
+      try {
+        if (localStorage.getItem('coszus:card-view') === 'model') {
+          document.currentScript.parentElement.dataset.view = 'model';
+        }
+      } catch (error) {}
+    </script>
+  {%- endif -%}
+  {%- if section.settings.show_hero -%}
+    {%- liquid
+      # Placeholder until the campaign photos are ready: one of Shopify's apparel hero
+      # placeholders per department (1, 2, 3 in block order), else the first
+      assign hero_placeholder = false
+      if section.settings.hero_placeholder and hero_sale == false
+        assign hero_placeholder = true
+        assign hero_image = null
+        assign placeholder_number = 1
+        if department
+          assign placeholder_number = department_number | minus: 1 | modulo: 3 | plus: 1
+        endif
+        assign placeholder_name = 'hero-apparel-' | append: placeholder_number
+      endif
+    -%}
+    <div class="coszus-collection__hero{% if hero_sale %} coszus-collection__hero--sale{% elsif hero_image == blank and hero_placeholder == false %} coszus-collection__hero--no-image{% endif %}">
+      {%- if hero_placeholder -%}
+        {{ placeholder_name | placeholder_svg_tag: 'coszus-collection__hero-image coszus-collection__hero-placeholder' }}
+      {%- elsif hero_image -%}
+        <picture>
+          {%- if hero_image_mobile -%}
+            <source
+              media="(max-width: 820px)"
+              srcset="
+                {{ hero_image_mobile | image_url: width: 600 }} 600w,
+                {{ hero_image_mobile | image_url: width: 900 }} 900w,
+                {{ hero_image_mobile | image_url: width: 1200 }} 1200w
+              "
+              sizes="100vw"
+            >
+          {%- endif -%}
+          {%- liquid
+            assign focal = hero_image.presentation.focal_point | default: 'center 20%'
+            assign focal_style = 'object-position: ' | append: focal
+          -%}
+          {{
+            hero_image
+            | image_url: width: 2400
+            | image_tag:
+              widths: '600, 900, 1200, 1600, 2000, 2400',
+              sizes: '100vw',
+              loading: 'eager',
+              fetchpriority: 'high',
+              class: 'coszus-collection__hero-image',
+              style: focal_style,
+              alt: hero_image.alt
+          }}
+        </picture>
+      {%- endif -%}
+      <div class="coszus-collection__hero-copy{% if hero_intro == blank %} coszus-collection__hero-copy--no-intro{% endif %}">
+        {%- if section.settings.show_breadcrumb -%}
+          <nav
+            class="coszus-collection__crumb"
+            aria-label="{{ 'coszus.collection.breadcrumb' | t }}"
+          >
+            <a href="{{ routes.root_url }}">{{ 'coszus.collection.home' | t }}</a>
+            <span aria-hidden="true">/</span>
+            {%- if hero_is_h1 -%}
+              <span aria-current="page">{{ hero_title }}</span>
+            {%- else -%}
+              <a href="{{ department_url }}">{{ hero_title }}</a>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">{{ bar_label }}</span>
+            {%- endif -%}
+          </nav>
+        {%- endif -%}
+        {%- render 'coszus-bf-collection', part: 'eyebrow' -%}
+        {%- if hero_is_h1 -%}
+          <h1 class="coszus-collection__hero-title">{{ hero_title }}</h1>
+        {%- else -%}
+          <p class="coszus-collection__hero-title">{{ hero_title }}</p>
+        {%- endif -%}
+        {%- if hero_intro != blank -%}
+          <p class="coszus-collection__hero-intro">{{ hero_intro }}</p>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- if section.settings.show_tiles and department -%}
+    {%- liquid
+      # Pills: text only, no image lookups or downloads
+      assign tile_pills = false
+      if section.settings.tile_style == 'pills'
+        assign tile_pills = true
+      endif
+    -%}
+    <nav
+      class="coszus-collection__tiles{% if tile_pills %} coszus-collection__tiles--pills{% endif %}"
+      aria-label="{{ 'coszus.collection.categories' | t }}"
+      {% render 'coszus-bf-collection', part: 'off' %}
+    >
+      <ul
+        class="coszus-collection__tile-list"
+        role="list"
+      >
+        {%- if department.settings.collection != blank -%}
+          <li>
+            <a
+              class="coszus-collection__tile{% if active == 'all' %} is-active{% endif %}"
+              href="{{ department.settings.collection.url }}"
+              {% if active == 'all' %}
+                aria-current="page"
+              {% endif %}
+              {{ department.shopify_attributes }}
+            >
+              {%- unless tile_pills -%}
+                <span
+                  class="coszus-collection__tile-media coszus-collection__tile-media--text"
+                  aria-hidden="true"
+                >
+                  {{- 'coszus.collection.all' | t -}}
+                </span>
+              {%- endunless -%}
+              <span class="coszus-collection__tile-label">{{ 'coszus.collection.all' | t }}</span>
+            </a>
+          </li>
+        {%- endif -%}
+        {%- assign in_department = false -%}
+        {%- for block in section.blocks -%}
+          {%- liquid
+            if block.type == 'department'
+              if forloop.index0 == department_index
+                assign in_department = true
+              else
+                assign in_department = false
+              endif
+              continue
+            endif
+            if block.type != 'category' or in_department == false or block.settings.collection == blank
+              continue
+            endif
+
+            assign tile_type = block.settings.product_type
+            assign tile_url = block.settings.collection.url
+            if tile_type != blank
+              assign tile_type_param = tile_type | url_param_escape
+              assign tile_url = tile_url | append: '?filter.p.product_type=' | append: tile_type_param
+            endif
+            assign tile_label = block.settings.label | default: tile_type | default: block.settings.collection.title
+            assign tile_image = block.settings.image
+            if tile_pills
+              assign tile_image = null
+            elsif tile_image == blank
+              if tile_type != blank
+                assign tile_product = block.settings.collection.products | where: 'type', tile_type | first
+              else
+                assign tile_product = block.settings.collection.products.first
+              endif
+              assign tile_image = tile_product.featured_media.preview_image
+            endif
+          -%}
+          <li>
+            <a
+              class="coszus-collection__tile{% if active_index == forloop.index0 %} is-active{% endif %}"
+              href="{{ tile_url }}"
+              {% if active_index == forloop.index0 %}
+                aria-current="page"
+              {% endif %}
+              {{ block.shopify_attributes }}
+            >
+              {%- if tile_image -%}
+                <span class="coszus-collection__tile-media">
+                  {{
+                    tile_image
+                    | image_url: width: 324
+                    | image_tag:
+                      widths: '160, 240, 324',
+                      sizes: '(min-width: 821px) 108px, 78px',
+                      loading: 'lazy',
+                      alt: ''
+                  }}
+                </span>
+              {%- elsif tile_pills == false -%}
+                <span
+                  class="coszus-collection__tile-media coszus-collection__tile-media--text"
+                  aria-hidden="true"
+                >
+                  {{- tile_label -}}
+                </span>
+              {%- endif -%}
+              <span class="coszus-collection__tile-label">{{ tile_label }}</span>
+            </a>
+          </li>
+        {%- endfor -%}
+        {%- if department.settings.sale_collection != blank -%}
+          <li>
+            <a
+              class="coszus-collection__tile coszus-collection__tile--sale{% if active == 'sale' %} is-active{% endif %}"
+              href="{{ department.settings.sale_collection.url }}"
+              {% if active == 'sale' %}
+                aria-current="page"
+              {% endif %}
+            >
+              {%- unless tile_pills -%}
+                <span
+                  class="coszus-collection__tile-media coszus-collection__tile-media--text"
+                  aria-hidden="true"
+                >
+                  {{- 'coszus.collection.sale' | t -}}
+                </span>
+              {%- endunless -%}
+              <span class="coszus-collection__tile-label">{{ 'coszus.collection.sale' | t }}</span>
+            </a>
+          </li>
+        {%- endif -%}
+      </ul>
+    </nav>
+  {%- endif -%}
+
+  {%- comment -%} Black Friday chips, title and line: only on the sale collections in Theme settings > Black Friday {%- endcomment -%}
+  {%- render 'coszus-bf-collection', part: 'chips' -%}
+
+  <div
+    class="coszus-collection__bar"
+    id="CoszusBar-{{ section.id }}"
+  >
+    {%- if hero_is_h1 -%}
+      <p class="coszus-collection__now">{% render 'coszus-bf-collection', part: 'title', label: bar_label %}</p>
+    {%- else -%}
+      <h1 class="coszus-collection__now">{% render 'coszus-bf-collection', part: 'title', label: bar_label %}</h1>
+    {%- endif -%}
+    {%- render 'coszus-bf-collection', part: 'note' -%}
+
+    <div class="coszus-collection__tools">
+      <div class="coszus-collection__tools-start">
+        {%- if section.settings.show_view_toggle -%}
+          <button
+            type="button"
+            role="switch"
+            class="coszus-collection__view"
+            data-mc-action="toggle-view"
+            aria-checked="false"
+            aria-label="{{ 'coszus.collection.view_label' | t | escape }}"
+          >
+            <span
+              class="coszus-collection__switch"
+              aria-hidden="true"
+            ></span>
+            {{- 'coszus.collection.view_model' | t -}}
+          </button>
+        {%- endif -%}
+        <span
+          class="coszus-collection__count"
+          data-mc-swap="count"
+        >
+          {{- 'coszus.collection.product_count' | t: count: collection.products_count -}}
+        </span>
+      </div>
+      {%- if show_filters -%}
+        <button
+          type="button"
+          class="coszus-collection__filter-button"
+          data-mc-action="open-filter"
+          aria-haspopup="dialog"
+          aria-controls="CoszusFilter-{{ section.id }}"
+        >
+          {{ 'coszus.collection.filter' | t }}
+          <span data-mc-swap="filter-count">
+            {%- if active_filter_count > 0 -%}
+              <b class="coszus-collection__filter-count">
+                <span aria-hidden="true">({{ active_filter_count }})</span>
+                <span class="visually-hidden">
+                  {{- 'coszus.collection.filters_active' | t: count: active_filter_count -}}
+                </span>
+              </b>
+            {%- endif -%}
+          </span>
+          {%- render 'coszus-icon', icon: 'filter' -%}
+        </button>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      Active filter chips: one per applied filter, each removes itself (same re-render as Clear
+      filters). Always rendered so the Section Rendering API has something to swap.
+    {%- endcomment -%}
+    <div
+      class="coszus-collection__chips"
+      data-mc-swap="chips"
+    >
+      {%- render 'coszus-filter-chips', collection: collection, count: active_filter_count, safe_sort: safe_sort -%}
+    </div>
+  </div>
+
+  {%- comment -%}
+    Headwear & accessories go at the end of a department's Shop all grid (after every
+    clothing product), so the clothing always leads. Only on the Shop all page, only
+    without filters, and only on the last page of results.
+  {%- endcomment -%}
+  {%- liquid
+    assign extras = blank
+    assign extras_count = 0
+    if department and department.settings.extras_collection != blank and department.settings.collection.handle == current_handle and active_filter_count == 0
+      assign extras = department.settings.extras_collection
+      assign extras_count = extras.products_count
+      if extras_count > 50
+        assign extras_count = 50
+      endif
+    endif
+
+    # New In leads a department's Shop all grid (newest first), then the rest in the
+    # collection's own order. Only without filters and on the default sort, so a
+    # customer's own sort or filter always wins. New In products are skipped further
+    # down so nothing shows twice.
+    assign lead = blank
+    assign lead_ids = ','
+    assign lead_count = 0
+    if extras != blank and department.settings.new_in_collection != blank and safe_sort == blank
+      assign lead = department.settings.new_in_collection
+      for lead_product in lead.products limit: 50
+        assign lead_ids = lead_ids | append: lead_product.id | append: ','
+        assign lead_count = lead_count | plus: 1
+      endfor
+    endif
+  -%}
+  <div
+    class="coszus-collection__results"
+    id="CoszusResults-{{ section.id }}"
+    data-mc-swap="results"
+  >
+    {%- paginate collection.products by per_page -%}
+      {%- if collection.products.size == 0 -%}
+        <div class="coszus-collection__empty">
+          <p>{{ 'coszus.collection.empty' | t }}</p>
+          {%- if active_filter_count > 0 -%}
+            <a
+              class="button-secondary"
+              href="{{ collection.url }}{% if safe_sort %}?sort_by={{ safe_sort | url_encode }}{% endif %}"
+              data-mc-action="clear-and-apply"
+            >
+              {{- 'coszus.collection.clear_filters' | t -}}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- else -%}
+        <ul
+          class="coszus-collection__grid"
+          role="list"
+          data-mc-grid
+        >
+          {%- capture image_roles -%}{%- render 'coszus-image-roles' -%}{%- endcapture -%}
+          {%- comment -%}
+            Editorial tiles on this collection page: up to three with a photo, picked in
+            coszus-editorial-ids. Hidden while filtering unless the setting is on.
+          {%- endcomment -%}
+          {%- capture editorial_ids -%}
+            {%- if active_filter_count == 0 or section.settings.editorial_when_filtered -%}
+              {%- render 'coszus-editorial-ids', blocks: section.blocks, handle: current_handle -%}
+            {%- endif -%}
+          {%- endcapture -%}
+          {%- if lead != blank and paginate.current_page == 1 -%}
+            {%- assign card_sizes = '(min-width: 1101px) calc(100vw / ' | append: section.settings.columns_desktop | append: ' - 1px), (min-width: 821px) calc(33.33vw - 1px), calc(50vw - 1px)' -%}
+            {%- for product in lead.products limit: 50 -%}
+              <li
+                class="coszus-collection__item coszus-collection__item--new-in"
+                data-product-id="{{ product.id }}"
+              >
+                {% render 'coszus-product-card',
+                  product: product,
+                  tags: true,
+                  quick_add: true,
+                  section_id: section.id,
+                  sizes: card_sizes,
+                  eager: forloop.first,
+                  image_roles: image_roles
+                %}
+              </li>
+            {%- endfor -%}
+          {%- endif -%}
+          {%- assign lead_skipped = 0 -%}
+          {%- for product in collection.products -%}
+            {%- assign lead_key = ',' | append: product.id | append: ',' -%}
+            {%- if lead != blank and lead_ids contains lead_key -%}
+              {%- assign lead_skipped = lead_skipped | plus: 1 -%}
+              {%- continue -%}
+            {%- endif -%}
+            {%- assign position = paginate.current_offset | plus: forloop.index -%}
+            <li
+              class="coszus-collection__item"
+              data-product-id="{{ product.id }}"
+            >
+              {%- liquid
+                assign card_sizes = '(min-width: 1101px) calc(100vw / ' | append: section.settings.columns_desktop | append: ' - 1px), (min-width: 821px) calc(33.33vw - 1px), calc(50vw - 1px)'
+                assign card_eager = false
+                if forloop.index <= section.settings.columns_desktop and paginate.current_page == 1
+                  assign card_eager = true
+                endif
+              -%}
+              {% render 'coszus-product-card',
+                product: product,
+                tags: true,
+                quick_add: true,
+                section_id: section.id,
+                sizes: card_sizes,
+                eager: card_eager,
+                image_roles: image_roles
+              %}
+            </li>
+
+            {%- if editorial_ids != blank -%}
+              {%- for block in section.blocks -%}
+                {%- if block.type != 'editorial' or block.settings.position != position -%}
+                  {%- continue -%}
+                {%- endif -%}
+                {%- assign editorial_key = ',' | append: block.id | append: ',' -%}
+                {%- if editorial_ids contains editorial_key -%}
+                  {%- render 'coszus-editorial-tile', block: block -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- if extras != blank and paginate.next == blank -%}
+            {%- for product in extras.products limit: 50 -%}
+              <li
+                class="coszus-collection__item coszus-collection__item--extra"
+                data-product-id="{{ product.id }}"
+              >
+                {% render 'coszus-product-card',
+                  product: product,
+                  tags: true,
+                  quick_add: true,
+                  section_id: section.id,
+                  sizes: card_sizes,
+                  eager: false,
+                  image_roles: image_roles
+                %}
+              </li>
+            {%- endfor -%}
+          {%- endif -%}
+        </ul>
+
+        {%- liquid
+          assign shown = paginate.current_offset | plus: collection.products.size
+          assign total = paginate.items | plus: extras_count
+          # New In cards shown up front, minus the ones this page skipped as duplicates
+          assign shown = shown | plus: lead_count | minus: lead_skipped
+          if shown > total
+            assign shown = total
+          endif
+          if paginate.next == blank
+            assign shown = total
+          endif
+          assign progress = shown | times: 100.0 | divided_by: total | round: 2
+        -%}
+        <div class="coszus-collection__more">
+          <p>{{ 'coszus.collection.seen' | t: shown: shown, total: total }}</p>
+          <div
+            class="coszus-collection__progress"
+            aria-hidden="true"
+          >
+            <span style="width: {{ progress }}%;"></span>
+          </div>
+          {%- if paginate.next -%}
+            <a
+              class="button-secondary coszus-collection__load"
+              href="{{ paginate.next.url }}"
+              data-mc-action="load-more"
+              data-loading-text="{{ 'coszus.collection.loading' | t | escape }}"
+            >
+              {{- 'coszus.collection.load_more' | t -}}
+              <span class="visually-hidden"> {{ collection.title | escape }}</span>
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endpaginate -%}
+  </div>
+
+  <p
+    class="visually-hidden"
+    role="status"
+    data-mc-status
+  ></p>
+
+  {%- if show_filters -%}
+    <dialog
+      class="coszus-filter"
+      id="CoszusFilter-{{ section.id }}"
+      aria-labelledby="CoszusFilterTitle-{{ section.id }}"
+    >
+      <div
+        class="coszus-filter__backdrop"
+        data-mc-action="close-filter"
+      ></div>
+      <form
+        class="coszus-filter__panel"
+        action="{{ collection.url }}"
+        method="get"
+        data-mc-filter-form
+      >
+        <div class="coszus-filter__top">
+          <h2
+            class="coszus-filter__title"
+            id="CoszusFilterTitle-{{ section.id }}"
+          >
+            {{ 'coszus.collection.filter' | t }}
+          </h2>
+          <button
+            type="button"
+            class="coszus-filter__close"
+            data-mc-action="close-filter"
+            aria-label="{{ 'coszus.collection.close_filter' | t }}"
+          >
+            {%- render 'coszus-icon', icon: 'close' -%}
+          </button>
+        </div>
+
+        <div
+          class="coszus-filter__body"
+          data-mc-swap="filters"
+        >
+          {%- if section.settings.enable_sorting -%}
+            <fieldset class="coszus-filter__sort">
+              <legend class="coszus-filter__sort-title">{{ 'coszus.collection.sort' | t }}</legend>
+              {%- liquid
+                assign sort_values = 'manual,created-descending,best-selling,price-ascending,price-descending' | split: ','
+              -%}
+              {%- for option in collection.sort_options -%}
+                {%- unless sort_values contains option.value or option.value == current_sort -%}
+                  {%- continue -%}
+                {%- endunless -%}
+                {%- liquid
+                  case option.value
+                    when 'manual'
+                      assign sort_label = 'coszus.collection.sort_featured' | t
+                    when 'created-descending'
+                      assign sort_label = 'coszus.collection.sort_newest' | t
+                    when 'best-selling'
+                      assign sort_label = 'coszus.collection.sort_best_selling' | t
+                    when 'price-ascending'
+                      assign sort_label = 'coszus.collection.sort_price_low' | t
+                    when 'price-descending'
+                      assign sort_label = 'coszus.collection.sort_price_high' | t
+                    else
+                      assign sort_label = option.name
+                  endcase
+                -%}
+                <label class="coszus-filter__sort-option">
+                  <input
+                    type="radio"
+                    name="sort_by"
+                    value="{{ option.value }}"
+                    data-mc-sort-option
+                    {% if option.value == current_sort %}
+                      checked
+                    {% endif %}
+                  >
+                  <span>{{ sort_label }}</span>
+                </label>
+              {%- endfor -%}
+            </fieldset>
+          {%- else -%}
+            <input
+              type="hidden"
+              name="sort_by"
+              value="{{ current_sort | escape }}"
+            >
+          {%- endif -%}
+          {%- for filter in collection.filters -%}
+            {%- liquid
+              assign open_by_default = false
+              if forloop.index <= section.settings.filters_open
+                assign open_by_default = true
+              endif
+              render 'coszus-filter-group', filter: filter, open_by_default: open_by_default, price_bands: section.settings.price_bands, section_id: section.id
+            -%}
+          {%- endfor -%}
+        </div>
+
+        <div class="coszus-filter__foot">
+          <button
+            type="button"
+            class="button-secondary coszus-filter__clear"
+            data-mc-action="clear-filters"
+          >
+            {{- 'coszus.collection.clear_all' | t -}}
+          </button>
+          <button
+            type="submit"
+            class="button coszus-filter__apply"
+          >
+            {{- 'coszus.collection.show_results' | t -}}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  {%- endif -%}
+</coszus-collection>
+
+{% stylesheet %}
+  .coszus-collection {
+    --mc-hairline: color-mix(in srgb, var(--coszus-line) 50%, var(--coszus-paper));
+
+    display: block;
+    padding-block-end: 40px;
+    color: var(--coszus-ink);
+  }
+
+  /* Hero: about half the screen, campaign image, big uppercase name bottom left */
+  .coszus-collection__hero {
+    position: relative;
+    height: clamp(360px, 54vh, 580px);
+    overflow: hidden;
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  .coszus-collection__hero-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Shopify's placeholder artwork, drawn in grey on the Ink hero */
+  .coszus-collection__hero-placeholder {
+    fill: rgb(255 255 255 / 0.18);
+  }
+
+  .coszus-collection__hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.5), rgb(0 0 0 / 0) 55%),
+      linear-gradient(to bottom, rgb(0 0 0 / 0.25), rgb(0 0 0 / 0) 30%);
+    pointer-events: none;
+  }
+
+  .coszus-collection__hero-copy {
+    position: absolute;
+    inset-inline: var(--coszus-gutter);
+    bottom: 26px;
+    z-index: 1;
+  }
+
+  /* No intro line: keep the name where it sits with one (design: 50px clear below it) */
+  .coszus-collection__hero-copy--no-intro {
+    bottom: 50px;
+  }
+
+  .coszus-collection__crumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-block-end: 10px;
+    font-size: var(--coszus-kicker-size);
+    line-height: 1.4;
+    color: rgb(255 255 255 / 0.8);
+  }
+
+  .coszus-collection__crumb a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .coszus-collection__crumb a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-collection__hero-title {
+    margin: 0;
+    font-family: var(--mc-hero-font, var(--font-heading--family));
+    font-weight: 700;
+    font-size: clamp(40px, 5vw, 72px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+  }
+
+  .coszus-collection__hero-intro {
+    margin: 10px 0 0;
+    max-width: 520px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgb(255 255 255 / 0.85);
+  }
+
+  /* No campaign image yet (no Department image, collection image or fallback): a compact heading on
+     the page background instead of an empty Ink block. Clears the nav when it runs over the page. */
+  .coszus-collection__hero.coszus-collection__hero--no-image {
+    height: auto;
+    padding-block-start: calc(
+      var(--coszus-nav-gap, 12px) + var(--coszus-nav-height, 54px) - var(--coszus-header-spacer, 0px) + 32px
+    );
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+  }
+
+  .coszus-collection__hero--no-image::after {
+    content: none;
+  }
+
+  .coszus-collection__hero--no-image .coszus-collection__hero-copy {
+    position: static;
+    padding-inline: var(--coszus-gutter);
+  }
+
+  .coszus-collection__hero--no-image .coszus-collection__crumb,
+  .coszus-collection__hero--no-image .coszus-collection__hero-intro {
+    color: var(--coszus-muted);
+  }
+
+  /* Sale: a shorter Rouge banner, white type, no photo or shade */
+  .coszus-collection__hero.coszus-collection__hero--sale {
+    height: clamp(240px, 34vh, 340px);
+    background: var(--coszus-rouge);
+    color: var(--coszus-paper);
+  }
+
+  .coszus-collection__hero--sale::after {
+    content: none;
+  }
+
+  /* Category tiles: portrait grey tiles, flat lays whole, label underneath */
+  .coszus-collection__tiles {
+    padding-block: 26px 8px;
+  }
+
+  .coszus-collection__tile-list {
+    display: flex;
+    gap: 10px;
+    margin: 0;
+    padding: 0 var(--coszus-gutter);
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: var(--coszus-gutter);
+    scrollbar-width: none;
+  }
+
+  .coszus-collection__tile-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .coszus-collection__tile-list > li {
+    flex: none;
+  }
+
+  .coszus-collection__tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 108px;
+    color: var(--coszus-ink);
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .coszus-collection__tile-media {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 134px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--coszus-off-white);
+    transition: background-color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-collection__tile-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    transform: scale(1.28);
+  }
+
+  .coszus-collection__tile-media--text {
+    padding: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .coszus-collection__tile--sale .coszus-collection__tile-media {
+    color: var(--coszus-rouge);
+  }
+
+  .coszus-collection__tile:hover .coszus-collection__tile-media {
+    background: color-mix(in srgb, var(--coszus-off-white) 96%, var(--coszus-ink));
+  }
+
+  .coszus-collection__tile.is-active .coszus-collection__tile-media {
+    background: color-mix(in srgb, var(--coszus-off-white) 93%, var(--coszus-ink));
+  }
+
+  .coszus-collection__tile-label {
+    display: inline-block;
+    margin-block-start: 10px;
+    padding-block-end: 4px;
+    border-block-end: 1.5px solid transparent;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .coszus-collection__tile.is-active .coszus-collection__tile-label {
+    border-block-end-color: currentcolor;
+  }
+
+  /* Pills (Category tile style: Pills): text-only outlined pills in one scrolling row, lined up
+     with the bar's title. Active is filled; Sale is Rouge. */
+  .coszus-collection__tiles--pills {
+    padding-block: 24px 0;
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile-list {
+    gap: 8px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile {
+    flex-direction: row;
+    justify-content: center;
+    width: auto;
+    height: 32px;
+    padding: 0 14px;
+    border: 1px solid var(--coszus-ink);
+    border-radius: 32px;
+    background: var(--coszus-paper);
+    transition: background-color var(--coszus-motion-fast) ease, color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile-label {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile:hover {
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile.is-active {
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile--sale {
+    border-color: var(--coszus-rouge);
+    color: var(--coszus-rouge);
+  }
+
+  .coszus-collection__tiles--pills .coszus-collection__tile--sale.is-active {
+    background: var(--coszus-rouge);
+    color: var(--coszus-paper);
+  }
+
+  /* Bar (after livefastdieyoung.uk): title, then the Plain / Model switch and the count on the
+     left, a plain-text Filters control on the right. Sort lives in the filter drawer. */
+  .coszus-collection__bar {
+    scroll-margin-top: calc(var(--coszus-nav-gap, 0px) + var(--coszus-nav-height, 0px) + 12px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 40px 0 20px;
+    padding-inline: 16px;
+  }
+
+  .coszus-collection__hero + .coszus-collection__bar,
+  .coszus-collection__tiles + .coszus-collection__bar {
+    margin-block-start: 24px;
+  }
+
+  /* Active filter chips under the bar: tap one to remove it */
+  .coszus-collection__chips:empty {
+    display: none;
+  }
+
+  .coszus-collection__chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coszus-collection__chip,
+  .coszus-collection__chip-clear {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    font-family: var(--font-body--family);
+    font-size: 12px;
+    line-height: 1;
+    color: var(--coszus-ink);
+    text-decoration: none;
+  }
+
+  .coszus-collection__chip {
+    padding: 0 10px 0 12px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 999px;
+    background: var(--coszus-paper);
+    transition: border-color var(--coszus-motion-fast) ease;
+  }
+
+  /* 44px tall hit area without making the chip look bigger */
+  .coszus-collection__chip::after,
+  .coszus-collection__chip-clear::after {
+    content: '';
+    position: absolute;
+    inset: -6px 0;
+  }
+
+  .coszus-collection__chip:hover {
+    border-color: var(--coszus-ink);
+  }
+
+  .coszus-collection__chip .coszus-icon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .coszus-collection__chip-clear {
+    padding-inline: 4px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-collection__chip:focus-visible,
+  .coszus-collection__chip-clear:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: 2px;
+  }
+
+  .coszus-collection__now {
+    margin: 0;
+    font-family: var(--font-body--family);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: normal;
+    text-transform: uppercase;
+  }
+
+  /* Plain / Model switch: on shows the model shots. The padding (cancelled by the negative
+     margin) makes it a 44px tall hit area without moving anything. */
+  .coszus-collection__view {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: -13px -6px;
+    padding: 13px 6px;
+    border: 0;
+    background: none;
+    color: var(--coszus-ink);
+    font-family: var(--font-body--family);
+    font-size: 14px;
+    line-height: 1.15;
+    cursor: pointer;
+  }
+
+  .coszus-collection__switch {
+    position: relative;
+    flex: none;
+    width: 30px;
+    height: 18px;
+    border: 1px solid var(--coszus-ink);
+    border-radius: 9px;
+    background: var(--coszus-paper);
+    transition: background-color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-collection__switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--coszus-ink);
+    transition: transform var(--coszus-motion-fast) ease, background-color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-collection__view[aria-checked='true'] .coszus-collection__switch {
+    background: var(--coszus-ink);
+  }
+
+  .coszus-collection__view[aria-checked='true'] .coszus-collection__switch::after {
+    background: var(--coszus-paper);
+    transform: translateX(12px);
+  }
+
+  .coszus-collection__tools-start {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .coszus-collection__tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .coszus-collection__count {
+    font-size: 14px;
+    line-height: 1.15;
+  }
+
+  .coszus-collection__filter-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: -13px -6px;
+    padding: 13px 6px;
+    border: 0;
+    background: none;
+    color: var(--coszus-ink);
+    font-family: var(--font-body--family);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.15;
+    cursor: pointer;
+  }
+
+  .coszus-collection__filter-button:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-collection__filter-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .coszus-collection__filter-count {
+    font-weight: 400;
+  }
+
+  .coszus-collection__results {
+    padding-inline: var(--mc-edge, var(--coszus-gutter));
+    transition: opacity var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-collection[aria-busy='true'] .coszus-collection__results {
+    opacity: 0.5;
+  }
+
+  .coszus-collection__grid {
+    --mc-cols: var(--mc-columns, 4);
+
+    display: grid;
+    grid-template-columns: repeat(var(--mc-cols), minmax(0, 1fr));
+    gap: var(--mc-gap-y) var(--mc-gap-x);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    container-type: inline-size;
+  }
+
+  .coszus-collection__item {
+    min-width: 0;
+  }
+
+  /* Editorial tiles span two columns and match a card image's height (4:5) */
+  .coszus-collection__item--editorial {
+    grid-column: span 2;
+    align-self: start;
+  }
+
+  .coszus-collection__editorial {
+    position: relative;
+    display: block;
+    height: calc((100cqi - (var(--mc-cols) - 1) * var(--mc-gap-x)) / var(--mc-cols) * 1.25);
+    overflow: hidden;
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+    text-decoration: none;
+  }
+
+  .coszus-collection__editorial img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s var(--coszus-ease);
+  }
+
+  .coszus-collection__editorial:hover img {
+    transform: scale(1.03);
+  }
+
+  .coszus-collection__editorial::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.55), rgb(0 0 0 / 0) 55%);
+    pointer-events: none;
+  }
+
+  .coszus-collection__editorial-copy {
+    position: absolute;
+    inset-inline: 22px;
+    bottom: 22px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .coszus-collection__editorial-kicker {
+    margin-block-end: 8px;
+    font-size: var(--coszus-kicker-size);
+    letter-spacing: var(--coszus-kicker-tracking);
+    text-transform: uppercase;
+  }
+
+  .coszus-collection__editorial-heading {
+    margin-block-end: 14px;
+    font-family: var(--mc-hero-font, var(--font-heading--family));
+    font-size: clamp(22px, 2.2vw, 30px);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+  }
+
+  .coszus-collection__editorial-button {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 20px;
+    border-radius: var(--style-border-radius-buttons-primary, 6px);
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    font-family: var(--font-system--family);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: background-color var(--coszus-motion-fast) ease, color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-collection__editorial:hover .coszus-collection__editorial-button {
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  /* Load more */
+  .coszus-collection__more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-block: 44px 10px;
+  }
+
+  .coszus-collection__more p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-collection__progress {
+    width: 160px;
+    height: 2px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--mc-hairline);
+  }
+
+  .coszus-collection__progress span {
+    display: block;
+    height: 100%;
+    background: var(--coszus-ink);
+    transition: width var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-collection__load {
+    margin-block-start: 10px;
+  }
+
+  .coszus-collection__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding-block: 60px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-collection__empty p {
+    margin: 0;
+  }
+
+  @media screen and (min-width: 821px) and (max-width: 1100px) {
+    .coszus-collection__grid {
+      --mc-cols: min(var(--mc-columns, 4), 3);
+    }
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-collection {
+      padding-block-end: 28px;
+    }
+
+    .coszus-collection__hero {
+      height: max(300px, 84vw);
+    }
+
+    .coszus-collection__hero-copy {
+      bottom: 18px;
+    }
+
+    .coszus-collection__hero-copy--no-intro {
+      bottom: 46px;
+    }
+
+    .coszus-collection__hero-title {
+      font-size: 40px;
+    }
+
+    .coszus-collection__hero-intro {
+      font-size: 12px;
+    }
+
+    .coszus-collection__tiles {
+      padding-block: 16px 4px;
+    }
+
+    .coszus-collection__tiles--pills {
+      padding-block: 16px 0;
+    }
+
+    .coszus-collection__tiles--pills .coszus-collection__tile-list {
+      margin-block: -7px;
+      padding-block: 7px;
+    }
+
+    .coszus-collection__tiles--pills .coszus-collection__tile {
+      position: relative;
+      height: 30px;
+      padding-inline: 12px;
+    }
+
+    .coszus-collection__tiles--pills .coszus-collection__tile::before {
+      content: '';
+      position: absolute;
+      inset: -7px 0;
+    }
+
+    .coszus-collection__tiles--pills .coszus-collection__tile-label {
+      font-size: 12px;
+    }
+
+    .coszus-collection__tile {
+      width: 78px;
+    }
+
+    .coszus-collection__tile-media {
+      height: 96px;
+    }
+
+    .coszus-collection__tile-media--text {
+      font-size: 13px;
+    }
+
+    .coszus-collection__tile-label {
+      font-size: 11.5px;
+    }
+
+    .coszus-collection__bar {
+      gap: 12px;
+      margin-block: 24px 16px;
+    }
+
+    .coszus-collection__hero + .coszus-collection__bar,
+    .coszus-collection__tiles + .coszus-collection__bar {
+      margin-block-start: 16px;
+    }
+
+    .coszus-collection__now {
+      font-size: 18px;
+    }
+
+    .coszus-collection__results {
+      padding-inline: var(--mc-edge-mobile);
+    }
+
+    .coszus-collection__grid {
+      --mc-cols: 2;
+
+      gap: var(--mc-gap-y-mobile) var(--mc-gap-x-mobile);
+    }
+
+    .coszus-collection__item--editorial {
+      grid-column: 1 / -1;
+    }
+
+    .coszus-collection__editorial {
+      height: auto;
+      aspect-ratio: 4 / 5;
+    }
+
+    .coszus-collection__editorial-copy {
+      inset-inline: 16px;
+      bottom: 16px;
+    }
+  }
+
+  /* Filter: right drawer on desktop, bottom sheet on mobile. A native modal dialog, so Escape,
+     focus trapping and the inert page come free. */
+  .coszus-filter {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--coszus-ink);
+    overflow: hidden;
+  }
+
+  .coszus-filter::backdrop {
+    background: transparent;
+  }
+
+  .coszus-filter__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.4);
+    opacity: 0;
+    transition: opacity var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-filter__panel {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(92vw, 400px);
+    background: var(--coszus-paper);
+    transform: translateX(100%);
+    transition: transform var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-filter.is-open .coszus-filter__backdrop {
+    opacity: 1;
+  }
+
+  .coszus-filter.is-open .coszus-filter__panel {
+    transform: none;
+  }
+
+  .coszus-filter__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px;
+    border-block-end: 1px solid var(--mc-hairline);
+  }
+
+  .coszus-filter__title {
+    margin: 0;
+    font-family: var(--font-body--family);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .coszus-filter__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: -12px -12px -12px 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .coszus-filter__close svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .coszus-filter__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 22px;
+  }
+
+  .coszus-filter__group {
+    border-block-end: 1px solid var(--mc-hairline);
+  }
+
+  /* Sort, first in the drawer (as on livefastdieyoung.uk). Applied with Show results. */
+  .coszus-filter__sort {
+    margin: 0;
+    padding: 0 0 16px;
+    border: 0;
+    border-block-end: 1px solid var(--mc-hairline);
+  }
+
+  .coszus-filter__sort-title {
+    padding-block: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .coszus-filter__sort-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-block: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .coszus-filter__sort-option input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--coszus-ink);
+  }
+
+  .coszus-filter__group summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-block: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .coszus-filter__group summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .coszus-filter__group summary::after {
+    content: '+';
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .coszus-filter__group[open] summary::after {
+    content: '\2212';
+  }
+
+  .coszus-filter__options {
+    padding-block-end: 16px;
+  }
+
+  .coszus-filter__options--sizes {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  /* Hidden filter inputs. Not Horizon's visually-hidden: that shows the input again on focus,
+     which pushed the list down 22px and made the next tap miss. */
+  .coszus-filter__size,
+  .coszus-filter__pill {
+    position: relative;
+  }
+
+  .coszus-filter__input {
+    position: absolute;
+    inset: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .coszus-filter__size span {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 4px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 6px;
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color var(--coszus-motion-fast) ease, color var(--coszus-motion-fast) ease;
+  }
+
+  /* 44px tall hit area, centred on the box, so the look doesn't change */
+  .coszus-filter__size span::before,
+  .coszus-filter__pill::before {
+    content: '';
+    position: absolute;
+    inset: min(0px, 50% - 22px) 0;
+  }
+
+  .coszus-filter__size :checked + span {
+    border-color: var(--coszus-ink);
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  .coszus-filter__options--colours {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .coszus-filter__pill {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px 5px 6px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .coszus-filter__pill i {
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgb(0 0 0 / 0.12);
+    border-radius: 50%;
+  }
+
+  .coszus-filter__pill:has(:checked) {
+    border-color: var(--coszus-ink);
+    box-shadow: inset 0 0 0 1px var(--coszus-ink);
+  }
+
+  /* Rows are 24px tall (WCAG 2.2 target size) with a 9px gap: the same 33px pitch as before */
+  .coszus-filter__options--list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 13px;
+  }
+
+  .coszus-filter__check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 24px;
+    cursor: pointer;
+  }
+
+  .coszus-filter__check input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--coszus-ink);
+  }
+
+  .coszus-filter :is(.coszus-filter__size, .coszus-filter__pill, .coszus-filter__check):has(:disabled) {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .coszus-filter :is(.coszus-filter__size, .coszus-filter__pill):has(:focus-visible) {
+    outline: var(--focus-outline-width) solid currentcolor;
+    outline-offset: var(--focus-outline-offset);
+    border-radius: 6px;
+  }
+
+  .coszus-filter__pill:has(:focus-visible) {
+    border-radius: 999px;
+  }
+
+  /* Touch: sort and checkbox rows spaced to 44px so each row is a full-size target, and wrapped
+     size and colour rows pulled apart just enough that their 44px hit areas don't overlap */
+  @media screen and (max-width: 820px), (pointer: coarse) {
+    .coszus-filter__options--sizes {
+      row-gap: 8px;
+    }
+
+    .coszus-filter__options--colours {
+      row-gap: 13px;
+    }
+
+    .coszus-filter__sort {
+      padding-block-end: 10px;
+    }
+
+    .coszus-filter__sort-title {
+      padding-block-end: 10px;
+    }
+
+    .coszus-filter__sort-option,
+    .coszus-filter__check {
+      min-height: 44px;
+      padding-block: 0;
+    }
+
+    .coszus-filter__options--list {
+      gap: 0;
+      margin-block: -6px;
+    }
+  }
+
+  .coszus-filter__foot {
+    display: flex;
+    gap: 8px;
+    padding: 16px 22px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-block-start: 1px solid var(--mc-hairline);
+  }
+
+  .coszus-filter__foot .button,
+  .coszus-filter__foot .button-secondary {
+    min-height: 44px;
+  }
+
+  .coszus-filter__clear {
+    flex: 1;
+  }
+
+  .coszus-filter__apply {
+    flex: 2;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-filter__panel {
+      inset-block: auto 0;
+      inset-inline: 0;
+      width: 100%;
+      max-height: 86vh;
+      max-height: 86dvh;
+      border-radius: 14px 14px 0 0;
+      transform: translateY(100%);
+    }
+  }
+
+  html.coszus-scroll-lock {
+    overflow: hidden;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus collection",
+  "class": "coszus-collection-section",
+  "enabled_on": {
+    "templates": ["collection"]
+  },
+  "blocks": [
+    {
+      "type": "department",
+      "name": "Department",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Shows this hero and the category tiles under it on the Shop all collection, the Sale collection, every category tile's collection and any collection added below."
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Name",
+          "default": "Men",
+          "info": "Big uppercase name in the hero."
+        },
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Shop all collection",
+          "info": "The \"All\" tile."
+        },
+        {
+          "type": "collection",
+          "id": "sale_collection",
+          "label": "Sale collection",
+          "info": "The red \"Sale\" tile. Leave empty to hide it (e.g. Juniors, where sale stays in the main grid)."
+        },
+        {
+          "type": "collection",
+          "id": "extras_collection",
+          "label": "Headwear & accessories collection",
+          "info": "Shown at the very end of the Shop all grid, after all the clothing, so accessories sit at the bottom. Hidden while filtering. Leave empty to turn off."
+        },
+        {
+          "type": "collection",
+          "id": "new_in_collection",
+          "label": "New In collection",
+          "info": "Shown first on the Shop all grid, then everything else. Only on the default sort without filters, and only when the Headwear & accessories collection is set. Leave empty to turn off."
+        },
+        {
+          "type": "collection_list",
+          "id": "also_on",
+          "label": "Also use on",
+          "limit": 20,
+          "info": "Other collections that belong to this department (e.g. New In). No tile is marked active on them."
+        },
+        {
+          "type": "header",
+          "content": "Hero"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "Campaign photo. Empty uses the Shop all collection's image. Set the focal point so faces stay in frame."
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "Mobile image",
+          "info": "Optional. Square or 4:5 works best."
+        },
+        {
+          "type": "text",
+          "id": "intro",
+          "label": "Intro line",
+          "default": "Tracksuits, tees, jorts and everything in between."
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "name": "Category tile",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Belongs to the Department block above it."
+        },
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "info": "Empty uses the product type, else the collection title."
+        },
+        {
+          "type": "text",
+          "id": "product_type",
+          "label": "Product type",
+          "info": "Optional. Links to the collection filtered to this product type, exactly as in Shopify (e.g. Hoodie). For departments without a collection per category, like Juniors."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "A flat lay on white or grey, garment shown whole. Empty uses the first product's first image (of this product type, if set)."
+        },
+        {
+          "type": "header",
+          "content": "Banner"
+        },
+        {
+          "type": "image_picker",
+          "id": "hero_image",
+          "label": "Banner image",
+          "info": "Optional. Replaces the department banner at the top when this category is open. Wide, at least 2400px across."
+        },
+        {
+          "type": "image_picker",
+          "id": "hero_image_mobile",
+          "label": "Banner image on mobile",
+          "info": "Optional. A taller crop for phones. Empty uses the banner image."
+        }
+      ]
+    },
+    {
+      "type": "editorial",
+      "name": "Editorial tile",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "A lifestyle photo in the product grid, linking to another collection or fit. Pick the collection page it shows on below. Up to three show per collection page (the first three in the block list), and a tile with no image doesn't show on the live site."
+        },
+        {
+          "type": "range",
+          "id": "position",
+          "label": "Show after product",
+          "min": 2,
+          "max": 96,
+          "step": 1,
+          "default": 6,
+          "info": "Roughly every 12 products. Hidden while filters are on."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "Required: with no image the tile is hidden."
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "Mobile image",
+          "info": "Optional. Shown at 4:5."
+        },
+        {
+          "type": "text",
+          "id": "kicker",
+          "label": "Kicker",
+          "default": "New in"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "MotoX Collection"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "Button label",
+          "default": "Shop now"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        },
+        {
+          "type": "collection_list",
+          "id": "show_on",
+          "label": "Show on",
+          "limit": 20,
+          "info": "The collection page(s) this tile shows on, e.g. Womens Shop All. Empty: not shown anywhere."
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Add a Department, then its Category tiles under it. Editorial tiles sit in the grid, up to three per collection page."
+    },
+    {
+      "type": "header",
+      "content": "Hero"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hero",
+      "label": "Show hero",
+      "default": true,
+      "info": "Header setting \"Collection pages: first section runs under the nav\" should match."
+    },
+    {
+      "type": "checkbox",
+      "id": "sale_hero_red",
+      "label": "Red banner on sale pages",
+      "default": true,
+      "info": "On a department's sale collection the banner is Rouge with the department name and Sale, instead of the photo."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumb",
+      "label": "Show breadcrumb",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "hero_placeholder",
+      "label": "Placeholder instead of images",
+      "default": false,
+      "info": "Until the campaign photos are ready. Each department gets a different placeholder; untick to show the Department images."
+    },
+    {
+      "type": "image_picker",
+      "id": "fallback_image",
+      "label": "Fallback image",
+      "info": "For collections with no department and no collection image."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tiles",
+      "label": "Show category tiles",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "tile_style",
+      "label": "Category tile style",
+      "options": [
+        { "value": "images", "label": "Images" },
+        { "value": "pills", "label": "Pills (text only)" }
+      ],
+      "default": "images"
+    },
+    {
+      "type": "header",
+      "content": "Filter and sort"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_filtering",
+      "label": "Filter",
+      "default": true,
+      "info": "Filters come from the Search & Discovery app. Filters with \"size\" in the name show as size boxes, colour filters as swatches."
+    },
+    {
+      "type": "range",
+      "id": "filters_open",
+      "label": "Filters open by default",
+      "min": 0,
+      "max": 6,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "text",
+      "id": "price_bands",
+      "label": "Price bands",
+      "default": "30, 50",
+      "info": "Where the price filter splits, in pounds. \"30, 50\" gives Under £30, £30 to £50, £50 and over."
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sorting",
+      "label": "Sort",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_toggle",
+      "label": "Plain / Model toggle",
+      "default": true,
+      "info": "Swaps card photos between flat lays and model shots. Reads each image's alt text: \"plain\" or \"model\". Without labels, the first image is plain and the second is the model shot."
+    },
+    {
+      "type": "header",
+      "content": "Grid"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per batch",
+      "min": 12,
+      "max": 48,
+      "step": 4,
+      "default": 24,
+      "info": "How many load at first and with each Load more."
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "label": "Columns on desktop",
+      "min": 3,
+      "max": 5,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "edge",
+      "label": "Grid edge",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 24,
+      "info": "Space between the grid and the screen edge. 0 runs the cards edge to edge."
+    },
+    {
+      "type": "range",
+      "id": "gap_x",
+      "label": "Column gap",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "gap_y",
+      "label": "Row gap",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "range",
+      "id": "gap_x_mobile",
+      "label": "Column gap on mobile",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "gap_y_mobile",
+      "label": "Row gap on mobile",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "edge_mobile",
+      "label": "Grid edge on mobile",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "checkbox",
+      "id": "editorial_when_filtered",
+      "label": "Keep editorial tiles while filtering",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus collection"
+    }
+  ]
+}
+{% endschema %}

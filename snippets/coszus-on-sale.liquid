@@ -1,0 +1,40 @@
+{%- doc -%}
+  Outputs "true" when a product counts as on sale for the Sale tags (the card tag and the bag's
+  "Sale"), else nothing.
+
+  With Sale collections picked in Theme settings > Product cards, only products in one of them
+  count. With none picked, anything with a compare-at price counts (`discounted`). The struck-through
+  was-price is separate and always shows when there's a compare-at price.
+
+  @param {product} product - The product
+  @param {boolean} discounted - The product or line has a compare-at price above its price
+
+  @example
+  {%- capture on_sale -%}{% render 'coszus-on-sale', product: product, discounted: true %}{%- endcapture -%}
+{%- enddoc -%}
+
+{%- liquid
+  assign sale_handles = ''
+  for n in (1..3)
+    assign sale_key = 'coszus_sale_collection_' | append: n
+    assign sale_handle = settings[sale_key].handle
+    if sale_handle != blank
+      assign sale_handles = sale_handles | append: sale_handle | append: ','
+    endif
+  endfor
+
+  if sale_handles == blank
+    if discounted
+      echo 'true'
+    endif
+  else
+    assign product_handles = product.collections | map: 'handle'
+    assign sale_handles = sale_handles | split: ','
+    for sale_handle in sale_handles
+      if product_handles contains sale_handle
+        echo 'true'
+        break
+      endif
+    endfor
+  endif
+-%}

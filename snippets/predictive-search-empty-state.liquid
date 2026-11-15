@@ -1,0 +1,37 @@
+{% doc %}
+  Renders the predictive search empty state
+
+  @param {number} shadow_opacity - shadow opacity for the empty state container shadow
+  @param {string} products_test_id - a playwright test id, used to differentiate empty state from 'real' search results
+  @param {boolean} [load_empty_state] - Load the empty state or not
+
+  @example
+  {% render 'predictive-search-empty-state', shadow_opacity: 0.1, products_test_id: 'empty-state' %}
+{% enddoc %}
+
+<div
+  id="predictive-search-results"
+  class="predictive-search-dropdown"
+  role="listbox"
+  aria-expanded="true"
+  style="--color-shadow: rgb(var(--color-foreground-rgb) / {{ shadow_opacity }});"
+>
+  {% if load_empty_state %}
+    <div class="predictive-search-results__inner">
+      {% # Coszus: Shop links, Popular and Recent instead of product images (docs/HANDOFF.md section 3) %}
+      {% render 'coszus-search-idle' %}
+
+      {% comment %}
+        predictive-search.js prepends recently viewed products into this element and stops if it's
+        missing. The design shows no products before typing, so it stays empty and hidden
+        (assets/coszus-search.js clears it).
+      {% endcomment %}
+      <div
+        id="predictive-search-products"
+        data-testid="{{ products_test_id }}"
+        data-coszus-hidden-products
+        hidden
+      ></div>
+    </div>
+  {% endif %}
+</div>

@@ -1,0 +1,301 @@
+<script
+  src="{{ 'results-list.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+{% liquid
+  if section.settings.background_color != blank
+    render 'contrast-override', background_color: section.settings.background_color, section_id: section.id
+  endif
+%}
+
+{% render 'collection-wrapper-styles' %}
+
+<div
+  class="section-background{% if section.settings.background_color != blank %} color-custom-{{ section.id }}{% endif %}"
+></div>
+
+<results-list
+  class="section product-grid-container spacing-style{% if section.settings.background_color != blank %} color-custom-{{ section.id }}{% endif %}"
+  style="--padding-block-start: {{ section.settings.padding-block-start }}px; --padding-block-end: {{ section.settings.padding-block-end }}px;"
+  section-id="{{ section.id }}"
+  infinite-scroll="{{ section.settings.enable_infinite_scroll }}"
+>
+  {% render 'skip-to-content-link', href: '#ResultsList', text: 'accessibility.skip_to_results_list' %}
+
+  <div
+    class="collection-wrapper grid gap-style"
+  >
+    {% assign products_per_page = 24 %}
+
+    {% if section.settings.enable_infinite_scroll == false %}
+      {% assign products_per_page = section.settings.products_per_page %}
+    {% endif %}
+
+    {% paginate search.results by products_per_page %}
+      {% assign product_limit = products_per_page %}
+      {% if search.results_count > 0 %}
+        {% content_for 'block', type: 'filters', id: 'filters', results: search, results_size: search.results_count %}
+        {% assign products = search.results | where: 'object_type', 'product' %}
+      {% else %}
+        {% # Coszus: a short row of trending products, not a whole collection (mobile speed) %}
+        {% assign product_limit = 8 %}
+        {% assign collection = settings.empty_state_collection | default: collections.all %}
+        {% assign default_title = 'content.search_results_resource_products' | t %}
+        {% assign title = settings.coszus_search_trending_heading | default: settings.empty_state_collection.title | default: default_title %}
+        {% assign products = collection.products %}
+        {% if search.performed and search.terms != blank %}
+          {% # Coszus: "No results for X" with New In / Men / Women / Juniors (docs/HANDOFF.md section 3) %}
+          <div class="coszus-search-empty">
+            <h2 class="coszus-search-empty__title">
+              {{- 'coszus.search.nothing_for' | t: terms: search.terms -}}
+            </h2>
+            <p class="coszus-search-empty__help">{{ 'coszus.search.no_results_help' | t }}</p>
+            {% render 'coszus-search-shop-links', class: 'coszus-search-shop-links--page' %}
+          </div>
+        {% endif %}
+      {% endif %}
+
+      {% capture children %}
+        {%- if section.settings.coszus_cards -%}
+          {%- capture image_roles -%}{%- render 'coszus-image-roles' -%}{%- endcapture -%}
+        {%- endif -%}
+        {% for product in products limit: product_limit %}
+          <li
+            id="{{ section.id }}-{{ product.id }}"
+            class="product-grid__item product-grid__item--{{ forloop.index0 }}"
+            data-page="{{ paginate.current_page }}"
+            data-product-id="{{ product.id }}"
+            ref="cards[]"
+          >
+            {%- if section.settings.coszus_cards -%}
+              {% # Coszus: the collection grid's card (docs/HANDOFF.md section 2). First row loads straight away. %}
+              {%- liquid
+                assign card_eager = false
+                if forloop.index <= 2 and paginate.current_page == 1
+                  assign card_eager = true
+                endif
+              -%}
+              {% render 'coszus-product-card',
+                product: product,
+                tags: true,
+                quick_add: true,
+                section_id: section.id,
+                sizes: '(min-width: 1101px) 25vw, (min-width: 821px) 33vw, 50vw',
+                eager: card_eager,
+                image_roles: image_roles
+              %}
+            {%- else -%}
+              {% content_for 'block',
+                type: '_product-card',
+                id: 'product-card',
+                closest.product: product,
+                product_view_context: 'search'
+              %}
+            {%- endif -%}
+          </li>
+        {% endfor %}
+      {% endcapture %}
+
+      {% render 'product-grid',
+        section: section,
+        children: children,
+        products: products,
+        paginate: paginate,
+        enable_infinite_scroll: section.settings.enable_infinite_scroll,
+        title: title
+      %}
+    {% endpaginate %}
+  </div>
+</results-list>
+
+{% schema %}
+{
+  "name": "t:names.search_results",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:content.edit_empty_state_collection_in_theme_settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "coszus_cards",
+      "label": "Coszus product cards",
+      "info": "The collection grid's card with tags and quick add. Off uses the Product card block below.",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "layout_type",
+      "label": "t:settings.type",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:options.grid"
+        },
+        {
+          "value": "organic",
+          "label": "t:options.editorial"
+        }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "select",
+      "id": "product_card_size",
+      "label": "t:settings.card_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:options.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:options.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:options.large"
+        },
+        {
+          "value": "extra-large",
+          "label": "t:options.extra_large"
+        }
+      ],
+      "default": "medium",
+      "visible_if": "{{ section.settings.layout_type == 'grid' }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_product_card_size",
+      "label": "t:settings.mobile_card_size",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:options.small"
+        },
+        {
+          "value": "large",
+          "label": "t:options.large"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_infinite_scroll",
+      "label": "t:settings.auto_load_products",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "t:settings.products_per_page",
+      "min": 8,
+      "max": 36,
+      "step": 4,
+      "default": 24,
+      "visible_if": "{{ section.settings.enable_infinite_scroll == false }}"
+    },
+    {
+      "type": "header",
+      "content": "t:content.layout"
+    },
+    {
+      "type": "select",
+      "id": "product_grid_width",
+      "label": "t:settings.width",
+      "options": [
+        {
+          "value": "centered",
+          "label": "t:options.page"
+        },
+        {
+          "value": "full-width",
+          "label": "t:options.full"
+        }
+      ],
+      "default": "centered"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width_on_mobile",
+      "label": "t:settings.full_width_on_mobile",
+      "default": true,
+      "visible_if": "{{ section.settings.product_grid_width != 'full-width' }}"
+    },
+    {
+      "type": "range",
+      "id": "columns_gap_horizontal",
+      "label": "t:settings.horizontal_gap",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "columns_gap_vertical",
+      "label": "t:settings.vertical_gap",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left_padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right_padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "t:content.section_layout"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "t:settings.background_color",
+      "placeholder": "t:settings.default"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top_padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom_padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    }
+  ],
+  "presets": []
+}
+{% endschema %}

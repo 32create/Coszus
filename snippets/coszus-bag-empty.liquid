@@ -1,0 +1,34 @@
+{%- doc -%}
+  Empty bag (docs/HANDOFF.md section 3): "Start with something new." and a Shop button per
+  department from Theme settings > Departments. The "Your bag is empty" heading is Horizon's, in
+  snippets/cart-drawer.liquid.
+
+  @example
+  {% render 'coszus-bag-empty' %}
+{%- enddoc -%}
+
+<div class="coszus-bag-empty">
+  {%- if settings.coszus_bag_empty_text != blank -%}
+    <p class="coszus-bag-empty__text">{{ settings.coszus_bag_empty_text | escape }}</p>
+  {%- endif -%}
+  <div class="coszus-bag-empty__links">
+    {%- assign departments = 'men,women,juniors' | split: ',' -%}
+    {%- for key in departments -%}
+      {%- liquid
+        assign label_key = 'coszus_department_' | append: key | append: '_label'
+        assign collection_key = 'coszus_department_' | append: key | append: '_collection'
+        assign department_collection = settings[collection_key]
+        assign label = settings[label_key] | default: department_collection.title
+      -%}
+      {%- if department_collection != blank and label != blank -%}
+        {%- assign label_lower = label | downcase -%}
+        <a
+          class="button coszus-bag-empty__link"
+          href="{{ department_collection.url }}"
+        >
+          {{- settings.coszus_bag_empty_button | default: '[department]' | replace: '[department]', label_lower | escape -}}
+        </a>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</div>

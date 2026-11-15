@@ -1,0 +1,1962 @@
+{%- comment -%}
+  Coszus header (docs/HANDOFF.md section 3): fixed frosted-glass nav, department switching,
+  Coszus Rewards coin and panel, and the mobile side menu. Replaces Horizon's header in the header group.
+  The coin opens Smile's panel (assets/coszus-header.js, Smile's documented SmileUI.openPanel); the
+  panel in this file is the fallback when Smile UI isn't on the page.
+
+  One nav serves desktop and mobile; CSS rearranges it at 820px (FOUNDATIONS.md). Nothing here
+  depends on touch detection, so iPad portrait (820px and below) gets the mobile nav and iPad
+  landscape gets the desktop nav.
+
+  Departments are blocks. The chosen department is stored on <html data-coszus-department> and
+  in localStorage. Other sections can read it, or listen for `coszus:department-change` on document.
+  Department links (desktop names) open the department collection; the side menu
+  tabs switch the menu in place and each menu starts with "Shop all [department]".
+
+  Position is CSS only: the section is position: sticky under the top bar (see the stylesheet), so
+  the nav is in the right place from first paint without waiting for coszus-header.js.
+{%- endcomment -%}
+
+{%- liquid
+  assign departments = section.blocks | where: 'type', 'department'
+  assign bf_on = false
+  if settings.bf_enabled or request.design_mode and settings.bf_editor_preview
+    assign bf_on = true
+  endif
+  assign points_links = section.blocks | where: 'type', 'points_link'
+
+  # The department this page belongs to (department collection, or a product in one)
+  assign page_department = ''
+  assign department_handles = ''
+  for block in departments
+    assign handle = block.settings.label | handleize
+    assign department_handles = department_handles | append: handle | append: ','
+    if page_department == '' and block.settings.collection != blank
+      assign department_collection = block.settings.collection.handle
+      if template.name == 'collection' and collection.handle == department_collection
+        assign page_department = handle
+      elsif template.name == 'product'
+        for product_collection in product.collections
+          if product_collection.handle == department_collection
+            assign page_department = handle
+            break
+          endif
+        endfor
+      endif
+    endif
+  endfor
+  assign department_handles = department_handles | split: ','
+
+  # Department links open the department collection. Optional on the homepage: switch the department in place.
+  assign switch_in_place = false
+  if template.name == 'index' and section.settings.home_department_links == 'switch'
+    assign switch_in_place = true
+  endif
+
+  # Does the first section run under the glass (full-bleed hero) or start below it?
+  assign overlap = false
+  if template.name == 'index' and section.settings.overlap_home
+    assign overlap = true
+  elsif template.name == 'collection' and section.settings.overlap_collection
+    assign overlap = true
+  endif
+
+  assign logo = section.settings.logo | default: settings.logo
+  if logo
+    assign logo_url = logo | image_url: width: 480
+    assign logo_ratio = logo.aspect_ratio
+  else
+    assign logo_url = 'coszus-logo.png' | asset_url
+    assign logo_ratio = 1.946
+  endif
+
+  # The animated coin: the 66px GIF in the bar, and a 168px copy for the panel that only loads when
+  # the panel opens (assets/coszus-header.js), since the panel is in the page on every desktop view
+  assign coin_large_url = ''
+  if section.settings.points_coin
+    assign coin_url = section.settings.points_coin | image_url: width: 160
+  else
+    assign coin_url = 'coszus-points-coin-small.gif' | asset_url
+    assign coin_large_url = 'coszus-points-coin-medium.gif' | asset_url
+  endif
+
+  assign wishlist_url = section.settings.wishlist_url | default: '/pages/wishlist'
+  assign show_points = section.settings.show_points
+  assign show_account = false
+  if section.settings.show_account and shop.customer_accounts_enabled
+    assign show_account = true
+  endif
+
+  assign points_join_url = section.settings.points_join_url | default: routes.account_register_url
+  assign account_link = section.settings.account_url | default: routes.account_url
+  assign side_menu_secondary = section.settings.side_menu_secondary
+  assign side_menu_help = section.settings.side_menu_help
+
+  # Account links in the side menu always go to the customer account, whatever the store menu
+  # says (the old menu sent "Account" to a policy page). With the side menu's own account link on,
+  # store menu links with these titles are left out so it isn't listed twice.
+  assign account_titles = 'account,my account,sign in,sign-in,log in,login,sign in / register,sign in or register' | split: ','
+  assign account_route_titles = 'account,my account,sign in,sign-in,log in,login,sign in / register,sign in or register,track my order,track order,my orders,orders' | split: ','
+  assign side_menu_account = false
+  if section.settings.side_menu_account and shop.customer_accounts_enabled
+    assign side_menu_account = true
+  endif
+-%}
+
+<script
+  src="{{ 'coszus-header.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+{%- comment -%} Horizon's own components keep the bag count, its announcement and the drawer state in sync {%- endcomment -%}
+<script
+  src="{{ 'cart-icon.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+<script
+  src="{{ 'header-actions.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+{%- comment -%} Set the department before the nav paints, so it never flashes the wrong colour {%- endcomment -%}
+<script>
+  (function () {
+    var list = {{ department_handles | json }};
+    var page = {{ page_department | json }};
+    var stored = null;
+    try {
+      stored = localStorage.getItem('coszus:department');
+      if (page) localStorage.setItem('coszus:department', page);
+    } catch (e) {}
+    var department = page || (list.indexOf(stored) > -1 ? stored : list[0]);
+    if (department) document.documentElement.setAttribute('data-coszus-department', department);
+  })();
+</script>
+
+{%- if request.page_type == 'index' -%}
+  <h1 class="visually-hidden">{{ shop.name }}</h1>
+{%- endif -%}
+
+<coszus-header
+  class="coszus-header{% if overlap %} coszus-header--overlap{% endif %}"
+  data-departments="{{ department_handles | join: ',' }}"
+>
+  <div
+    class="coszus-header__spacer"
+    aria-hidden="true"
+  ></div>
+
+  <header class="coszus-nav">
+    <button
+      type="button"
+      class="coszus-nav__icon coszus-nav__burger"
+      aria-label="{{ 'accessibility.menu' | t }}"
+      aria-haspopup="dialog"
+      aria-controls="CoszusSideMenu"
+      aria-expanded="false"
+      data-side-menu-open
+    >
+      {%- render 'coszus-icon', icon: 'menu' -%}
+    </button>
+
+    {%- if departments.size > 0 -%}
+      {%- if switch_in_place -%}
+        <div
+          class="coszus-nav__departments"
+          role="group"
+          aria-label="{{ 'coszus.department' | t }}"
+        >
+          {%- for block in departments -%}
+            <button
+              type="button"
+              class="coszus-nav__department"
+              data-department="{{ block.settings.label | handleize }}"
+              aria-pressed="false"
+              {{ block.shopify_attributes }}
+            >
+              {{- block.settings.label | escape -}}
+            </button>
+          {%- endfor -%}
+        </div>
+      {%- else -%}
+        <nav
+          class="coszus-nav__departments"
+          aria-label="{{ 'coszus.department' | t }}"
+        >
+          {%- for block in departments -%}
+            <a
+              class="coszus-nav__department"
+              href="{{ block.settings.collection.url | default: routes.collections_url }}"
+              data-department="{{ block.settings.label | handleize }}"
+              {% if collection and collection.handle == block.settings.collection.handle %}
+                aria-current="page"
+              {% endif %}
+              {{ block.shopify_attributes }}
+            >
+              {{- block.settings.label | escape -}}
+            </a>
+          {%- endfor -%}
+        </nav>
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- if section.settings.show_search -%}
+      <button
+        type="button"
+        class="coszus-nav__icon coszus-nav__search"
+        aria-label="{{ 'content.search_input_label' | t }}"
+        aria-haspopup="dialog"
+        on:click="#search-modal/showDialog"
+      >
+        {%- render 'coszus-icon', icon: 'search' -%}
+      </button>
+    {%- endif -%}
+
+    <a
+      class="coszus-nav__logo"
+      href="{{ routes.root_url }}"
+      {% if request.page_type == 'index' %}
+        aria-current="page"
+      {% endif %}
+    >
+      <span class="visually-hidden">{{ 'accessibility.home_logo_alt' | t: store_name: shop.name }}</span>
+      {%- if section.settings.recolour_logo -%}
+        <span
+          class="coszus-nav__logo-mark"
+          style="--logo-url: url('{{ logo_url }}'); --logo-ratio: {{ logo_ratio }};"
+          aria-hidden="true"
+        ></span>
+      {%- else -%}
+        <img
+          class="coszus-nav__logo-image"
+          src="{{ logo_url }}"
+          alt=""
+          width="{{ logo_ratio | times: 100 | round }}"
+          height="100"
+          style="--logo-ratio: {{ logo_ratio }};"
+          fetchpriority="high"
+        >
+      {%- endif -%}
+    </a>
+
+    {%- if section.settings.show_wishlist and settings.wishlist_enabled -%}
+      <a
+        class="coszus-nav__icon coszus-nav__wishlist"
+        href="{{ wishlist_url }}"
+        aria-label="{{ 'coszus.wishlist' | t }}"
+      >
+        {%- render 'coszus-icon', icon: 'wishlist' -%}
+      </a>
+    {%- endif -%}
+
+    {%- capture bag_icon -%}
+      <cart-icon class="coszus-nav__bag-icon">
+        {%- render 'coszus-icon', icon: 'bag' -%}
+        {%- render 'cart-bubble', limit: 100 -%}
+      </cart-icon>
+    {%- endcapture -%}
+
+    <header-actions class="coszus-nav__actions">
+      {%- if settings.cart_type == 'drawer' and template.name != 'cart' -%}
+        <button
+          type="button"
+          class="coszus-nav__icon coszus-nav__bag"
+          on:click="#cart-drawer/toggle"
+          aria-haspopup="dialog"
+          aria-controls="cart-drawer"
+          aria-describedby="cart-bubble-text"
+        >
+          {%- comment -%} Name from hidden text, not aria-label, so the visible count isn't left out of the label (WCAG 2.5.3) {%- endcomment -%}
+          <span class="visually-hidden">{{ 'coszus.bag' | t }}</span>
+          {{- bag_icon -}}
+        </button>
+      {%- else -%}
+        <a
+          class="coszus-nav__icon coszus-nav__bag"
+          href="{{ routes.cart_url }}"
+          aria-describedby="cart-bubble-text"
+        >
+          <span class="visually-hidden">{{ 'coszus.bag' | t }}</span>
+          {{- bag_icon -}}
+        </a>
+      {%- endif -%}
+      <span
+        ref="liveRegion"
+        class="visually-hidden"
+        role="status"
+      ></span>
+    </header-actions>
+
+    {%- if show_points -%}
+      <coszus-points
+        class="coszus-points"
+        {% if section.settings.points_smile %}
+          data-smile="home"
+        {% endif %}
+      >
+        <button
+          type="button"
+          class="coszus-nav__icon coszus-points__coin"
+          aria-label="{{ 'coszus.points' | t }}"
+          aria-expanded="false"
+          aria-controls="CoszusPointsPanel"
+          data-points-toggle
+        >
+          <img
+            src="{{ coin_url }}"
+            alt=""
+            width="24"
+            height="24"
+            loading="lazy"
+          >
+        </button>
+
+        <div
+          id="CoszusPointsPanel"
+          class="coszus-points__panel"
+          role="region"
+          aria-label="{{ 'coszus.points' | t }}"
+          data-points-panel
+        >
+          <div class="coszus-points__head">
+            <img
+              class="coszus-points__head-coin"
+              src="{{ coin_url }}"
+              {% if coin_large_url != blank %}
+                data-src-large="{{ coin_large_url }}"
+              {% endif %}
+              alt=""
+              width="52"
+              height="52"
+              loading="lazy"
+            >
+            <div>
+              <p class="coszus-points__kicker">{{ section.settings.points_kicker | escape }}</p>
+              <p class="coszus-points__title">
+                {%- if customer and customer.first_name != blank -%}
+                  {{ 'content.account_title_personalized' | t: first_name: customer.first_name }}
+                {%- else -%}
+                  {{ section.settings.points_heading | escape }}
+                {%- endif -%}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="coszus-points__close"
+              aria-label="{{ 'coszus.close_points' | t }}"
+              data-points-close
+            >
+              {%- render 'coszus-icon', icon: 'close', px: 18 -%}
+            </button>
+          </div>
+
+          <div class="coszus-points__body">
+            {%- if customer -%}
+              {%- if section.settings.points_text_signed_in != blank -%}
+                <p class="coszus-points__text">{{ section.settings.points_text_signed_in }}</p>
+              {%- endif -%}
+              <a
+                class="button coszus-points__button"
+                href="{{ account_link }}"
+              >
+                {{- section.settings.points_account_label | escape -}}
+              </a>
+            {%- else -%}
+              {%- if section.settings.points_text != blank -%}
+                <p class="coszus-points__text">{{ section.settings.points_text }}</p>
+              {%- endif -%}
+              <a
+                class="button coszus-points__button"
+                href="{{ points_join_url }}"
+              >
+                {{- section.settings.points_join_label | escape -}}
+              </a>
+              <p class="coszus-points__sign-in">
+                {{ section.settings.points_sign_in_text | escape }}
+                <a href="{{ routes.account_login_url }}">{{ section.settings.points_sign_in_label | escape }}</a>
+              </p>
+            {%- endif -%}
+
+            {%- if points_links.size > 0 -%}
+              <ul class="coszus-points__links">
+                {%- for block in points_links -%}
+                  <li {{ block.shopify_attributes }}>
+                    <a
+                      class="coszus-points__link"
+                      href="{{ block.settings.link | default: '/pages/coszus-points' }}"
+                    >
+                      <span class="coszus-points__link-icon coszus-points__link-icon--{{ block.settings.icon }}">
+                        {%- render 'coszus-icon', icon: block.settings.icon, px: 18 -%}
+                      </span>
+                      <span class="coszus-points__link-text">
+                        <span class="coszus-points__link-title">{{ block.settings.title | escape }}</span>
+                        {%- if block.settings.text != blank -%}
+                          <span class="coszus-points__link-subtitle">{{ block.settings.text | escape }}</span>
+                        {%- endif -%}
+                      </span>
+                      {%- render 'coszus-icon', icon: 'chevron', px: 16 -%}
+                    </a>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            {%- endif -%}
+          </div>
+        </div>
+      </coszus-points>
+    {%- endif -%}
+
+    {%- if show_account -%}
+      <span
+        class="coszus-nav__divider"
+        aria-hidden="true"
+      ></span>
+      <a
+        class="coszus-nav__icon coszus-nav__account"
+        href="{{ account_link }}"
+        aria-label="{{ 'accessibility.account' | t }}"
+      >
+        {%- render 'coszus-icon', icon: 'account' -%}
+      </a>
+    {%- endif -%}
+  </header>
+
+  <dialog
+    id="CoszusSideMenu"
+    class="coszus-side-menu"
+    aria-label="{{ 'accessibility.menu' | t }}"
+    data-side-menu
+  >
+    <div
+      class="coszus-side-menu__overlay"
+      data-side-menu-close
+    ></div>
+
+    <div class="coszus-side-menu__panel">
+      <div class="coszus-side-menu__top">
+        {%- if departments.size > 1 -%}
+          <div
+            class="coszus-side-menu__tabs"
+            role="group"
+            aria-label="{{ 'coszus.department' | t }}"
+          >
+            {%- for block in departments -%}
+              <button
+                type="button"
+                class="coszus-side-menu__tab"
+                data-department="{{ block.settings.label | handleize }}"
+                aria-pressed="false"
+              >
+                {{- block.settings.label | escape -}}
+              </button>
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+
+        <button
+          type="button"
+          class="coszus-side-menu__close"
+          aria-label="{{ 'coszus.close_menu' | t }}"
+          data-side-menu-close
+        >
+          {%- render 'coszus-icon', icon: 'close', px: 20 -%}
+        </button>
+      </div>
+
+      {%- if section.settings.show_search -%}
+        <button
+          type="button"
+          class="coszus-side-menu__search"
+          aria-haspopup="dialog"
+          data-side-menu-search
+        >
+          {%- render 'coszus-icon', icon: 'search', px: 18 -%}
+          <span>{{ section.settings.side_menu_search_label | escape }}</span>
+        </button>
+      {%- endif -%}
+
+      {%- for block in departments -%}
+        {%- liquid
+          assign department_menu = block.settings.menu
+          if department_menu == blank
+            assign department_menu = linklists['main-menu']
+          endif
+        -%}
+        <nav
+          class="coszus-side-menu__categories{% if forloop.first %} coszus-side-menu__categories--first{% endif %}"
+          data-department="{{ block.settings.label | handleize }}"
+          aria-label="{{ block.settings.label | escape }}"
+        >
+          {%- if block.settings.collection != blank -%}
+            {%- assign department_name = block.settings.label | escape -%}
+            <a
+              href="{{ block.settings.collection.url }}"
+              class="coszus-side-menu__shop-all"
+              {% if template.name == 'collection' and collection.handle == block.settings.collection.handle %}
+                aria-current="page"
+              {% endif %}
+            >
+              {{- 'coszus.shop_all_department' | t: department: department_name -}}
+              {%- render 'coszus-icon', icon: 'chevron', px: 16 -%}
+            </a>
+          {%- endif -%}
+          {%- liquid
+            # Black Friday (Theme settings > Black Friday): a red link to this department's sale at
+            # the top while it's live, and the menu's own Sale link hidden (snippets/coszus-bf-state.liquid)
+            assign bf_collection = null
+            if bf_on and block.settings.bf_sale != blank
+              assign bf_key = 'bf_sale_' | append: block.settings.bf_sale
+              assign bf_collection = settings[bf_key]
+              # Juniors: the Juniors Sale collection (handle juniors-sale) until one is picked
+              if bf_collection == blank and block.settings.bf_sale == 'juniors'
+                assign bf_collection = collections['juniors-sale']
+              endif
+              if bf_collection.id == blank
+                assign bf_collection = null
+              endif
+            endif
+          -%}
+          {%- if bf_collection != blank -%}
+            <a
+              href="{{ bf_collection.url }}"
+              class="coszus-side-menu__category coszus-side-menu__category--sale"
+              data-bf-on
+              {% if template.name == 'collection' and collection.handle == bf_collection.handle %}
+                aria-current="page"
+              {% endif %}
+            >
+              {{- settings.bf_name | escape -}}
+            </a>
+          {%- endif -%}
+          {%- for link in department_menu.links -%}
+            {%- assign link_words = link.title | downcase | split: ' ' -%}
+            <a
+              href="{{ link.url }}"
+              class="coszus-side-menu__category{% if link_words contains 'sale' %} coszus-side-menu__category--sale{% endif %}"
+              {% if bf_collection != blank and link_words contains 'sale' %}
+                data-bf-off
+              {% endif %}
+              {% if link.current %}
+                aria-current="page"
+              {% endif %}
+            >
+              {{- link.title | escape -}}
+            </a>
+          {%- endfor -%}
+        </nav>
+      {%- endfor -%}
+
+      {%- if side_menu_secondary.links.size > 0 -%}
+        <nav
+          class="coszus-side-menu__secondary"
+          aria-label="{{ side_menu_secondary.title | escape }}"
+        >
+          {%- for link in side_menu_secondary.links -%}
+            {%- liquid
+              assign link_key = link.title | downcase | strip
+              if side_menu_account and account_titles contains link_key
+                continue
+              endif
+              assign link_url = link.url
+              if account_route_titles contains link_key
+                assign link_url = routes.account_url
+              endif
+            -%}
+            <a
+              href="{{ link_url }}"
+              {% if forloop.first and section.settings.side_menu_bold_first %}
+                class="coszus-side-menu__highlight"
+              {% endif %}
+              {% if link.current %}
+                aria-current="page"
+              {% endif %}
+            >
+              {{- link.title | escape -}}
+            </a>
+          {%- endfor -%}
+        </nav>
+      {%- endif -%}
+
+      <div class="coszus-side-menu__help">
+        {%- for link in side_menu_help.links -%}
+          {%- liquid
+            assign link_key = link.title | downcase | strip
+            if side_menu_account and account_titles contains link_key
+              continue
+            endif
+            assign link_url = link.url
+            if account_route_titles contains link_key
+              assign link_url = routes.account_url
+            endif
+          -%}
+          {%- if link.links.size > 0 -%}
+            <details class="coszus-side-menu__group">
+              <summary>{{ link.title | escape }}</summary>
+              {%- for child in link.links -%}
+                {%- liquid
+                  assign child_key = child.title | downcase | strip
+                  if side_menu_account and account_titles contains child_key
+                    continue
+                  endif
+                  assign child_url = child.url
+                  if account_route_titles contains child_key
+                    assign child_url = routes.account_url
+                  endif
+                -%}
+                <a
+                  href="{{ child_url }}"
+                  {% if child.current %}
+                    aria-current="page"
+                  {% endif %}
+                >
+                  {{- child.title | escape -}}
+                </a>
+              {%- endfor -%}
+            </details>
+          {%- else -%}
+            <a
+              class="coszus-side-menu__group coszus-side-menu__group-link"
+              href="{{ link_url }}"
+            >
+              {{- link.title | escape -}}
+            </a>
+          {%- endif -%}
+        {%- endfor -%}
+
+        {%- if side_menu_account -%}
+          <a
+            class="coszus-side-menu__group coszus-side-menu__group-link"
+            href="{{ routes.account_url }}"
+          >
+            {%- if customer -%}
+              {{- section.settings.side_menu_account_label | escape -}}
+            {%- else -%}
+              {{- section.settings.side_menu_sign_in_label | escape -}}
+            {%- endif -%}
+          </a>
+        {%- endif -%}
+
+        {%- if section.settings.instagram_url != blank
+          or section.settings.tiktok_url != blank
+          or section.settings.follow_text != blank
+        -%}
+          <div class="coszus-side-menu__follow">
+            {%- if section.settings.instagram_url != blank -%}
+              <a
+                href="{{ section.settings.instagram_url }}"
+                aria-label="Instagram"
+                target="_blank"
+                rel="noopener"
+              >
+                {%- render 'coszus-icon', icon: 'instagram', px: 17 -%}
+              </a>
+            {%- endif -%}
+            {%- if section.settings.tiktok_url != blank -%}
+              <a
+                href="{{ section.settings.tiktok_url }}"
+                aria-label="TikTok"
+                target="_blank"
+                rel="noopener"
+              >
+                {%- render 'coszus-icon', icon: 'tiktok', px: 17 -%}
+              </a>
+            {%- endif -%}
+            {%- if section.settings.follow_text != blank -%}
+              <span>{{ section.settings.follow_text }}</span>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- if section.settings.show_country -%}
+          {%- capture current_country -%}
+            {{- localization.country.name }} ({{ localization.country.currency.iso_code }})
+          {%- endcapture -%}
+          {%- if localization.available_countries.size > 1 -%}
+            {%- form 'localization', class: 'coszus-side-menu__country' -%}
+              {%- render 'coszus-icon', icon: 'globe', px: 16 -%}
+              <span aria-hidden="true">{{ current_country }}</span>
+              <label
+                class="visually-hidden"
+                for="CoszusCountry-{{ section.id }}"
+              >
+                {{- 'accessibility.country_region' | t -}}
+              </label>
+              <select
+                id="CoszusCountry-{{ section.id }}"
+                name="country_code"
+                class="coszus-side-menu__country-select"
+              >
+                {%- for country in localization.available_countries -%}
+                  <option
+                    value="{{ country.iso_code }}"
+                    {% if country.iso_code == localization.country.iso_code %}
+                      selected
+                    {% endif %}
+                  >
+                    {{- country.name }} ({{ country.currency.iso_code }})
+                  </option>
+                {%- endfor -%}
+              </select>
+            {%- endform -%}
+          {%- else -%}
+            <p class="coszus-side-menu__country">
+              {%- render 'coszus-icon', icon: 'globe', px: 16 -%}
+              <span>{{ current_country }}</span>
+            </p>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </div>
+  </dialog>
+</coszus-header>
+
+
+{%- liquid
+  # Selectors that match whichever department is active, for first paint without JS
+  assign active = ''
+  for block in departments
+    assign handle = block.settings.label | handleize
+    capture selector
+      echo 'html[data-coszus-department="' | append: handle | append: '"] [data-department="' | append: handle | append: '"]'
+    endcapture
+    if forloop.first
+      assign active = selector
+    else
+      assign active = active | append: ', ' | append: selector
+    endif
+  endfor
+-%}
+
+{% style %}
+  :root {
+    --coszus-header-spacer: {% if overlap %}0px{% else %}calc(var(--coszus-nav-gap) + var(--coszus-nav-height)){% endif %};
+    --coszus-logo-height: {{ section.settings.logo_height }}px;
+    --coszus-logo-height-mobile: {{ section.settings.logo_height_mobile }}px;
+  }
+
+  /* Horizon's sticky elements (product media, cart summary) sit under the fixed nav */
+  body {
+    --header-height: calc(var(--coszus-nav-gap) + var(--coszus-nav-height));
+    --header-group-height: calc(var(--coszus-top-bar-height, 0px) + var(--coszus-header-spacer));
+  }
+
+  {% for block in departments %}
+    {%- liquid
+      assign handle = block.settings.label | handleize
+      assign glass = block.settings.glass_color
+      assign glass_alpha = block.settings.glass_opacity | divided_by: 100.0
+      assign glass_brightness = glass | color_brightness
+    -%}
+    html[data-coszus-department="{{ handle }}"] .coszus-header {
+      --nav-glass: {{ glass | color_modify: 'alpha', glass_alpha }};
+      {%- if glass_brightness > 150 %}
+        --nav-foreground: var(--coszus-ink);
+        --nav-line: rgb(0 0 0 / 0.14);
+      {%- else %}
+        --nav-foreground: #fff;
+        --nav-line: rgb(255 255 255 / 0.3);
+      {%- endif %}
+    }
+  {%- endfor %}
+
+  {%- if departments.size > 0 %}
+    html:not([data-coszus-department]) .coszus-side-menu__categories--first,
+    .coszus-side-menu__categories:is({{ active }}) {
+      display: flex;
+    }
+
+    .coszus-nav__department:is({{ active }}) {
+      font-weight: 600;
+    }
+
+    .coszus-side-menu__tab:is({{ active }}) {
+      background: var(--coszus-ink);
+      color: var(--coszus-paper);
+    }
+  {%- endif %}
+{% endstyle %}
+
+{% stylesheet %}
+  /* ---------- Sizes. Desktop matches the preview at 1440px; mobile is the compact nav. ---------- */
+  :root {
+    --coszus-nav-height: 54px;
+    --coszus-nav-gap: 12px;
+    --coszus-nav-inset: 5px;
+  }
+
+  @media screen and (max-width: 820px) {
+    :root {
+      --coszus-nav-height: 46px;
+      --coszus-nav-gap: calc(24px + env(safe-area-inset-top, 0px));
+      --coszus-nav-inset: 10px;
+    }
+  }
+
+  /*
+    Position: pure CSS, right from first paint, with no JS and no measuring.
+    The header section sits straight under the top bar and sticks to the top of whatever scrolls
+    (Horizon scrolls .page-wrapper from 990px up and the window below that). So the nav rides up
+    with the top bar, then stays put. The header group steps out of the way (display: contents,
+    as Horizon does for its own sticky header) so the section can stick for the whole page.
+  */
+  #header-group:has(> .coszus-header-section) {
+    display: contents;
+  }
+
+  .coszus-header-section {
+    position: sticky;
+    top: 0;
+    z-index: var(--layer-header-menu);
+  }
+
+  /* Once the page has scrolled under the nav (data-coszus-stuck, assets/coszus-header.js), the gap
+     above the floating bar, status bar included, is painted the page colour so nothing shows through.
+     At the top of the page the gap stays clear, so the hero still runs up behind the glass. */
+  .coszus-header-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--coszus-nav-gap);
+    background: var(--coszus-paper);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--coszus-motion-fast) ease;
+  }
+
+  [data-coszus-stuck] .coszus-header-section::before {
+    opacity: 1;
+  }
+
+  .coszus-header {
+    /* Fallback colours before a department is set (Men) */
+    --nav-glass: rgb(16 16 16 / 0.5);
+    --nav-foreground: #fff;
+    --nav-line: rgb(255 255 255 / 0.3);
+
+    position: relative;
+    display: block;
+  }
+
+  /* Holds the page below the nav. 0 when the first section runs under the glass. */
+  .coszus-header__spacer {
+    height: var(--coszus-header-spacer);
+  }
+
+  /* ---------- The glass bar ---------- */
+  .coszus-nav {
+    position: absolute;
+    z-index: var(--layer-header-menu);
+    top: var(--coszus-nav-gap);
+    left: max(var(--coszus-nav-inset), env(safe-area-inset-left, 0px));
+    right: max(var(--coszus-nav-inset), env(safe-area-inset-right, 0px));
+    display: flex;
+    align-items: center;
+    height: var(--coszus-nav-height);
+    padding-inline-start: 17px;
+    border-radius: 12px;
+    background: var(--nav-glass);
+    color: var(--nav-foreground);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    font-family: var(--font-body--family);
+    font-size: 0.6875rem;
+    letter-spacing: 0.02em;
+    transition: background-color var(--coszus-motion) ease, color var(--coszus-motion) ease;
+  }
+
+  .coszus-nav :focus-visible {
+    outline-color: currentcolor;
+  }
+
+  .coszus-nav__icon {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .coszus-nav__icon:focus-visible,
+  .coszus-nav__department:focus-visible,
+  .coszus-nav__logo:focus-visible {
+    outline-offset: -6px;
+    border-radius: 10px;
+  }
+
+  /* Departments (desktop) */
+  .coszus-nav__departments {
+    display: flex;
+    gap: 18px;
+    align-self: stretch;
+  }
+
+  .coszus-nav__department {
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  /* Logo: centred on the bar. The mask lets one logo follow the department colour. */
+  .coszus-nav__logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    color: inherit;
+    transform: translate(-50%, -50%);
+  }
+
+  .coszus-nav__logo-mark,
+  .coszus-nav__logo-image {
+    display: block;
+    height: var(--coszus-logo-height, 40px);
+    width: calc(var(--coszus-logo-height, 40px) * var(--logo-ratio));
+  }
+
+  .coszus-nav__logo-mark {
+    background: currentcolor;
+    -webkit-mask: var(--logo-url) center / contain no-repeat;
+    mask: var(--logo-url) center / contain no-repeat;
+  }
+
+  .coszus-nav__logo-image {
+    object-fit: contain;
+  }
+
+  /* Right-hand icons (desktop order: search, wishlist, bag, points, divider, account) */
+  .coszus-nav__search {
+    margin-inline-start: auto;
+  }
+
+  .coszus-nav__burger {
+    display: none;
+  }
+
+  .coszus-nav header-actions {
+    display: contents;
+  }
+
+  .coszus-nav__bag-icon {
+    position: relative;
+    display: flex;
+  }
+
+  .coszus-nav__divider {
+    flex: none;
+    align-self: stretch;
+    width: 1px;
+    margin-inline-start: 8px;
+    background: var(--nav-line);
+  }
+
+  .coszus-nav__account {
+    width: 50px;
+    margin-inline-start: 2px;
+  }
+
+  /* Bag count: red dot, hidden at 0 */
+  .coszus-nav .cart-bubble {
+    position: absolute;
+    top: -6.5px;
+    left: 15.5px;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--coszus-rouge);
+    color: #fff;
+    font-family: var(--font-body--family);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .coszus-nav .cart-bubble.visually-hidden {
+    display: none;
+  }
+
+  .coszus-nav .cart-bubble__background {
+    display: none;
+  }
+
+  .coszus-nav .cart-bubble__text {
+    font-size: 8.5px;
+    line-height: 1;
+  }
+
+  /* ---------- Coszus Rewards (desktop only) ---------- */
+  .coszus-points {
+    display: flex;
+    align-self: stretch;
+  }
+
+  .coszus-points__coin {
+    width: auto;
+    padding: 0 6px;
+  }
+
+  .coszus-points__coin img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .coszus-points__panel {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 11px;
+    width: 360px;
+    max-height: min(600px, calc(100dvh - var(--coszus-top-bar-height, 0px) - var(--coszus-nav-gap) - var(--coszus-nav-height) - 24px));
+    overflow: auto;
+    overscroll-behavior: contain;
+    border-radius: 12px;
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.22);
+    font-size: 0.8125rem;
+    letter-spacing: normal;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity var(--coszus-motion-fast) ease, transform var(--coszus-motion-fast) ease,
+      visibility 0s linear var(--coszus-motion-fast);
+  }
+
+  .coszus-points__panel[data-open] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition: opacity var(--coszus-motion) var(--coszus-ease), transform var(--coszus-motion) var(--coszus-ease),
+      visibility 0s;
+  }
+
+  .coszus-points__head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 20px;
+    background: linear-gradient(135deg, var(--coszus-ink), var(--coszus-petrol));
+    color: #fff;
+  }
+
+  .coszus-points__head-coin {
+    flex: none;
+    width: 52px;
+    height: 52px;
+  }
+
+  .coszus-points__kicker {
+    margin: 0 0 2px;
+    font-size: 0.65625rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  .coszus-points__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .coszus-points__close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    padding: 6px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    opacity: 0.8;
+    cursor: pointer;
+  }
+
+  .coszus-points__close:hover {
+    opacity: 1;
+  }
+
+  .coszus-points__body {
+    padding: 18px 18px 12px;
+  }
+
+  .coszus-points__text {
+    margin: 0 0 14px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-points__button {
+    display: flex;
+    width: 100%;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .coszus-points__sign-in {
+    margin: 10px 0 16px;
+    font-size: 0.75rem;
+    text-align: center;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-points__sign-in a {
+    color: var(--coszus-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-points__links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coszus-points__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 4px;
+    border-top: 1px solid var(--coszus-line);
+    color: var(--coszus-ink);
+    text-decoration: none;
+  }
+
+  .coszus-points__body > p + .coszus-points__links .coszus-points__link,
+  .coszus-points__links li:first-child .coszus-points__link {
+    border-top-color: var(--coszus-line);
+  }
+
+  .coszus-points__link:hover {
+    background: #fafaf9;
+  }
+
+  .coszus-points__link > .coszus-icon {
+    flex: none;
+    color: var(--coszus-concrete);
+  }
+
+  .coszus-points__link-icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--coszus-off-white);
+  }
+
+  /* Gold only ever means Coszus Rewards */
+  .coszus-points__link-icon--vip {
+    background: linear-gradient(135deg, #f7eed6, #e6cf8f);
+    color: #8a6a14;
+  }
+
+  .coszus-points__link-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .coszus-points__link-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .coszus-points__link-subtitle {
+    font-size: 0.75rem;
+    color: var(--coszus-muted);
+  }
+
+  /* ---------- Mobile nav: menu, search, logo, bag. No divider lines. ---------- */
+  @media screen and (max-width: 820px) {
+    .coszus-nav {
+      padding-inline-start: 0;
+    }
+
+    .coszus-nav__departments,
+    .coszus-nav__wishlist,
+    .coszus-points,
+    .coszus-nav__divider,
+    .coszus-nav__account {
+      display: none;
+    }
+
+    .coszus-nav__burger {
+      display: flex;
+      width: 44px;
+    }
+
+    .coszus-nav__search {
+      width: 44px;
+      margin-inline-start: -6px;
+    }
+
+    .coszus-nav__search .coszus-icon {
+      width: 19px;
+      height: 19px;
+    }
+
+    .coszus-nav__logo-mark,
+    .coszus-nav__logo-image {
+      height: var(--coszus-logo-height-mobile, 28px);
+      width: calc(var(--coszus-logo-height-mobile, 28px) * var(--logo-ratio));
+    }
+
+    .coszus-nav__bag {
+      width: 44px;
+    }
+
+    .coszus-nav__bag .coszus-icon {
+      width: 19px;
+      height: 19px;
+    }
+
+    .coszus-nav .cart-bubble {
+      top: 8px;
+      left: 11px;
+      width: 13px;
+      height: 13px;
+    }
+
+    .coszus-nav .cart-bubble__text {
+      font-size: 9.5px;
+    }
+  }
+
+  /*
+    No M / W / J on mobile (removed October 2026: the side menu and shop cards do that job). The bag
+    takes the right edge, and the menu and bag are the same width so the two edge icons mirror each
+    other around the centred logo.
+  */
+  @media screen and (max-width: 820px) {
+    /* header-actions is display: contents, so the bag itself takes the push */
+    .coszus-nav__bag {
+      margin-inline-start: auto;
+    }
+  }
+
+
+  /* ---------- Side menu (mobile): slides in from the left ---------- */
+  .coszus-side-menu {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--coszus-ink);
+    overflow: hidden;
+  }
+
+  .coszus-side-menu::backdrop {
+    background: transparent;
+  }
+
+  .coszus-side-menu__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.4);
+    opacity: 0;
+    transition: opacity var(--coszus-motion) ease;
+  }
+
+  .coszus-side-menu__panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(max(86vw, 288px), 380px);
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))
+      max(20px, env(safe-area-inset-left, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--coszus-paper);
+    font-family: var(--font-body--family);
+    transform: translateX(-100%);
+    transition: transform var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-side-menu[data-open] .coszus-side-menu__overlay {
+    opacity: 1;
+  }
+
+  .coszus-side-menu[data-open] .coszus-side-menu__panel {
+    transform: none;
+  }
+
+  .coszus-side-menu__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .coszus-side-menu__tabs {
+    display: flex;
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-side-menu__tab {
+    padding: 8px clamp(8px, 2.6vw, 13px);
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--coszus-ink);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color var(--coszus-motion-fast) ease, color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-side-menu__close {
+    display: flex;
+    flex: none;
+    margin-inline-end: -12px;
+    padding: 12px;
+    border: 0;
+    background: none;
+    color: var(--coszus-ink);
+    cursor: pointer;
+  }
+
+  .coszus-side-menu__search {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 44px;
+    margin-bottom: 16px;
+    padding: 0 14px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 8px;
+    background: var(--coszus-off-white);
+    color: var(--coszus-muted);
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .coszus-side-menu__categories {
+    display: none;
+    flex-direction: column;
+  }
+
+  .coszus-side-menu__category {
+    padding: 9px 0;
+    color: var(--coszus-ink);
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  /* "Shop all Men": the department collection, at the top of its menu */
+  .coszus-side-menu__shop-all {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--coszus-line);
+    color: var(--coszus-ink);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  /* Small phones (iPhone SE 1st gen): keep the tabs and close button on one line */
+  @media screen and (max-width: 359px) {
+    .coszus-side-menu__tab {
+      font-size: 0.6875rem;
+    }
+  }
+
+  .coszus-side-menu__category--sale {
+    color: var(--coszus-rouge);
+  }
+
+  .coszus-side-menu__secondary {
+    display: flex;
+    flex-direction: column;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--coszus-line);
+  }
+
+  .coszus-side-menu__secondary a {
+    padding: 7px 0;
+    color: var(--coszus-ink);
+    font-size: 0.875rem;
+    text-decoration: none;
+  }
+
+  .coszus-side-menu__secondary .coszus-side-menu__highlight {
+    font-weight: 700;
+  }
+
+  .coszus-side-menu__help {
+    margin-top: auto;
+    padding-top: 20px;
+    font-size: 0.75rem;
+  }
+
+  .coszus-side-menu__group {
+    display: block;
+    border-top: 1px solid var(--coszus-line);
+  }
+
+  .coszus-side-menu__group summary,
+  .coszus-side-menu__group-link {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    color: var(--coszus-ink);
+    font-weight: 700;
+    text-transform: uppercase;
+    text-decoration: none;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .coszus-side-menu__group summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .coszus-side-menu__group summary::after {
+    content: '+';
+    font-size: 1rem;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .coszus-side-menu__group[open] summary::after {
+    content: '\2212';
+  }
+
+  .coszus-side-menu__group[open] {
+    padding-bottom: 8px;
+  }
+
+  .coszus-side-menu__group a:not(.coszus-side-menu__group-link) {
+    display: block;
+    padding: 6px 0;
+    color: var(--coszus-ink);
+    font-size: 0.8125rem;
+    text-decoration: none;
+  }
+
+  .coszus-side-menu__follow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-top: 1px solid var(--coszus-line);
+  }
+
+  .coszus-side-menu__follow a {
+    display: flex;
+    color: inherit;
+  }
+
+  .coszus-side-menu__follow p {
+    display: inline;
+    margin: 0;
+  }
+
+  .coszus-side-menu__country {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--coszus-line);
+  }
+
+  /* The real select sits on top at 16px (no iPhone zoom); the 12px label shows through */
+  .coszus-side-menu__country-select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .coszus-side-menu__country:has(:focus-visible) {
+    outline: 2px solid currentcolor;
+    outline-offset: 2px;
+  }
+
+  .coszus-side-menu a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  html:has(.coszus-side-menu[open]) {
+    overflow: hidden;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus header",
+  "tag": "div",
+  "class": "coszus-header-section",
+  "enabled_on": {
+    "groups": ["header"]
+  },
+  "blocks": [
+    {
+      "type": "department",
+      "name": "Department",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Name",
+          "default": "Men"
+        },
+        {
+          "type": "text",
+          "id": "short_label",
+          "label": "Letter on the mobile switch",
+          "default": "M"
+        },
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection",
+          "info": "The department link opens this collection. Its products and the collection itself switch the nav to this department."
+        },
+        {
+          "type": "link_list",
+          "id": "menu",
+          "label": "Side menu categories",
+          "info": "Big links in the mobile side menu for this department. Any link with \"Sale\" in its name shows in red."
+        },
+        {
+          "type": "select",
+          "id": "bf_sale",
+          "label": "Black Friday sale",
+          "options": [
+            { "value": "", "label": "None" },
+            { "value": "men", "label": "Men sale" },
+            { "value": "women", "label": "Women sale" },
+            { "value": "juniors", "label": "Juniors sale" }
+          ],
+          "default": "",
+          "info": "While Black Friday is live (Theme settings > Black Friday) the side menu opens with a red link to this sale collection, and the menu's own Sale link is hidden."
+        },
+        {
+          "type": "color",
+          "id": "glass_color",
+          "label": "Glass colour",
+          "default": "#101010",
+          "info": "Text and logo turn white on dark glass and ink on light glass."
+        },
+        {
+          "type": "range",
+          "id": "glass_opacity",
+          "label": "Glass opacity",
+          "min": 30,
+          "max": 100,
+          "step": 2,
+          "unit": "%",
+          "default": 50
+        }
+      ]
+    },
+    {
+      "type": "points_link",
+      "name": "Points panel link",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "earn", "label": "Earn" },
+            { "value": "spend", "label": "Spend" },
+            { "value": "vip", "label": "Points (gold)" },
+            { "value": "refer", "label": "Refer" }
+          ],
+          "default": "earn"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Ways to earn"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Text",
+          "default": "Orders, follows, birthday"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link",
+          "info": "Blank goes to the Coszus Rewards page."
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "header",
+      "content": "Logo"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo",
+      "info": "Leave empty to use the theme logo. Use a one-colour logo on a transparent background."
+    },
+    {
+      "type": "checkbox",
+      "id": "recolour_logo",
+      "label": "Colour the logo to match the glass",
+      "default": true,
+      "info": "White on Men and Juniors, ink on Women. Turn off for a logo with more than one colour."
+    },
+    {
+      "type": "range",
+      "id": "logo_height",
+      "label": "Logo height on desktop",
+      "min": 24,
+      "max": 52,
+      "step": 2,
+      "unit": "px",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "logo_height_mobile",
+      "label": "Logo height on mobile",
+      "min": 20,
+      "max": 36,
+      "step": 2,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "home_department_links",
+      "label": "Department links on the homepage",
+      "options": [
+        { "value": "link", "label": "Open the department collection" },
+        { "value": "switch", "label": "Switch department in place" }
+      ],
+      "default": "link",
+      "info": "Desktop Men / Women / Juniors. Switching in place changes the nav colour and the New In tab without leaving the page. On every other page, and on the mobile M / W / J, they always open the collection."
+    },
+    {
+      "type": "checkbox",
+      "id": "overlap_home",
+      "label": "Homepage: first section runs under the nav",
+      "default": true,
+      "info": "For a full-bleed hero. When off, the page starts below the nav."
+    },
+    {
+      "type": "checkbox",
+      "id": "overlap_collection",
+      "label": "Collection pages: first section runs under the nav",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Icons"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_search",
+      "label": "Search",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_wishlist",
+      "label": "Wishlist",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "wishlist_url",
+      "label": "Wishlist link",
+      "info": "Defaults to /pages/wishlist."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_points",
+      "label": "Coszus Rewards coin",
+      "default": true,
+      "info": "Desktop only. On mobile, Points lives in the side menu."
+    },
+    {
+      "type": "checkbox",
+      "id": "points_smile",
+      "label": "Coin opens the Smile panel",
+      "default": true,
+      "info": "Smile's own Coszus Rewards panel: balance, ways to earn, rewards. If Smile isn't loaded the coin opens the panel below instead.",
+      "visible_if": "{{ section.settings.show_points }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_account",
+      "label": "Account",
+      "default": true
+    },
+    {
+      "type": "url",
+      "id": "account_url",
+      "label": "Account link",
+      "info": "Defaults to Shopify's customer account. Set it to the Account page (/pages/account) once that page exists.",
+      "visible_if": "{{ section.settings.show_account }}"
+    },
+    {
+      "type": "header",
+      "content": "Coszus Rewards panel"
+    },
+    {
+      "type": "image_picker",
+      "id": "points_coin",
+      "label": "Coin"
+    },
+    {
+      "type": "text",
+      "id": "points_kicker",
+      "label": "Kicker",
+      "default": "Coszus Rewards"
+    },
+    {
+      "type": "text",
+      "id": "points_heading",
+      "label": "Heading",
+      "default": "Welcome to the family",
+      "info": "Signed-in customers see \"Hi [first name]\"."
+    },
+    {
+      "type": "inline_richtext",
+      "id": "points_text",
+      "label": "Text (signed out)",
+      "default": "Earn points on every order and spend them on the next. Free to join."
+    },
+    {
+      "type": "text",
+      "id": "points_join_label",
+      "label": "Join button",
+      "default": "Join now"
+    },
+    {
+      "type": "url",
+      "id": "points_join_url",
+      "label": "Join link",
+      "info": "Defaults to account sign-up (/account/register), same as the top bar."
+    },
+    {
+      "type": "text",
+      "id": "points_sign_in_text",
+      "label": "Sign-in line",
+      "default": "Already a member?"
+    },
+    {
+      "type": "text",
+      "id": "points_sign_in_label",
+      "label": "Sign-in link",
+      "default": "Sign in"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "points_text_signed_in",
+      "label": "Text (signed in)",
+      "default": "Earn on every order. Your points and rewards live in your account."
+    },
+    {
+      "type": "text",
+      "id": "points_account_label",
+      "label": "Button (signed in)",
+      "default": "My account"
+    },
+    {
+      "type": "header",
+      "content": "Mobile side menu"
+    },
+    {
+      "type": "paragraph",
+      "content": "Each department block sets its own category links. Below them sit these menus."
+    },
+    {
+      "type": "text",
+      "id": "side_menu_search_label",
+      "label": "Search bar text",
+      "default": "Search Coszus"
+    },
+    {
+      "type": "link_list",
+      "id": "side_menu_secondary",
+      "label": "Extra links",
+      "info": "Coszus World, Coszus Rewards."
+    },
+    {
+      "type": "checkbox",
+      "id": "side_menu_bold_first",
+      "label": "Bold the first extra link",
+      "default": true
+    },
+    {
+      "type": "link_list",
+      "id": "side_menu_help",
+      "label": "Collapsible menus",
+      "info": "Each top-level link becomes a collapsible heading (Customer service, Follow) with its nested links inside."
+    },
+    {
+      "type": "checkbox",
+      "id": "side_menu_account",
+      "label": "Account link",
+      "info": "Below the collapsible menus, to the customer account (mobile has no account icon). Menu links called Account or Sign in are then left out, so it's never listed twice. Account, Sign in and Track my order links in the menus always go to the customer account.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "side_menu_sign_in_label",
+      "label": "Account link when signed out",
+      "default": "Sign in",
+      "visible_if": "{{ section.settings.side_menu_account }}"
+    },
+    {
+      "type": "text",
+      "id": "side_menu_account_label",
+      "label": "Account link when signed in",
+      "default": "My account",
+      "visible_if": "{{ section.settings.side_menu_account }}"
+    },
+    {
+      "type": "url",
+      "id": "instagram_url",
+      "label": "Instagram"
+    },
+    {
+      "type": "url",
+      "id": "tiktok_url",
+      "label": "TikTok"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "follow_text",
+      "label": "Follow line",
+      "default": "Follow us, get <b>20 points</b>"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_country",
+      "label": "Country selector",
+      "default": true,
+      "info": "Becomes a picker when Shopify Markets sells to more than one country."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus header",
+      "blocks": [
+        {
+          "type": "department",
+          "settings": {
+            "label": "Men",
+            "short_label": "M",
+            "glass_color": "#101010",
+            "glass_opacity": 58
+          }
+        },
+        {
+          "type": "department",
+          "settings": {
+            "label": "Women",
+            "short_label": "W",
+            "glass_color": "#F4F4F2",
+            "glass_opacity": 68
+          }
+        },
+        {
+          "type": "department",
+          "settings": {
+            "label": "Juniors",
+            "short_label": "J",
+            "glass_color": "#2A3855",
+            "glass_opacity": 60
+          }
+        },
+        {
+          "type": "points_link",
+          "settings": {
+            "icon": "earn",
+            "title": "Ways to earn",
+            "text": "1 point per £1, plus bonuses"
+          }
+        },
+        {
+          "type": "points_link",
+          "settings": {
+            "icon": "spend",
+            "title": "Ways to spend",
+            "text": "100 points = £5 off, or free delivery"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

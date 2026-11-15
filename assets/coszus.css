@@ -1,0 +1,1465 @@
+/*
+  Coszus global styles (docs/HANDOFF.md section 2, docs/FOUNDATIONS.md).
+
+  Loaded straight after base.css (snippets/stylesheets.liquid). Every value that
+  merchants can change comes from snippets/coszus-tokens.liquid as a CSS variable;
+  this file has no Liquid so it can be cached.
+
+  Breakpoint: mobile is max-width 820px, desktop is min-width 821px.
+*/
+
+/* ------------------------------------------------------------------
+   Buttons: 40px tall, 12px 24px padding, 12px bold caps, 6px corners.
+   Colours, radius, case and font come from Theme settings > Buttons.
+   Type is set through Horizon's own variables at low specificity, so
+   icon and close buttons that reuse .button keep their component rules.
+   ------------------------------------------------------------------ */
+:where(.button, .button-secondary, .button-custom, button.shopify-payment-button__button--unbranded):not(
+    .button-unstyled
+  ) {
+  --font-paragraph--size: 0.75rem;
+  --font-paragraph--weight: 700;
+  --font-paragraph--line-height: 1rem;
+
+  letter-spacing: normal;
+}
+
+.button,
+.button-secondary,
+.button-custom {
+  transition-property: color, background-color, box-shadow;
+  transition-duration: var(--coszus-motion-fast);
+  transition-timing-function: ease;
+}
+
+/* Add to cart and dynamic checkout buttons set their own (zeroed) transition later on */
+:root :is(.add-to-cart-button, button.shopify-payment-button__button--unbranded) {
+  transition-property: color, background-color, box-shadow;
+  transition-duration: var(--coszus-motion-fast);
+  transition-timing-function: ease;
+}
+
+/* ------------------------------------------------------------------
+   Section heading and kicker.
+   Section headings use the Heading 2 preset (Archivo 600, clamp(24px, 2.3vw, 32px),
+   -0.02em). Use .coszus-section-heading in Coszus sections so they share it.
+   ------------------------------------------------------------------ */
+.coszus-section-heading {
+  font-family: var(--font-h2--family);
+  font-style: var(--font-h2--style);
+  font-weight: var(--font-h2--weight);
+  font-size: var(--font-h2--size);
+  line-height: var(--font-h2--line-height);
+  letter-spacing: var(--font-h2--letter-spacing);
+  text-transform: var(--font-h2--case);
+  text-align: start;
+  margin: 0;
+}
+
+/* Labels and kickers: 11px, 0.16em, uppercase, muted. Also the "Kicker" text preset. */
+.coszus-kicker,
+.text-block.kicker,
+.text-block.kicker > * {
+  font-family: var(--font-subheading--family);
+  font-style: var(--font-subheading--style);
+  font-weight: var(--font-subheading--weight);
+  font-size: var(--coszus-kicker-size);
+  line-height: 1.4;
+  letter-spacing: var(--coszus-kicker-tracking);
+  text-transform: uppercase;
+  color: var(--color, var(--coszus-muted));
+}
+
+/* ------------------------------------------------------------------
+   Inputs: at least 16px on touch and small screens so iPhone doesn't zoom in.
+   Many Horizon inputs inherit 14px or set it in their own class, so this
+   covers every text-entry control. Inputs with a type preset class keep the
+   preset's size (base.css lifts them to 16px up to 1200px; the coarse-pointer
+   block below covers bigger touch screens such as iPad Pro landscape).
+   ------------------------------------------------------------------ */
+@media screen and (max-width: 1200px), (pointer: coarse) {
+  :root
+    :is(
+      input:not([type='checkbox'], [type='radio'], [type='range'], [type='hidden'], [type='submit'], [type='button'], [type='reset'], [type='color'], [type='file'], [type='image']),
+      textarea,
+      select
+    ):not(.paragraph, .h1, .h2, .h3, .h4, .h5, .h6) {
+    font-size: max(1rem, 1em);
+  }
+}
+
+@media (pointer: coarse) {
+  :root :is(input, textarea, select).paragraph {
+    font-size: max(1rem, var(--font-paragraph--size));
+  }
+
+  :root :is(input, textarea, select).h1 {
+    font-size: max(1rem, var(--font-h1--size));
+  }
+
+  :root :is(input, textarea, select).h2 {
+    font-size: max(1rem, var(--font-h2--size));
+  }
+
+  :root :is(input, textarea, select).h3 {
+    font-size: max(1rem, var(--font-h3--size));
+  }
+
+  :root :is(input, textarea, select).h4 {
+    font-size: max(1rem, var(--font-h4--size));
+  }
+
+  :root :is(input, textarea, select).h5 {
+    font-size: max(1rem, var(--font-h5--size));
+  }
+
+  :root :is(input, textarea, select).h6 {
+    font-size: max(1rem, var(--font-h6--size));
+  }
+}
+
+/* ------------------------------------------------------------------
+   Product cards: 2:3 image (the "Tall 2:3" ratio on the card image block)
+   on Off white, pill badges top left (as .coszus-card__label), name and price below,
+   names clamped (Theme settings > Product cards).
+   The flat-lay blend (mix-blend-mode) is output by coszus-tokens.liquid.
+   ------------------------------------------------------------------ */
+.card-gallery slideshow-container {
+  background-color: transparent;
+}
+
+.card-gallery .product-media-container {
+  background-color: var(--coszus-card-media-background);
+}
+
+.card-gallery .product-badges {
+  --badge-inset: 10px;
+}
+
+.card-gallery .product-badges__badge.product-badges__badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--coszus-ink);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.card-gallery .product-badges__badge.color-custom-badge-sold-out {
+  background: var(--coszus-ink);
+  color: #fff;
+}
+
+.card-gallery .product-badges__badge.color-custom-badge-sale {
+  color: var(--coszus-rouge);
+}
+
+.product-card [ref='productTitleLink'] .text-block > * {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--coszus-card-title-lines);
+  line-clamp: var(--coszus-card-title-lines);
+  overflow: hidden;
+}
+
+.product-card product-price {
+  --color: var(--coszus-muted);
+  --color-rgb: var(--coszus-muted-rgb);
+
+  color: var(--coszus-muted);
+}
+
+.product-card product-price .compare-at-price {
+  color: var(--coszus-muted);
+  text-decoration-color: currentcolor;
+}
+
+/* Low stock tag (Task 4): Rouge, the one place besides sale, bag count and errors */
+.card-gallery .product-badges__badge.product-badges__badge--low-stock {
+  color: var(--coszus-rouge);
+}
+
+/* ------------------------------------------------------------------
+   Colour dots under the card (HANDOFF section 5). Horizon's swatches block,
+   driven by the product's colour option, drawn as small dots. Hidden when a
+   product has only one colour.
+   ------------------------------------------------------------------ */
+.product-card product-swatches:not(:has(.variant-option__swatch + .variant-option__swatch)) {
+  display: none;
+}
+
+.product-card product-swatches .swatch {
+  --swatch-width: 11px;
+  --swatch-height: 11px;
+
+  border: 1px solid rgb(0 0 0 / 0.18);
+  border-radius: 50%;
+}
+
+.product-card .variant-option__button-label--has-swatch {
+  --focus-outline-radius: 50%;
+
+  border-radius: 50%;
+}
+
+.product-card .variant-option__button-label--has-swatch:has(:checked) {
+  outline: 1px solid var(--coszus-ink);
+  outline-offset: 2px;
+}
+
+@media screen and (max-width: 820px) {
+  .product-card product-swatches .swatch {
+    --swatch-width: 14px;
+    --swatch-height: 14px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Quick add (snippets/coszus-quick-add.liquid): frosted bar with sizes at the
+   bottom of the card image. Only with a mouse on desktop; never on touch
+   screens or at 820px and below (HANDOFF: no hover-only features on touch).
+   There, cards get a "+" instead that opens the size sheet (.coszus-qs).
+   ------------------------------------------------------------------ */
+.coszus-quick-add,
+.coszus-quick-add__open {
+  display: none;
+}
+
+@media screen and (min-width: 821px) and (hover: hover) {
+  .coszus-quick-add {
+    position: absolute;
+    inset-inline: 8px;
+    bottom: 8px;
+    z-index: 3;
+    display: block;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity var(--coszus-motion-fast) ease, transform var(--coszus-motion-fast) ease;
+  }
+
+  .product-card:hover .coszus-quick-add,
+  .coszus-card-wrap:hover .coszus-quick-add,
+  .coszus-quick-add:focus-within {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  /* No size option: nothing to pick on desktop, the product page does it */
+  .coszus-quick-add--direct {
+    display: none;
+  }
+}
+
+/* Touch and mobile: a "+" bottom right of the image. 44px tap target, 30px circle. */
+@media screen and (max-width: 820px), (hover: none) {
+  .coszus-card__overlay .coszus-quick-add {
+    display: contents;
+  }
+
+  .coszus-card__overlay .coszus-quick-add__form {
+    display: none;
+  }
+
+  .coszus-quick-add__open {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--coszus-ink);
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .coszus-quick-add__open::before {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.08);
+  }
+
+  .coszus-quick-add__open .coszus-icon {
+    position: relative;
+  }
+
+  .coszus-quick-add__open:active::before {
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-quick-add__open:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: -4px;
+  }
+
+  .coszus-quick-add__open[aria-busy='true'] .coszus-icon {
+    animation: coszus-qs-spin 0.8s linear infinite;
+  }
+}
+
+/* "No results for X" on the search results page, and its New In / Men / Women / Juniors links
+   (snippets/coszus-search-shop-links.liquid, also in the search panel) */
+.coszus-search-empty {
+  grid-column: var(--full-width, 1 / -1);
+  padding: 4px 0 36px;
+}
+
+.coszus-search-empty__title {
+  margin: 0;
+  font-family: var(--font-body--family);
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.coszus-search-empty__help {
+  margin: 6px 0 14px;
+  font-size: 14px;
+  color: var(--coszus-muted);
+}
+
+.coszus-search-shop-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coszus-search-shop-links__link {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--coszus-ink);
+  border-radius: 6px;
+  color: var(--coszus-ink);
+  font-family: var(--font-system--family);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color var(--coszus-motion-fast) ease, color var(--coszus-motion-fast) ease;
+}
+
+.coszus-search-shop-links__link:hover {
+  background: var(--coszus-ink);
+  color: var(--coszus-paper);
+}
+
+/* The size sheet behind the "+" (template in snippets/scripts.liquid, assets/coszus-quick-add.js).
+   Same look as the product page's size sheet: bottom sheet, soft grey sizes, sold out faded. */
+html.coszus-scroll-lock {
+  overflow: hidden;
+}
+
+.coszus-qs {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--coszus-ink);
+  overflow: hidden;
+}
+
+.coszus-qs::backdrop {
+  background: transparent;
+}
+
+.coszus-qs__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  opacity: 0;
+  transition: opacity var(--coszus-motion) var(--coszus-ease);
+}
+
+.coszus-qs__panel {
+  position: absolute;
+  inset: auto 0 0;
+  max-height: 88vh;
+  padding: 16px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+  border-radius: 14px 14px 0 0;
+  background: var(--coszus-paper);
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform var(--coszus-motion) var(--coszus-ease);
+}
+
+.coszus-qs.is-open .coszus-qs__backdrop {
+  opacity: 1;
+}
+
+.coszus-qs.is-open .coszus-qs__panel {
+  transform: none;
+}
+
+.coszus-qs__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coszus-qs__title {
+  margin: 0;
+  font-family: var(--font-body--family);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: normal;
+  text-transform: uppercase;
+}
+
+.coszus-qs__choose {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--coszus-muted);
+}
+
+.coszus-qs__close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -12px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.coszus-qs__sizes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 14px;
+}
+
+/* Colours and other non-size choices: longer names, two across */
+.coszus-qs__sizes--options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.coszus-qs__sizes--options .coszus-qs__size {
+  padding: 0 10px;
+  line-height: 1.2;
+}
+
+.coszus-qs__sizes[hidden],
+.coszus-qs__error[hidden],
+.coszus-qs__link[hidden] {
+  display: none;
+}
+
+.coszus-qs__size {
+  position: relative;
+  min-width: 0;
+  height: 48px;
+  padding: 0 4px;
+  border: 1px solid #e6e6e6;
+  border-radius: 6px;
+  background: #f7f7f6;
+  color: var(--coszus-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coszus-qs__size:active,
+.coszus-qs__size.is-busy {
+  border-color: #232323;
+  background: #232323;
+  color: var(--coszus-paper);
+}
+
+.coszus-qs__size.is-busy {
+  color: transparent;
+}
+
+.coszus-qs__size.is-busy::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid rgb(255 255 255 / 0.35);
+  border-top-color: var(--coszus-paper);
+  border-radius: 50%;
+  animation: coszus-qs-spin 0.8s linear infinite;
+}
+
+.coszus-qs__size[aria-disabled='true'] {
+  border-color: #f0f0f0;
+  background: #fbfbfb;
+  color: #c9c9c9;
+  cursor: not-allowed;
+}
+
+.coszus-qs[aria-busy] .coszus-qs__size:not(.is-busy) {
+  pointer-events: none;
+}
+
+.coszus-qs__error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgb(200 16 46 / 0.07);
+  color: var(--coszus-rouge);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.coszus-qs__link {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 0;
+  color: var(--coszus-ink);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media screen and (min-width: 821px) {
+  .coszus-qs__panel {
+    inset: 50% auto auto 50%;
+    width: min(440px, 94vw);
+    padding: 24px;
+    border-radius: 8px;
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 10px));
+    transition: opacity var(--coszus-motion) var(--coszus-ease), transform var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-qs.is-open .coszus-qs__panel {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes coszus-qs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coszus-qs__backdrop,
+  .coszus-qs__panel {
+    transition: none;
+  }
+
+  .coszus-qs__size.is-busy::after,
+  .coszus-quick-add__open[aria-busy='true'] .coszus-icon {
+    animation-duration: 2s;
+  }
+}
+
+.coszus-quick-add form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.94);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.coszus-quick-add__label {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.coszus-quick-add__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.coszus-quick-add__sizes[hidden] {
+  display: none;
+}
+
+.coszus-quick-add__size {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--coszus-line);
+  border-radius: 4px;
+  background: var(--coszus-paper);
+  color: var(--coszus-ink);
+  font-family: var(--font-body--family);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--coszus-motion-fast) ease, color var(--coszus-motion-fast) ease;
+}
+
+.coszus-quick-add__size:hover:not(:disabled) {
+  border-color: var(--coszus-ink);
+  background: var(--coszus-ink);
+  color: var(--coszus-paper);
+}
+
+.coszus-quick-add__size:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Narrow cards (5 columns, small laptops): sizes only */
+@container card-gallery-container (max-width: 280px) {
+  .coszus-quick-add__label {
+    display: none;
+  }
+
+  .coszus-quick-add form,
+  .coszus-quick-add__sizes {
+    justify-content: center;
+  }
+}
+
+/* Coszus's own card (snippets/coszus-product-card.liquid): homepage rows and the collection grid.
+   4:5 on Off white, the ratio the product photos are shot at, so nothing is cropped. Flat lay
+   first, model shot on hover; the collection's Plain / Model toggle swaps them. Name in bold
+   uppercase with the price underneath, left aligned. */
+.coszus-card {
+  /* Containing block for the visually hidden price labels, so they can't escape the scrolling row */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  color: var(--coszus-ink);
+  text-align: left;
+  text-decoration: none;
+}
+
+.coszus-card__media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background-color: var(--coszus-card-media-background, var(--coszus-off-white));
+}
+
+.coszus-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.coszus-card__image--blend {
+  mix-blend-mode: multiply;
+}
+
+.coszus-card__placeholder {
+  fill: var(--coszus-concrete);
+  opacity: 0.4;
+}
+
+.coszus-card__image--second {
+  opacity: 0;
+  transition: opacity var(--coszus-motion) ease;
+}
+
+/* Model shot on hover; touch screens keep the flat lay (no hover-only features) */
+@media (hover: hover) {
+  .coszus-card:hover .coszus-card__image--second {
+    opacity: 1;
+  }
+}
+
+/* Card tags: a small solid pill top left, so they read on any photo. Same size on every screen. */
+.coszus-card__label {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--coszus-ink);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Plain / Model toggle (sections/coszus-collection.liquid): model shot first, flat lay on hover.
+   Only cards with both photos labelled swap; the rest look the same in both views. */
+[data-view='model'] .coszus-card--views .coszus-card__image--second {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  [data-view='model'] .coszus-card--views:hover .coszus-card__image--second {
+    opacity: 0;
+  }
+}
+
+/* Low stock and Sale tags: Rouge text, as on the Horizon card. New and Best Seller stay Ink. */
+.coszus-card__label--low-stock,
+.coszus-card__label--sale {
+  color: var(--coszus-rouge);
+}
+
+/* Sold out: the one dark pill */
+.coszus-card__label--sold-out {
+  background: var(--coszus-ink);
+  color: #fff;
+}
+
+/* Card with quick add (collection grid). The size bar can't sit inside the card's link, so it
+   sits in an overlay the size of the image, on top of the link. Named like Horizon's card
+   container so the narrow-card quick add rule applies here too. */
+.coszus-card-wrap {
+  position: relative;
+  container: card-gallery-container / inline-size;
+}
+
+.coszus-card__overlay {
+  position: absolute;
+  inset: 0 0 auto;
+  aspect-ratio: 4 / 5;
+  pointer-events: none;
+}
+
+.coszus-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 16px 0;
+}
+
+.coszus-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--coszus-card-title-lines, 2);
+  line-clamp: var(--coszus-card-title-lines, 2);
+}
+
+.coszus-card__price {
+  font-size: 0.875rem;
+  line-height: 1.15;
+}
+
+.coszus-card__compare {
+  margin-right: 4px;
+  color: var(--coszus-muted);
+}
+
+@media screen and (max-width: 820px) {
+  .coszus-card__meta {
+    margin-inline: 10px;
+  }
+
+  .coszus-card__title,
+  .coszus-card__price {
+    font-size: 0.75rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Star ratings (snippets/coszus-rating.liquid). One span per rating: a
+   hard-stop gradient (Ink filled, Line empty) masked by a repeating star,
+   so there's no SVG per card and no script. Ink, not gold or red: those
+   keep their single meanings.
+   ------------------------------------------------------------------ */
+.coszus-rating {
+  --coszus-star-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  line-height: 1;
+  color: var(--coszus-muted);
+}
+
+.coszus-rating__stars {
+  flex: none;
+  width: calc(var(--coszus-star-size) * 5);
+  height: var(--coszus-star-size);
+  background: linear-gradient(
+    90deg,
+    var(--coszus-ink) var(--coszus-rating-fill, 0%),
+    var(--coszus-line) var(--coszus-rating-fill, 0%)
+  );
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E")
+    0 0 / var(--coszus-star-size) var(--coszus-star-size) repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'/%3E%3C/svg%3E")
+    0 0 / var(--coszus-star-size) var(--coszus-star-size) repeat-x;
+  forced-color-adjust: none;
+}
+
+.coszus-rating--card {
+  --coszus-star-size: 12px;
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+}
+
+@media screen and (max-width: 820px) {
+  .coszus-rating--card {
+    --coszus-star-size: 10px;
+    font-size: 0.6875rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Wishlist bookmark (snippets/coszus-wishlist-button.liquid). Top right on
+   Coszus cards, next to Add to bag on the product page. Outline when not
+   saved, filled Ink when saved. Shown on touch too (not a hover feature).
+   ------------------------------------------------------------------ */
+.coszus-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--coszus-ink);
+  cursor: pointer;
+}
+
+.coszus-save[aria-pressed='true'] .coszus-icon {
+  fill: currentColor;
+}
+
+.coszus-save--card {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  pointer-events: auto;
+}
+
+@media screen and (max-width: 820px) {
+  .coszus-save--card {
+    top: 0;
+    right: 0;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Other pages (Task 7): Account, Wishlist, Coszus Rewards, Help, Latest News,
+   404. Shared page frame and pieces; each section has its own layout CSS.
+   ------------------------------------------------------------------ */
+.coszus-page {
+  max-width: calc(1200px + 2 * var(--coszus-gutter));
+  margin: 0 auto;
+  padding: 40px var(--coszus-gutter) 64px;
+  color: var(--coszus-ink);
+}
+
+.coszus-page__title {
+  margin-bottom: 10px;
+}
+
+.coszus-page__sub {
+  max-width: 560px;
+  margin: 0 0 20px;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--coszus-muted);
+}
+
+.coszus-page__sub a,
+.coszus-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--coszus-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.coszus-note {
+  margin: 14px 0 0;
+  font-size: 0.75rem;
+  color: var(--coszus-muted);
+}
+
+.coszus-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coszus-button-sm {
+  --button-padding-block: 10px;
+  --button-padding-inline: 16px;
+}
+
+.coszus-tick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.coszus-tick li {
+  position: relative;
+  padding-left: 26px;
+}
+
+.coszus-tick li::before {
+  content: '\2713';
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+}
+
+.coszus-box {
+  padding: 18px;
+  border: 1px solid var(--coszus-line);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.coszus-box > b,
+.coszus-box > strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.coszus-box p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.coszus-box a {
+  color: var(--coszus-ink);
+}
+
+.coszus-table__scroll {
+  overflow-x: auto;
+}
+
+.coszus-table {
+  width: 100%;
+  margin-bottom: 18px;
+  border-collapse: collapse;
+  font-size: 0.84375rem;
+}
+
+.coszus-table th {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--coszus-ink);
+  font-size: var(--coszus-kicker-size);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--coszus-muted);
+}
+
+.coszus-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--coszus-line);
+  vertical-align: top;
+}
+
+/* Second line in a cell (" // " in the table text), e.g. the duties note under a delivery zone */
+.coszus-table__sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  color: var(--coszus-muted);
+}
+
+/* Side tabs (Help and Account pages, <coszus-tabs> in assets/coszus-pages.js) */
+.coszus-tabs {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 48px;
+  margin-top: 22px;
+}
+
+.coszus-tabs__nav {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+}
+
+.coszus-tabs__link {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--coszus-line);
+  color: var(--coszus-muted);
+  font-size: 0.875rem;
+  text-align: left;
+  text-decoration: none;
+}
+
+.coszus-tabs__link:hover,
+.coszus-tabs__link.is-active {
+  color: var(--coszus-ink);
+}
+
+.coszus-tabs__link.is-active {
+  font-weight: 600;
+}
+
+.coszus-tabs__main {
+  max-width: 760px;
+  min-width: 0;
+}
+
+.coszus-tabs__panel {
+  outline: none;
+}
+
+/* Before the script runs (it's a module, so after first paint) only the first panel shows, so the
+   page doesn't jump when the others are hidden. The sections' <noscript> style shows them all. */
+.coszus-tabs:not(.is-ready) .coszus-tabs__panel + .coszus-tabs__panel {
+  display: none;
+}
+
+.coszus-tabs__panel[hidden] {
+  display: none;
+}
+
+@media screen and (max-width: 820px) {
+  .coszus-tabs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .coszus-tabs__nav {
+    flex-direction: row;
+    gap: 16px;
+    margin-inline: calc(var(--coszus-gutter) * -1);
+    padding-inline: var(--coszus-gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .coszus-tabs__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .coszus-tabs__link {
+    flex: none;
+    border-bottom: 0;
+    white-space: nowrap;
+  }
+}
+
+/* Order row (snippets/coszus-account-order.liquid) */
+.coszus-order {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 22px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--coszus-line);
+  font-size: 0.875rem;
+}
+
+.coszus-order__id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coszus-order__id span {
+  font-size: 0.75rem;
+  color: var(--coszus-muted);
+}
+
+.coszus-order__tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--coszus-kicker-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.coszus-order__tag--sent {
+  background: #e9f6ee;
+  color: #1b7a44;
+}
+
+.coszus-order__tag--open {
+  background: #eaf0fa;
+  color: var(--coszus-bleu);
+}
+
+.coszus-order__tag--cancelled {
+  background: var(--coszus-off-white);
+  color: var(--coszus-muted);
+}
+
+@media screen and (max-width: 820px) {
+  .coszus-order {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+  }
+}
+
+@media screen and (max-width: 820px) {
+  .coszus-page {
+    padding: 26px var(--coszus-gutter) 48px;
+  }
+
+  .coszus-table {
+    font-size: 0.75rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Motion. HANDOFF: turn Horizon's default animations off; the design brings
+   its own motion. The theme settings (Theme settings > Animations) are off
+   too; these rules also catch motion that no setting controls.
+   Coszus's own motion must use --coszus-motion* and never Horizon's
+   --animation-* tokens, which are zero from here on.
+   ------------------------------------------------------------------ */
+
+/* 1. Zero Horizon's motion tokens. Drawers, dialogs, accordions, menus and the
+      cart still open and close, just instantly. Zero durations (not
+      animation: none) keep end states that rely on animation fill. */
+html:root {
+  --animation-speed-fast: 0s;
+  --animation-speed: 0s;
+  --animation-speed-medium: 0s;
+  --animation-speed-slow: 0s;
+  --drawer-animation-speed: 0s;
+  --submenu-animation-speed: 0s;
+  --hover-transition-duration: 0s;
+  --spring-d300-b0-duration: 0s;
+  --spring-d280-b0-duration: 0s;
+  --spring-d220-b0-duration: 0s;
+  --spring-d180-b0-duration: 0s;
+}
+
+/* 2. Horizon motion with hard-coded timings that the tokens don't reach.
+      Horizon's component CSS loads after this file, so ties need :root to win. */
+
+/* Fly-to-cart: the sticky add-to-cart bar creates it even when the setting is off */
+fly-to-cart {
+  display: none !important;
+}
+
+/* Add to cart "added" tick and text slide */
+:root .add-to-cart-button {
+  --text-speed: 0;
+  --tick-speed: 0;
+  --ring-speed: 0;
+  --check-speed: 0;
+  --burst-speed: 0;
+}
+
+/* Mobile menu links fading in one by one */
+:root .menu-drawer-container[open] .menu-drawer__animated-element {
+  animation: none;
+}
+
+/* Scroll-driven slide content reveal */
+:root .slide__content {
+  opacity: 1;
+  animation: none;
+}
+
+:root .dialog-modal[open].search-modal__content,
+:root .dialog-modal.search-modal__content.dialog-closing {
+  animation-duration: 0s;
+}
+
+.quick-add-modal__content .product-details,
+.quick-add-modal__content .product-information__media,
+.quick-add-modal__content .product-information__media slideshow-slide {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
+/* The details column also runs scroll-driven mask animations. Keep those (their
+   1s/1ms durations map onto the scroll range), only the fade-in goes to 0s. */
+:root dialog[open] .quick-add-modal__content .product-details {
+  animation-duration: 0s, 1s, 1s, 1ms !important;
+}
+
+:is(
+    .predictive-search-results__no-results,
+    .predictive-search-results__wrapper,
+    .predictive-search-results__list,
+    .predictive-search-results__wrapper-products,
+    .predictive-search-results__card
+  ) {
+  animation-delay: 0s !important;
+}
+
+:is(.predictive-search-results__wrapper, .recently-viewed-wrapper > *, .predictive-search-results__card) {
+  transition-duration: 0s !important;
+}
+
+.localization-wrapper,
+.terms-policies-popover,
+.announcement-bar__slide {
+  transition-duration: 0s !important;
+}
+
+/* 3. Same-page view transitions started from JS (filters, cart, zoom) */
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation: none !important;
+}
+
+/* 4. Reduced motion: stop everything, including Coszus's own marquees and spins.
+      JS-driven motion (autoplay, drift) must also check prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  html,
+  .page-wrapper {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* Policy pages (Settings > Policies). Shopify renders the markup, so this is CSS only, plus
+   snippets/coszus-policy-nav.liquid underneath. One readable column, Coszus headings. */
+.shopify-policy__container {
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 48px 16px 24px;
+}
+
+.shopify-policy__title h1 {
+  margin: 0 0 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--coszus-line);
+  font-family: var(--font-h2--family);
+  font-weight: var(--font-h2--weight);
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.shopify-policy__body {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.shopify-policy__body h2,
+.shopify-policy__body h3 {
+  margin: 36px 0 10px;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.shopify-policy__body blockquote {
+  margin: 0 0 32px;
+  padding: 20px 24px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--coszus-off-white);
+  font-style: normal;
+}
+
+.shopify-policy__body li + li {
+  margin-top: 6px;
+}
+
+.shopify-policy__body a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Policy tables (the shipping rates): the price column never wraps, the first column takes the
+   spare width. Under 480px each row becomes a small card: the service in bold, then its time
+   and cost on one line, so "£4.99, free over £79.99" reads as one line instead of four. */
+.shopify-policy__body table {
+  width: 100%;
+  margin: 0 0 24px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.shopify-policy__body th,
+.shopify-policy__body td {
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid var(--coszus-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.shopify-policy__body th {
+  font-size: var(--coszus-kicker-size);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.shopify-policy__body th:last-child,
+.shopify-policy__body td:last-child {
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.shopify-policy__body th:first-child,
+.shopify-policy__body td:first-child {
+  width: 100%;
+}
+
+.shopify-policy__body th:not(:first-child),
+.shopify-policy__body td:not(:first-child) {
+  white-space: nowrap;
+}
+
+@media screen and (max-width: 480px) {
+  .shopify-policy__body table,
+  .shopify-policy__body tbody,
+  .shopify-policy__body tr,
+  .shopify-policy__body td {
+    display: block;
+    width: auto;
+  }
+
+  /* The column names are said by the layout itself; screen readers still get them from the cells */
+  .shopify-policy__body thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .shopify-policy__body tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--coszus-line);
+  }
+
+  .shopify-policy__body td,
+  .shopify-policy__body td:first-child,
+  .shopify-policy__body td:last-child {
+    display: inline;
+    width: auto;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+
+  .shopify-policy__body td:first-child {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 700;
+  }
+
+  .shopify-policy__body td:nth-child(n + 3)::before {
+    content: ' \00B7  ';
+    color: var(--coszus-muted);
+  }
+
+  .shopify-policy__body td:not(:first-child) {
+    color: var(--coszus-muted);
+  }
+}
+
+.coszus-policy-nav {
+  max-width: 720px;
+  margin: 0 auto 64px;
+  padding: 0 16px;
+}
+
+.coszus-policy-nav__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 32px;
+  padding: 0;
+  list-style: none;
+}
+
+.coszus-policy-nav__list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--coszus-line);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.coszus-policy-nav__list a[aria-current='page'] {
+  border-color: var(--coszus-ink);
+  background: var(--coszus-ink);
+  color: var(--coszus-paper);
+}
+
+.coszus-policy-nav__help {
+  padding: 24px;
+  border-radius: 8px;
+  background: var(--coszus-off-white);
+}
+
+.coszus-policy-nav__help p {
+  margin: 4px 0 16px;
+  color: var(--coszus-muted);
+  font-size: 0.875rem;
+}

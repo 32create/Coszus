@@ -1,0 +1,38 @@
+{%- doc -%}
+  One small add-on card in the bag drawer: image, name, price. Tapping goes to the product.
+  Deliberately not the full coszus-product-card: no tags, hover image or quick add at this size.
+
+  @param {product} product - The product to show
+
+  @example
+  {% render 'coszus-bag-addon', product: candidate %}
+{%- enddoc -%}
+
+<li class="coszus-bag-addon">
+  <a
+    class="coszus-bag-addon__link"
+    href="{{ product.url }}"
+  >
+    <span class="coszus-bag-addon__media">
+      {%- if product.featured_image -%}
+        {{
+          product.featured_image
+          | image_url: width: 240
+          | image_tag:
+            widths: '120, 180, 240',
+            sizes: '(min-width: 821px) 90px, 22vw',
+            loading: 'lazy',
+            alt: '',
+            class: 'coszus-bag-addon__image'
+        }}
+      {%- endif -%}
+    </span>
+    <span class="coszus-bag-addon__title">{{ product.title | escape }}</span>
+    <span class="coszus-bag-addon__price">
+      {%- if product.compare_at_price > product.price -%}
+        <s>{{ product.compare_at_price | money }}</s>
+      {% endif -%}
+      {{ product.price | money }}
+    </span>
+  </a>
+</li>

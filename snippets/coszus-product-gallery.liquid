@@ -1,0 +1,136 @@
+{%- doc -%}
+  Coszus product gallery (HANDOFF section 6). Desktop: every image two across at 4:5 on Off white,
+  in one long column that scrolls past the sticky buy panel. Mobile: a swipe row, one image at a
+  time, with dots underneath (assets/coszus-product.js keeps the active dot in step).
+
+  Images keep the product's media order (flat lay first, model shot second, per HANDOFF section 8).
+  Videos play inline with controls; 3D models are skipped.
+
+  @param {product} product - The product
+  @param {boolean} [blend] - Multiply-blend images into the Off white background (white flat lays)
+
+  @example
+  {% render 'coszus-product-gallery', product: product, blend: true %}
+{%- enddoc -%}
+
+{%- liquid
+  assign media_count = 0
+  for media in product.media
+    if media.media_type == 'image' or media.media_type == 'video' or media.media_type == 'external_video'
+      assign media_count = media_count | plus: 1
+    endif
+  endfor
+
+  # Mobile: one image fills the screen. Desktop: two across in the 67% column, so about a third
+  # of the screen each; a lone image spans the whole column.
+  assign sizes = '(min-width: 821px) 34vw, 100vw'
+  if media_count == 1
+    assign sizes = '(min-width: 821px) 67vw, 100vw'
+  endif
+  assign number = 0
+-%}
+
+<div class="coszus-gallery">
+  {%- comment -%}
+    Focusable so keyboard users can reach images 2+ on phones: a focused scroll row moves with the
+    arrow keys natively, and scroll snap lands each press on the next image.
+  {%- endcomment -%}
+  <div
+    class="coszus-gallery__track"
+    data-mp-gallery
+    {% if media_count > 1 %}
+      role="region"
+      aria-label="{{ 'coszus.product.images' | t: product: product.title | escape }}"
+      tabindex="0"
+    {% endif %}
+  >
+    {%- if media_count > 0 -%}
+      {%- for media in product.media -%}
+        {%- unless media.media_type == 'image' or media.media_type == 'video' or media.media_type == 'external_video' -%}
+          {%- continue -%}
+        {%- endunless -%}
+        {%- assign number = number | plus: 1 -%}
+        <div
+          class="coszus-gallery__item"
+          data-mp-slide
+        >
+          {%- case media.media_type -%}
+            {%- when 'image' -%}
+              {%- liquid
+                # Only the first image is the LCP: it loads first and is preloaded (a Link header),
+                # so nothing else competes with it. The rest load as they come into view.
+                assign loading = 'lazy'
+                assign priority = 'auto'
+                assign preload = false
+                if number == 1
+                  assign loading = 'eager'
+                  assign priority = 'high'
+                  assign preload = true
+                endif
+                assign alt = media.alt
+                if alt == blank or alt == product.title
+                  assign alt = 'coszus.product.image_of' | t: product: product.title, number: number
+                endif
+                assign image_class = 'coszus-gallery__image'
+                if blend
+                  assign image_class = image_class | append: ' coszus-gallery__image--blend'
+                endif
+              -%}
+              {{-
+                media
+                | image_url: width: 1600
+                | image_tag:
+                  widths: '400, 600, 800, 1000, 1200, 1600',
+                  sizes: sizes,
+                  loading: loading,
+                  fetchpriority: priority,
+                  preload: preload,
+                  alt: alt,
+                  class: image_class
+              -}}
+            {%- when 'video' -%}
+              {{-
+                media
+                | video_tag:
+                  controls: true,
+                  muted: true,
+                  playsinline: true,
+                  preload: 'metadata',
+                  image_size: '1200x',
+                  class: 'coszus-gallery__video'
+              -}}
+            {%- when 'external_video' -%}
+              {{- media | external_video_tag: class: 'coszus-gallery__video' -}}
+          {%- endcase -%}
+          {%- comment -%} On the first slide shown: 3D models are skipped above, so not forloop.first {%- endcomment -%}
+          {%- if number == 1 -%}
+            {%- render 'coszus-card-tag', product: product -%}
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    {%- else -%}
+      <div class="coszus-gallery__item">
+        {{- 'product-apparel-1' | placeholder_svg_tag: 'coszus-gallery__image coszus-gallery__placeholder' -}}
+      </div>
+    {%- endif -%}
+  </div>
+
+  {%- if number > 1 -%}
+    <div
+      class="coszus-gallery__dots"
+      data-mp-dots
+    >
+      {%- for i in (1..number) -%}
+        <button
+          type="button"
+          class="coszus-gallery__dot"
+          data-mp-dot="{{ forloop.index0 }}"
+          aria-label="{{ 'coszus.product.go_to_image' | t: number: i, total: number | escape }}"
+          {% if forloop.first %}
+            aria-current="true"
+          {% endif %}
+        ></button>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+</div>

@@ -1,0 +1,172 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "coszus-help",
+      "blocks": {
+        "contact_1": {
+          "type": "contact",
+          "settings": {
+            "title": "Contact us",
+            "anchor": "contact",
+            "intro": "<p>Our customer service team is available Monday to Friday, 9am to 5pm (UK time).</p>",
+            "email_label": "Email",
+            "email": "info@coszus.com",
+            "address_label": "Post",
+            "address": "Coszus, J & S House, Denton Drive, Northwich, CW9 7LU",
+            "show_form": true,
+            "order_label": "Order number (optional)",
+            "form_button": "Send message",
+            "form_success": "Thank you for your message. We aim to respond within one working day."
+          }
+        },
+        "table_tab_2": {
+          "type": "table_tab",
+          "settings": {
+            "title": "Delivery",
+            "anchor": "delivery",
+            "intro": "",
+            "table": "Service | Time | Cost\nUK standard (Royal Mail Tracked or DPD) | 2 to 4 working days | £4.99, free over £79.99\nUK next working day (DPD) | Order by 2pm Mon to Thu | £6.99\nBelgium, France, Germany, Ireland, Netherlands, Spain // Duties covered up to €150 | 3 to 5 days | £5.99\nRest of Europe // Duties covered up to €150 for EU countries | 5 to 8 days | £8.99\nUSA | 5 to 8 days | £9.99\nAustralia | 4 to 7 days | £9.99\nCanada, New Zealand | 5 to 7 days | £14.99\nRest of world | 7 to 14 days | £19.99",
+            "after": "<p>For orders to EU countries, we cover customs duties up to €150. Orders shipped outside the UK and EU may be subject to import duties and taxes on arrival, which are the responsibility of the customer. Please check with your local customs office for details.</p><p>Next working day delivery is unavailable during Black Friday week.</p><p>If your parcel is missing or damaged, please contact us within 10 days of the expected delivery date. We do not recommend requesting that parcels are left with a neighbour or in a safe place.</p>"
+          }
+        },
+        "text_tab_3": {
+          "type": "text_tab",
+          "settings": {
+            "title": "Returns",
+            "anchor": "returns",
+            "intro": "",
+            "content": "<ul><li><strong>UK:</strong> Returns must be requested within 14 days of delivery and sent back within 14 days of your request. <strong>International:</strong> Returns must be requested within 21 days of delivery.</li><li>Please return items unworn, unwashed and with all tags attached. We may reduce your refund if an item has been worn, washed or handled more than you would in a shop.</li><li>Return postage is the responsibility of the customer, unless the item is faulty or incorrect. Please use a tracked and signed for service.</li><li>Refunds are issued to the original payment method and include the standard delivery charge you paid on the order. If you chose a faster delivery option, we refund up to the cost of standard delivery. Store credit is available as an alternative when you start your return.</li><li>Faulty or incorrect items will be replaced or refunded in full.</li><li>For hygiene reasons, underwear and socks cannot be returned once the seal or packaging has been opened.</li><li>Returns are processed within 7 working days of arriving at our warehouse.</li></ul>",
+            "box_title": "Return address",
+            "box_text": "Coszus, J & S House, Denton Drive, Northwich, CW9 7LU",
+            "button_label": "Start a return",
+            "button_link": "shopify://pages/returns"
+          }
+        },
+        "size_guide_4": {
+          "type": "size_guide",
+          "settings": {
+            "title": "Size guide",
+            "anchor": "size-guide",
+            "intro": "<p>Measurements in cm, laid flat.</p>",
+            "coming_soon": "Size guide coming soon. Message us and we'll measure it for you.",
+            "note": ""
+          }
+        },
+        "size_table_5": {
+          "type": "size_table",
+          "settings": {
+            "label": "Men",
+            "table": "Size | Chest | Length | Sleeve\nXS | – | – | –\nS | – | – | –\nM | – | – | –\nL | – | – | –\nXL | – | – | –\nXXL | – | – | –\nXXXL | – | – | –"
+          }
+        },
+        "size_table_6": {
+          "type": "size_table",
+          "settings": {
+            "label": "Women",
+            "table": "Size | Chest | Length | Sleeve\nXS | – | – | –\nS | – | – | –\nM | – | – | –\nL | – | – | –\nXL | – | – | –\nXXL | – | – | –\nXXXL | – | – | –"
+          }
+        },
+        "size_table_7": {
+          "type": "size_table",
+          "settings": {
+            "label": "Juniors",
+            "table": "Size | Chest | Length | Sleeve\nXS | – | – | –\nS | – | – | –\nM | – | – | –\nL | – | – | –\nXL | – | – | –\nXXL | – | – | –\nXXXL | – | – | –"
+          }
+        },
+        "faqs_8": {
+          "type": "faqs",
+          "settings": {
+            "title": "FAQs",
+            "anchor": "faqs",
+            "intro": ""
+          }
+        },
+        "question_9": {
+          "type": "question",
+          "settings": {
+            "question": "Where's my order?",
+            "answer": "<p>You will receive a tracking link by email once your order has been dispatched. You can also track your order from your account.</p>"
+          }
+        },
+        "question_10": {
+          "type": "question",
+          "settings": {
+            "question": "Can I pay later?",
+            "answer": "<p>Yes. We offer Klarna (3 interest-free instalments) and Clearpay (4 interest-free instalments). Select your preferred option at checkout.</p>"
+          }
+        },
+        "question_11": {
+          "type": "question",
+          "disabled": true,
+          "settings": {
+            "question": "Do you do student discount?",
+            "answer": "<p>Yes, 15% off with Student Beans. Verify at checkout.</p>"
+          }
+        },
+        "question_12": {
+          "type": "question",
+          "settings": {
+            "question": "How do Coszus Rewards work?",
+            "answer": "<p>You earn points on every order, which can be redeemed for money off future purchases. <a href=\"/pages/coszus-points\" title=\"Coszus Rewards\">See how it works</a>.</p>"
+          }
+        },
+        "question_13": {
+          "type": "question",
+          "settings": {
+            "question": "Can I change or cancel my order?",
+            "answer": "<p>Please email info@coszus.com as soon as possible with your order number. We are unable to make changes once an order has been dispatched.</p>"
+          }
+        },
+        "question_14": {
+          "type": "question",
+          "settings": {
+            "question": "Do you ship worldwide?",
+            "answer": "<p>Yes, we deliver to most countries. Please see <a href=\"#delivery\" title=\"Delivery\">Delivery</a> for times and prices.</p>"
+          }
+        },
+        "christmas_2026": {
+          "type": "table_tab",
+          "settings": {
+            "title": "Christmas",
+            "anchor": "christmas",
+            "intro": "<p><strong>Last order dates for delivery before Christmas.</strong> Order by the date shown for the delivery service you choose at checkout.</p>",
+            "table": "Service | Order by\nUK Tracked 48 | 18 December\nUK Tracked 24 | 21 December\nUK DHL next working day | 22 December\nUK DPD next working day | 23 December\nUK Royal Mail Special Delivery | 23 December\nUSA, Canada | Postal 14 December, standard 15 December, express 17 December\nEU and rest of Europe | Postal 14 December, standard 18 December, express 21 December\nAsia | Postal 13 December, standard 15 December, express 17 December\nAustralia, New Zealand | Postal 10 December, standard 15 December, express 17 December\nRest of world | Postal 13 December, standard 14 December, express 16 December",
+            "after": "<p>Orders placed after these dates may not arrive before Christmas. Dates are set by our couriers and can change during busy periods.</p><p><strong>Christmas returns</strong></p><ul><li>Orders placed from 10 November 2026 can be returned until 14 January 2027.</li><li>Full price items can be refunded or exchanged, subject to our standard returns conditions.</li><li>Sale items can be returned for store credit only. Refunds to your original payment method aren't available on sale items.</li><li>Faulty or incorrect items will always be replaced or refunded in full.</li></ul><p>Your statutory rights are not affected.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "contact_1",
+        "table_tab_2",
+        "christmas_2026",
+        "text_tab_3",
+        "size_guide_4",
+        "size_table_5",
+        "size_table_6",
+        "size_table_7",
+        "faqs_8",
+        "question_9",
+        "question_10",
+        "question_11",
+        "question_12",
+        "question_13",
+        "question_14"
+      ],
+      "settings": {
+        "heading": "Help"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

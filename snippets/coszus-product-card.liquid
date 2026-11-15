@@ -1,0 +1,219 @@
+{%- doc -%}
+  Coszus product card for homepage rows (New In, Best Sellers), the collection grid, and anything
+  fetched to replace them. 4:5 image on Off white, first image blended so white flat lays sit on it,
+  second image on hover, plain-text label top left, name (clamped) and price centred below, then
+  small stars when the product has reviews (snippets/coszus-rating.liquid, Theme settings > Star ratings).
+
+  The collection grid turns on `tags` (Sold out / Low stock / New, from snippets/coszus-card-tag.liquid)
+  and `quick_add` (snippets/coszus-quick-add.liquid: the size bar on desktop, a "+" on mobile).
+  A form can't sit inside a link, so with quick add the card is wrapped and the bar is laid over the image.
+  The wishlist bookmark (top right) is a button, so it sits in the same wrap and overlay.
+
+  @param {product} product - The product to show
+  @param {string} [label] - Text label top left, e.g. "New". Wins over `tags`
+  @param {boolean} [tags] - Show the Coszus card tag when there's no `label`
+  @param {boolean} [quick_add] - Show quick add: the size bar on desktop with a mouse, a "+" that opens a
+    size sheet on touch and mobile (products without a Size option add straight away)
+  @param {string} [section_id] - The section ID, needed with `quick_add`
+  @param {string} [image_roles] - Output of snippets/coszus-image-roles.liquid, captured once by the
+    section so it isn't re-rendered for every card. Rendered here if not passed.
+  @param {string} [sizes] - The `sizes` attribute for the images
+  @param {boolean} [eager] - Load the first image straight away (above the fold)
+  @param {boolean} [no_wishlist] - Leave out the wishlist bookmark (the Wishlist page has its own remove)
+
+  @example
+  {% render 'coszus-product-card', product: product, label: 'New' %}
+  {% render 'coszus-product-card', product: product, tags: true, quick_add: true, section_id: section.id %}
+{%- enddoc -%}
+
+{%- liquid
+  assign images = product.media | where: 'media_type', 'image'
+
+  # First image is the flat lay, second the model shot, picked by alt text: "flat lay" (or "plain")
+  # and "on model" (or "model"), e.g. "OG Badge Hoodie Black – flat lay". The collection's
+  # Plain / Model toggle swaps them, but only on cards with both labelled: a product with only
+  # model shots or only flat lays looks the same in both views. Unlabelled products use their
+  # first two images.
+  assign first_image = null
+  assign second_image = null
+  assign has_flat_lay = false
+  assign has_model = false
+  # Until launch the labels live in the theme (snippets/coszus-image-roles.liquid), not in the
+  # store's alt text, so the live site isn't changed. Alt text wins once it's set.
+  if image_roles == blank
+    capture image_roles
+      render 'coszus-image-roles'
+    endcapture
+  endif
+  for image in images
+    # image.alt falls back to the product title when empty, so look up anything not labelled
+    assign image_role = image.alt | downcase
+    unless image_role contains 'flat lay' or image_role contains 'model' or image_role == 'plain'
+      assign image_file = image.preview_image | image_url | split: '?' | first | split: '/' | last
+      assign image_key = product.handle | append: '/' | append: image_file | append: ']'
+      assign flat_key = '[flat lay:' | append: image_key
+      assign model_key = '[on model:' | append: image_key
+      if image_roles contains flat_key
+        assign image_role = 'flat lay'
+      elsif image_roles contains model_key
+        assign image_role = 'on model'
+      endif
+    endunless
+    if first_image == null and image_role contains 'flat lay' or first_image == null and image_role == 'plain'
+      assign first_image = image
+      assign has_flat_lay = true
+    elsif second_image == null and image_role contains 'model'
+      assign second_image = image
+      assign has_model = true
+    endif
+  endfor
+  if first_image == null
+    for image in images
+      if image.id != second_image.id
+        assign first_image = image
+        break
+      endif
+    endfor
+  endif
+  if second_image == null
+    for image in images
+      if image.id != first_image.id
+        assign second_image = image
+        break
+      endif
+    endfor
+  endif
+  assign sizes = sizes | default: '(min-width: 821px) calc((100vw - 128px) / 6), calc(31vw - 12px)'
+  assign loading = 'lazy'
+  if eager
+    assign loading = 'eager'
+  endif
+
+  assign blend_first = false
+  assign blend_second = false
+  if settings.card_media_blend == 'first'
+    assign blend_first = true
+  elsif settings.card_media_blend == 'all'
+    assign blend_first = true
+    assign blend_second = true
+  endif
+
+  # Lowest price, like Horizon's cards. "From" only when sizes are priced differently.
+  assign price = product.price
+  assign compare_at_price = product.compare_at_price
+
+  # Quick add: the desktop size bar needs a Size option, the mobile "+" works for any product
+  # (no Size option = adds straight away)
+  assign show_quick_add = false
+  assign size_option = null
+  if quick_add and settings.quick_add and product.available
+    assign show_quick_add = true
+    for option in product.options_with_values
+      assign option_name = option.name | downcase
+      if option_name contains 'size'
+        assign size_option = option
+        break
+      endif
+    endfor
+  endif
+
+  assign show_wishlist = false
+  if settings.wishlist_enabled and no_wishlist != true
+    assign show_wishlist = true
+  endif
+  assign wrap = false
+  if show_quick_add or show_wishlist
+    assign wrap = true
+  endif
+-%}
+
+{%- if wrap -%}
+  <div class="coszus-card-wrap">
+{%- endif -%}
+<a
+  class="coszus-card{% if has_flat_lay and has_model %} coszus-card--views{% endif %}"
+  href="{{ product.url }}"
+>
+  <span class="coszus-card__media">
+    {%- if first_image -%}
+      {%- liquid
+        assign first_class = 'coszus-card__image coszus-card__image--first'
+        if blend_first
+          assign first_class = first_class | append: ' coszus-card__image--blend'
+        endif
+      -%}
+      {{-
+        first_image
+        | image_url: width: 720
+        | image_tag:
+          widths: '240, 360, 480, 600, 720',
+          sizes: sizes,
+          loading: loading,
+          alt: product.title,
+          class: first_class
+      -}}
+      {%- if second_image -%}
+        {%- liquid
+          assign second_class = 'coszus-card__image coszus-card__image--second'
+          if blend_second
+            assign second_class = second_class | append: ' coszus-card__image--blend'
+          endif
+        -%}
+        {{-
+          second_image
+          | image_url: width: 720
+          | image_tag:
+            widths: '240, 360, 480, 600, 720',
+            sizes: sizes,
+            loading: 'lazy',
+            alt: '',
+            class: second_class
+        -}}
+      {%- endif -%}
+    {%- else -%}
+      {{- 'product-apparel-1' | placeholder_svg_tag: 'coszus-card__image coszus-card__placeholder' -}}
+    {%- endif -%}
+    {%- if label != blank -%}
+      <span class="coszus-card__label">{{ label | escape }}</span>
+    {%- elsif tags -%}
+      {%- render 'coszus-card-tag', product: product -%}
+    {%- endif -%}
+  </span>
+  <span class="coszus-card__meta">
+    <span class="coszus-card__title">{{ product.title | escape }}</span>
+    <span class="coszus-card__price">
+      {%- if compare_at_price > price -%}
+        <s class="coszus-card__compare">
+          <span class="visually-hidden">{{ 'content.price_regular' | t }}</span>
+          {{- compare_at_price | money -}}
+        </s>
+        <span class="visually-hidden">{{ 'content.price_sale' | t }}</span>
+      {%- endif -%}
+      {%- if product.price_varies -%}
+        {%- assign price_money = price | money -%}
+        {{- 'content.price_from' | t: price: '[price]' | replace: '[price]', price_money -}}
+      {%- else -%}
+        {{- price | money -}}
+      {%- endif -%}
+    </span>
+    {%- if settings.rating_on_cards -%}
+      {%- render 'coszus-rating', product: product, style: 'card' -%}
+    {%- endif -%}
+  </span>
+</a>
+{%- if wrap -%}
+    <div class="coszus-card__overlay">
+      {%- if show_wishlist -%}
+        {%- render 'coszus-wishlist-button', product: product, class: 'coszus-save--card', px: 18 -%}
+      {%- endif -%}
+      {%- if show_quick_add -%}
+        {% render 'coszus-quick-add',
+          product: product,
+          size_option: size_option,
+          section_id: section_id,
+          open_button: true
+        %}
+      {%- endif -%}
+    </div>
+  </div>
+{%- endif -%}

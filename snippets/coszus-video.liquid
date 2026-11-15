@@ -1,0 +1,65 @@
+{%- doc -%}
+  A muted, inline <video> for Shopify-hosted video, with no poster attribute (sections show their
+  own poster <img>, so the browser doesn't download a second one) and nothing loaded until JS plays it.
+  Sources: HLS first (Safari streams the right size), then one MP4 no wider than `max_width`.
+
+  @param {object} video - A video setting value
+  @param {string} [class] - Class for the <video>
+  @param {number} [max_width] - Widest MP4 to use. Defaults to 1920.
+  @param {string} [breakpoint] - desktop | mobile | all, read by assets/coszus-home.js
+  @param {boolean} [loop] - Loop the video
+
+  @example
+  {% render 'coszus-video', video: block.settings.video, class: 'hero__video', breakpoint: 'desktop' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign max_width = max_width | default: 1920
+  assign breakpoint = breakpoint | default: 'all'
+  assign best_mp4 = null
+  assign smallest_mp4 = null
+  for source in video.sources
+    if source.format == 'mp4'
+      if smallest_mp4 == null or source.width < smallest_mp4.width
+        assign smallest_mp4 = source
+      endif
+      if source.width <= max_width
+        if best_mp4 == null or source.width > best_mp4.width
+          assign best_mp4 = source
+        endif
+      endif
+    endif
+  endfor
+  if best_mp4 == null
+    assign best_mp4 = smallest_mp4
+  endif
+-%}
+
+<video
+  class="{{ class }}"
+  data-breakpoint="{{ breakpoint }}"
+  muted
+  playsinline
+  preload="none"
+  disablepictureinpicture
+  aria-hidden="true"
+  tabindex="-1"
+  {% if loop %}
+    loop
+  {% endif %}
+>
+  {%- for source in video.sources -%}
+    {%- if source.format == 'm3u8' -%}
+      <source
+        src="{{ source.url }}"
+        type="{{ source.mime_type }}"
+      >
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if best_mp4 -%}
+    <source
+      src="{{ best_mp4.url }}"
+      type="{{ best_mp4.mime_type }}"
+    >
+  {%- endif -%}
+</video>

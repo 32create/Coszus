@@ -1,1 +1,415 @@
-{"sections":{"banner":{"type":"main-collection-banner","custom_css":["h1 {font-size: 15px;}"],"settings":{"show_collection_description":false,"show_collection_image":false,"color_scheme":"scheme-1"}},"rich_text_RLr7hQ":{"type":"rich-text","blocks":{"heading_j8cpaN":{"type":"heading","settings":{"heading":"{{ collection.title }}","heading_size":"h2"}}},"block_order":["heading_j8cpaN"],"disabled":true,"name":"t:sections.rich-text.presets.name","settings":{"desktop_content_position":"center","content_alignment":"center","color_scheme":"","full_width":true,"padding_top":0,"padding_bottom":0}},"product-grid":{"type":"main-collection-product-grid","custom_css":[],"settings":{"products_per_page":36,"columns_desktop":3,"color_scheme":"scheme-1","image_ratio":"portrait","image_shape":"default","show_secondary_image":true,"show_vendor":false,"show_rating":false,"quick_add":"none","enable_filtering":true,"filter_type":"horizontal","enable_sorting":true,"columns_mobile":"2","padding_top":36,"padding_bottom":36}},"slideshow_T9LGqw":{"type":"slideshow","blocks":{"slide_fGC4EM":{"type":"slide","settings":{"image":"shopify:\/\/shop_images\/0B5654BA-9283-474C-8A05-ADB585B7905E.jpg","heading":"","heading_size":"h2","subheading":"","button_label":"","link":"","button_style_secondary":false,"box_align":"middle-center","show_text_box":false,"text_alignment":"center","image_overlay_opacity":0,"color_scheme":"","text_alignment_mobile":"center"}},"slide_zFjED9":{"type":"slide","settings":{"image":"shopify:\/\/shop_images\/E1CE20A2-1CB3-4715-983F-1E3DEC6423C8.jpg","heading":"","heading_size":"h1","subheading":"","button_label":"","link":"","button_style_secondary":false,"box_align":"middle-center","show_text_box":false,"text_alignment":"center","image_overlay_opacity":0,"color_scheme":"","text_alignment_mobile":"center"}}},"block_order":["slide_fGC4EM","slide_zFjED9"],"name":"t:sections.slideshow.presets.name","settings":{"layout":"full_bleed","slide_height":"medium","slider_visual":"counter","auto_rotate":false,"change_slides_speed":5,"image_behavior":"none","show_text_below":true,"accessibility_info":"Slideshow about our brand"}}},"order":["banner","rich_text_RLr7hQ","product-grid","slideshow_T9LGqw"]}
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "coszus-collection",
+      "blocks": {
+        "department_Wkk33U": {
+          "type": "department",
+          "settings": {
+            "title": "RAW GOTHIC COLLECTION",
+            "collection": "raw-gothic-collection",
+            "sale_collection": "",
+            "extras_collection": "",
+            "new_in_collection": "",
+            "also_on": [],
+            "image_mobile": "shopify://shop_images/raw-gothic-collection-mobile.jpg",
+            "intro": ""
+          }
+        },
+        "department_men": {
+          "type": "department",
+          "settings": {
+            "title": "Men",
+            "collection": "mens-shop-all",
+            "sale_collection": "sale",
+            "extras_collection": "mens-extras",
+            "new_in_collection": "new-in",
+            "also_on": [
+              "new-in",
+              "best-sellers-1",
+              "og-core"
+            ],
+            "intro": ""
+          }
+        },
+        "department_men_tracksuits_1": {
+          "type": "category",
+          "settings": {
+            "collection": "new-in",
+            "label": "New in",
+            "product_type": ""
+          }
+        },
+        "category_men_best_sellers": {
+          "type": "category",
+          "settings": {
+            "collection": "best-sellers-1",
+            "label": "Best sellers",
+            "product_type": ""
+          }
+        },
+        "category_nkR7Hx": {
+          "type": "category",
+          "settings": {
+            "collection": "tracksuits-1",
+            "label": "Tracksuits",
+            "product_type": ""
+          }
+        },
+        "department_men_jackets_1": {
+          "type": "category",
+          "settings": {
+            "collection": "jackets-1",
+            "label": "Jackets",
+            "product_type": ""
+          }
+        },
+        "department_men_tracksuit_tops_hoodies": {
+          "type": "category",
+          "settings": {
+            "collection": "tracksuit-tops-hoodies",
+            "label": "Hoodies",
+            "product_type": ""
+          }
+        },
+        "department_men_bottoms": {
+          "type": "category",
+          "settings": {
+            "collection": "bottoms",
+            "label": "Bottoms",
+            "product_type": ""
+          }
+        },
+        "department_men_tshirts": {
+          "type": "category",
+          "settings": {
+            "collection": "tshirts",
+            "label": "Tops",
+            "product_type": ""
+          }
+        },
+        "department_men_denim": {
+          "type": "category",
+          "settings": {
+            "collection": "denim",
+            "label": "Denim",
+            "product_type": ""
+          }
+        },
+        "department_men_shorts_swim_shorts": {
+          "type": "category",
+          "settings": {
+            "collection": "shorts-swim-shorts",
+            "label": "Shorts",
+            "product_type": ""
+          }
+        },
+        "department_men_accessories": {
+          "type": "category",
+          "settings": {
+            "collection": "accessories",
+            "label": "Accessories",
+            "product_type": ""
+          }
+        },
+        "category_men_headwear": {
+          "type": "category",
+          "settings": {
+            "collection": "headwear",
+            "label": "Headwear",
+            "product_type": ""
+          }
+        },
+        "department_women": {
+          "type": "department",
+          "settings": {
+            "title": "Women",
+            "collection": "womens-shop-all",
+            "sale_collection": "womens-sale",
+            "extras_collection": "womens-extras",
+            "new_in_collection": "womens-new-in",
+            "also_on": [
+              "womens-new-in",
+              "womens-best-sellers",
+              "og-core-1"
+            ],
+            "image_mobile": "shopify://shop_images/womens-hero-mobile.jpg",
+            "intro": ""
+          }
+        },
+        "department_women_womens_tracksuits": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-new-in",
+            "label": "New in",
+            "product_type": ""
+          }
+        },
+        "category_women_best_sellers": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-best-sellers",
+            "label": "Best sellers",
+            "product_type": ""
+          }
+        },
+        "category_PjkbkT": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-tracksuits",
+            "label": "Tracksuits",
+            "product_type": ""
+          }
+        },
+        "department_women_womens_jackets": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-jackets",
+            "label": "Jackets",
+            "product_type": ""
+          }
+        },
+        "department_women_womens_hoodies": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-hoodies",
+            "label": "Hoodies",
+            "product_type": ""
+          }
+        },
+        "department_women_womens_joggers": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-joggers",
+            "label": "Bottoms",
+            "product_type": ""
+          }
+        },
+        "department_women_womens_tops": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-tops",
+            "label": "Tops",
+            "product_type": ""
+          }
+        },
+        "department_women_womens_cargos": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-cargos",
+            "label": "Denim",
+            "product_type": "",
+            "hero_image": "shopify://shop_images/coszus-denim-banner-desktop.jpg",
+            "hero_image_mobile": "shopify://shop_images/coszus-denim-banner-mobile.jpg"
+          }
+        },
+        "department_women_womens_accessories": {
+          "type": "category",
+          "settings": {
+            "collection": "womens-accessories",
+            "label": "Accessories",
+            "product_type": ""
+          }
+        },
+        "category_women_headwear": {
+          "type": "category",
+          "settings": {
+            "collection": "headwear",
+            "label": "Headwear",
+            "product_type": ""
+          }
+        },
+        "department_juniors": {
+          "type": "department",
+          "settings": {
+            "title": "Juniors",
+            "collection": "juniors",
+            "sale_collection": "juniors-sale",
+            "extras_collection": "juniors-extras",
+            "new_in_collection": "",
+            "also_on": [
+              "juniors-new-in",
+              "juniors-extras",
+              "juniors-sale"
+            ],
+            "intro": ""
+          }
+        },
+        "department_juniors_hoodie": {
+          "type": "category",
+          "settings": {
+            "collection": "juniors",
+            "label": "Hoodies",
+            "product_type": "Hoodie"
+          }
+        },
+        "department_juniors_jogger": {
+          "type": "category",
+          "settings": {
+            "collection": "juniors",
+            "label": "Joggers",
+            "product_type": "Jogger"
+          }
+        },
+        "department_juniors_tshirt": {
+          "type": "category",
+          "settings": {
+            "collection": "juniors",
+            "label": "T-shirts",
+            "product_type": "T-shirt"
+          }
+        },
+        "department_juniors_shorts": {
+          "type": "category",
+          "settings": {
+            "collection": "juniors",
+            "label": "Shorts",
+            "product_type": "Shorts"
+          }
+        },
+        "department_juniors_bag": {
+          "type": "category",
+          "settings": {
+            "collection": "juniors-extras",
+            "label": "Bags",
+            "product_type": "Bag"
+          }
+        },
+        "department_juniors_juniors_og_collection": {
+          "type": "category",
+          "settings": {
+            "collection": "juniors-og-collection",
+            "label": "OG Collection",
+            "product_type": ""
+          }
+        },
+        "editorial_motox": {
+          "type": "editorial",
+          "settings": {
+            "position": 6,
+            "kicker": "New in",
+            "heading": "MotoX Collection",
+            "button_label": "Shop now",
+            "link": "shopify://collections/new-in",
+            "show_on": [
+              "mens-shop-all"
+            ]
+          }
+        },
+        "editorial_scuba": {
+          "type": "editorial",
+          "settings": {
+            "position": 18,
+            "kicker": "Complete the set",
+            "heading": "The Scuba Set",
+            "button_label": "Shop the set",
+            "link": "/search?q=scuba",
+            "show_on": [
+              "mens-shop-all"
+            ]
+          }
+        },
+        "editorial_motox_women": {
+          "type": "editorial",
+          "settings": {
+            "position": 6,
+            "kicker": "New in",
+            "heading": "MotoX Collection",
+            "button_label": "Shop now",
+            "link": "shopify://collections/womens-new-in",
+            "show_on": [
+              "womens-shop-all"
+            ]
+          }
+        },
+        "editorial_scuba_women": {
+          "type": "editorial",
+          "settings": {
+            "position": 18,
+            "kicker": "Complete the set",
+            "heading": "The Scuba Set",
+            "button_label": "Shop the set",
+            "link": "/search?q=scuba",
+            "show_on": [
+              "womens-shop-all"
+            ]
+          }
+        }
+      },
+      "block_order": [
+        "department_Wkk33U",
+        "department_men",
+        "department_men_tracksuits_1",
+        "category_men_best_sellers",
+        "category_nkR7Hx",
+        "department_men_jackets_1",
+        "department_men_tracksuit_tops_hoodies",
+        "department_men_bottoms",
+        "department_men_tshirts",
+        "department_men_denim",
+        "department_men_shorts_swim_shorts",
+        "department_men_accessories",
+        "category_men_headwear",
+        "department_women",
+        "department_women_womens_tracksuits",
+        "category_women_best_sellers",
+        "category_PjkbkT",
+        "department_women_womens_jackets",
+        "department_women_womens_hoodies",
+        "department_women_womens_joggers",
+        "department_women_womens_tops",
+        "department_women_womens_cargos",
+        "department_women_womens_accessories",
+        "category_women_headwear",
+        "department_juniors",
+        "department_juniors_hoodie",
+        "department_juniors_jogger",
+        "department_juniors_tshirt",
+        "department_juniors_shorts",
+        "department_juniors_bag",
+        "department_juniors_juniors_og_collection",
+        "editorial_motox",
+        "editorial_scuba",
+        "editorial_motox_women",
+        "editorial_scuba_women"
+      ],
+      "custom_css": [
+        "@media (min-width: 821px) {.coszus-collection__hero:has(source[srcset*=\"womens-hero-mobile\"]) {height: clamp(480px, 75vh, 860px); } .coszus-collection__hero:has(source[srcset*=\"womens-hero-mobile\"]) img {object-position: center 8% !important; }}"
+      ],
+      "settings": {
+        "show_hero": true,
+        "sale_hero_red": true,
+        "show_breadcrumb": false,
+        "hero_placeholder": false,
+        "show_tiles": true,
+        "tile_style": "pills",
+        "enable_filtering": true,
+        "filters_open": 3,
+        "price_bands": "30, 50",
+        "enable_sorting": true,
+        "show_view_toggle": true,
+        "products_per_page": 48,
+        "columns_desktop": 4,
+        "edge": 0,
+        "gap_x": 2,
+        "gap_y": 40,
+        "gap_x_mobile": 2,
+        "gap_y_mobile": 32,
+        "edge_mobile": 0,
+        "editorial_when_filtered": false
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

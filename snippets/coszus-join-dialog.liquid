@@ -1,0 +1,133 @@
+{%- doc -%}
+  The Join the Family box as a small panel: bottom right on desktop, a sheet from the bottom on
+  phones. A native modal dialog (assets/coszus-join.js), so focus stays inside, Escape and
+  "Not now" close it, and nothing on the page moves when it opens.
+
+  @param {string} source - wishlist | rewards. Also makes the id: CoszusJoinDialog-{source}
+  @param {boolean} [interests] - Show the "Shopping for" chips. Defaults to true.
+
+  @example
+  {% render 'coszus-join-dialog', source: 'rewards' %}
+{%- enddoc -%}
+
+{%- assign join_id = 'dialog-' | append: source -%}
+<dialog
+  id="CoszusJoinDialog-{{ source }}"
+  class="coszus-join-dialog"
+  data-join-dialog
+  {% if settings.join_heading != blank or source == 'wishlist' and settings.join_saved_heading != blank %}
+    aria-labelledby="CoszusJoin-{{ join_id }}-heading"
+  {% else %}
+    aria-label="{{ 'Join the Family' | escape }}"
+  {% endif %}
+>
+  {%- liquid
+    # The wishlist panel opens on the product they just saved: "Saved ✓", then "Don't lose it."
+    assign panel_heading = null
+    assign panel_saved = false
+    if source == 'wishlist'
+      assign panel_heading = settings.join_saved_heading
+      assign panel_saved = true
+    endif
+  -%}
+  {%- render 'coszus-join',
+    source: source,
+    id: join_id,
+    layout: 'panel',
+    heading: panel_heading,
+    saved: panel_saved,
+    interests: interests
+  -%}
+  <button
+    type="button"
+    class="coszus-join-dialog__dismiss"
+    data-join-dismiss
+  >
+    {{- settings.join_dismiss | default: 'Not now' | escape -}}
+  </button>
+</dialog>
+
+{% stylesheet %}
+  .coszus-join-dialog {
+    position: fixed;
+    inset: auto 24px 24px auto;
+    width: min(400px, calc(100vw - 48px));
+    max-height: calc(100dvh - 48px);
+    margin: 0;
+    padding: 24px 22px 10px;
+    overflow: auto;
+    border: 0;
+    border-radius: var(--style-border-radius-popover, 12px);
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    box-shadow: 0 12px 40px rgb(16 16 16 / 0.18);
+    overscroll-behavior: contain;
+  }
+
+  .coszus-join-dialog[open] {
+    animation: coszus-join-in var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-join-dialog::backdrop {
+    background: rgb(16 16 16 / 0.25);
+  }
+
+  .coszus-join-dialog .coszus-signup {
+    width: 100%;
+  }
+
+  .coszus-join-dialog .coszus-join__heading {
+    margin-bottom: 12px;
+    font-size: 1.375rem;
+  }
+
+  .coszus-join-dialog .coszus-join__perks {
+    gap: 7px;
+    margin-bottom: 16px;
+  }
+
+  /* "Not now": with the footnotes, small and quiet. 44px tall to tap */
+  .coszus-join-dialog__dismiss {
+    display: block;
+    min-height: 44px;
+    margin: 2px auto 0;
+    padding: 0 12px;
+    border: 0;
+    background: none;
+    color: var(--coszus-muted);
+    font: inherit;
+    font-size: 0.6875rem;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .coszus-join-dialog__dismiss:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: -4px;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-join-dialog {
+      inset: auto 0 0;
+      width: 100%;
+      max-width: none;
+      max-height: 92dvh;
+      padding: 20px 18px calc(4px + env(safe-area-inset-bottom));
+      border-radius: var(--style-border-radius-popover, 12px) var(--style-border-radius-popover, 12px) 0 0;
+    }
+  }
+
+  @keyframes coszus-join-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .coszus-join-dialog[open] {
+      animation: none;
+    }
+  }
+{% endstylesheet %}

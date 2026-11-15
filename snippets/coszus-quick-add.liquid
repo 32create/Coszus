@@ -1,0 +1,166 @@
+{%- doc -%}
+  Coszus quick add (HANDOFF section 5): a frosted bar at the bottom of the card image with one
+  button per size. A size adds that variant straight to the bag through Horizon's
+  product-form-component, so the bag drawer, bag count and cart events behave exactly as on the
+  product page. The bar is desktop with a mouse only; hidden on touch and at 820px and below (coszus.css).
+
+  On touch and mobile, `open_button` adds a "+" (44px tap target, bottom right of the image)
+  instead. It opens one shared size sheet, built by assets/coszus-quick-add.js on the first tap
+  from the size buttons already in this form, so nothing extra loads with the page. Products
+  without a size option but with other choices (e.g. Colour only) open the same sheet with those
+  instead, so the shopper picks the colour; products with a single variant add straight away.
+
+  Products with a second option (e.g. Colour) get one row of sizes per value of that option.
+  The row follows the card's colour swatch (assets/coszus-quick-add.js).
+
+  @param {object} product - The product
+  @param {object} [size_option] - The product's size option (from product.options_with_values). Empty: no size bar, the "+" adds the first available variant.
+  @param {string} section_id - The section ID
+  @param {boolean} [open_button] - Show the "+" on touch screens and mobile (product cards)
+
+  @example
+  {% render 'coszus-quick-add', product: product, size_option: size_option, section_id: section.id, open_button: true %}
+{%- enddoc -%}
+
+{%- liquid
+  assign selected_variant = product.selected_or_first_available_variant
+
+  # The first option that isn't size (usually Colour) groups the sizes
+  assign group_option = null
+  if size_option
+    assign size_key = 'option' | append: size_option.position
+    for option in product.options_with_values
+      if option.position != size_option.position
+        assign group_option = option
+        break
+      endif
+    endfor
+  endif
+
+  # No size option but more than one variant (e.g. Colour only): the "+" asks which one
+  assign choose_option = null
+  if size_option == null and product.variants.size > 1
+    assign choose_option = product.options_with_values.first
+    assign choose_name = choose_option.name | downcase
+  endif
+
+  if group_option
+    assign group_key = 'option' | append: group_option.position
+    assign group_values = group_option.values | map: 'name'
+    assign selected_group = selected_variant[group_key]
+  else
+    # One row of every size
+    assign group_values = '*' | split: ','
+    assign selected_group = '*'
+  endif
+
+  assign product_form_id = 'CoszusQuickAdd-' | append: section_id | append: '-' | append: product.id
+-%}
+
+<coszus-quick-add
+  class="coszus-quick-add{% unless size_option %} coszus-quick-add--direct{% endunless %}"
+  {% if group_option %}
+    data-group-option="{{ group_option.name | escape }}"
+  {% endif %}
+>
+  <product-form-component
+    class="coszus-quick-add__form"
+    data-section-id="{{ section_id }}"
+    data-product-id="{{ product.id }}"
+    on:submit="/handleSubmit"
+  >
+    <div
+      class="visually-hidden"
+      aria-live="assertive"
+      role="status"
+      aria-atomic="true"
+      ref="liveRegion"
+    ></div>
+    {%- form 'product', product, id: product_form_id, novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+      <input
+        type="hidden"
+        name="id"
+        ref="variantId"
+        value="{{ selected_variant.id }}"
+      >
+      <input
+        type="hidden"
+        name="quantity"
+        value="{{ selected_variant.quantity_rule.min | default: 1 }}"
+      >
+      {%- if size_option -%}
+        <span
+          class="coszus-quick-add__label"
+          aria-hidden="true"
+        >
+          {{- 'coszus.collection.quick_add' | t -}}
+        </span>
+        {%- for group_value in group_values -%}
+          <div
+            class="coszus-quick-add__sizes"
+            role="group"
+            aria-label="{{ 'coszus.collection.quick_add_label' | t: product: product.title | escape }}"
+            data-group="{{ group_value | escape }}"
+            {% if group_value != selected_group %}
+              hidden
+            {% endif %}
+          >
+            {%- for variant in product.variants -%}
+              {%- if group_option and variant[group_key] != group_value -%}
+                {%- continue -%}
+              {%- endif -%}
+              <button
+                type="button"
+                class="coszus-quick-add__size"
+                data-coszus-quick-size="{{ variant.id }}"
+                aria-label="{{ 'coszus.collection.quick_add_size' | t: size: variant[size_key] | escape }}"
+                {% unless variant.available %}
+                  disabled
+                {% endunless %}
+              >
+                {{- variant[size_key] -}}
+              </button>
+            {%- endfor -%}
+          </div>
+        {%- endfor -%}
+      {%- elsif choose_option -%}
+        {%- comment -%} Not shown: the source for the mobile sheet's choices {%- endcomment -%}
+        <div
+          class="coszus-quick-add__sizes"
+          data-group="*"
+        >
+          {%- for variant in product.variants -%}
+            <button
+              type="button"
+              class="coszus-quick-add__size"
+              data-coszus-quick-size="{{ variant.id }}"
+              aria-label="{{ 'coszus.collection.quick_add_option' | t: option: variant.title | escape }}"
+              {% unless variant.available %}
+                disabled
+              {% endunless %}
+            >
+              {{- variant.title -}}
+            </button>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    {%- endform -%}
+  </product-form-component>
+  {%- if open_button -%}
+    <button
+      type="button"
+      class="coszus-quick-add__open"
+      data-coszus-quick-open
+      data-product-title="{{ product.title | escape }}"
+      aria-label="{{ 'coszus.collection.quick_add_open' | t: product: product.title | escape }}"
+      {% if size_option %}
+        aria-haspopup="dialog"
+      {% elsif choose_option %}
+        aria-haspopup="dialog"
+        data-choose="{{ 'coszus.collection.quick_add_choose_option' | t: option: choose_name | escape }}"
+      {% endif %}
+    >
+      <svg class="coszus-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6"/></svg>
+    </button>
+  {%- endif -%}
+</coszus-quick-add>

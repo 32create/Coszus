@@ -1,0 +1,30 @@
+{%- doc -%}
+  Wishlist bookmark (HANDOFF section 7). Saves the product in the visitor's browser through
+  assets/coszus-wishlist.js, which marks it pressed when the product is saved. Renders nothing when
+  Theme settings > Product cards > "Show wishlist bookmarks" is off.
+
+  @param {product} product - The product to save
+  @param {string} [class] - Extra classes, e.g. 'coszus-save--card'
+  @param {number} [px] - Icon size in px. Defaults to 20.
+
+  @example
+  {% render 'coszus-wishlist-button', product: product, class: 'coszus-save--card' %}
+{%- enddoc -%}
+
+{%- if settings.wishlist_enabled -%}
+  {%- assign icon_px = px | default: 20 -%}
+  <button
+    type="button"
+    class="coszus-save{% if class != blank %} {{ class }}{% endif %}"
+    data-coszus-save="{{ product.handle }}"
+    data-product-id="{{ product.id }}"
+    data-product-title="{{ product.title | escape }}"
+    {% if product.featured_image %}
+      data-product-image="{{ product.featured_image | image_url: width: 120 }}"
+    {% endif %}
+    aria-pressed="false"
+    aria-label="{{ 'coszus.wishlist_save' | t: product: product.title | escape }}"
+  >
+    {%- render 'coszus-icon', icon: 'wishlist', px: icon_px -%}
+  </button>
+{%- endif -%}

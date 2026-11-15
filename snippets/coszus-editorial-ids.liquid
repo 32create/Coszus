@@ -1,0 +1,34 @@
+{%- doc -%}
+  Picks the editorial tiles for one collection page (sections/coszus-collection.liquid) and prints
+  their block IDs as ",id1,,id2," so the grid can check `contains ',id,'`. Prints nothing when none.
+  A tile counts when its "Show on" lists this collection and it has a photo (the theme editor also
+  counts photo-less tiles, so they can be found and filled). Only the first three, in block order.
+
+  @param {object} blocks - The section's blocks (section.blocks)
+  @param {string} handle - The collection's handle
+
+  @example
+  {%- capture editorial_ids -%}{% render 'coszus-editorial-ids', blocks: section.blocks, handle: collection.handle %}{%- endcapture -%}
+{%- enddoc -%}
+
+{%- liquid
+  assign picked = 0
+  for block in blocks
+    if block.type != 'editorial'
+      continue
+    endif
+    if block.settings.image == blank and request.design_mode == false
+      continue
+    endif
+    for show_collection in block.settings.show_on
+      if show_collection.handle == handle
+        echo ',' | append: block.id | append: ','
+        assign picked = picked | plus: 1
+        break
+      endif
+    endfor
+    if picked >= 3
+      break
+    endif
+  endfor
+-%}

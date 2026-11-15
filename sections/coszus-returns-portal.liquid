@@ -1,0 +1,104 @@
+{%- comment -%}
+  Returns portal: embeds the PostCo Returns & Exchanges portal (the app Coszus already uses) on
+  /pages/returns. Same embed as the old theme (page.returns-portal.liquid): PostCo's iframe plus
+  its listener script, which resizes the iframe to fit the portal. The page's own body (the old
+  hard-coded iframe) is ignored so the portal never shows twice; the URL lives in the setting.
+{%- endcomment -%}
+
+<script
+  src="https://cdn.jsdelivr.net/gh/PostCo/embed-iframe/iframe-listener.min.js"
+  defer
+></script>
+
+<div class="coszus-page coszus-returns-portal">
+  <h1 class="coszus-section-heading">{{ section.settings.heading | default: page.title | escape }}</h1>
+  {%- if section.settings.text != blank -%}
+    <div class="coszus-page__sub coszus-returns-portal__text">{{ section.settings.text }}</div>
+  {%- endif -%}
+
+  {%- if section.settings.portal_url != blank -%}
+    <iframe
+      id="postco360-iframe"
+      class="coszus-returns-portal__frame"
+      src="{{ section.settings.portal_url }}"
+      title="{{ section.settings.heading | default: page.title | escape }}"
+    ></iframe>
+  {%- endif -%}
+
+  {%- if section.settings.help_label != blank -%}
+    <a
+      class="coszus-link coszus-returns-portal__help"
+      href="{{ section.settings.help_link | default: '/pages/help#returns' }}"
+    >
+      {{- section.settings.help_label | escape -}}
+    </a>
+  {%- endif -%}
+</div>
+
+{% stylesheet %}
+  .coszus-returns-portal {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .coszus-returns-portal__frame {
+    display: block;
+    width: 100%;
+    min-height: 80vh;
+    border: 0;
+  }
+
+  .coszus-returns-portal__help {
+    align-self: flex-start;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Returns portal",
+  "tag": "section",
+  "class": "coszus-returns-portal-section",
+  "enabled_on": {
+    "templates": ["page"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Defaults to the page title."
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Intro",
+      "default": "<p>Enter your order number and email to start a return or exchange.</p>"
+    },
+    {
+      "type": "text",
+      "id": "portal_url",
+      "label": "PostCo portal URL",
+      "default": "",
+      "info": "From PostCo › Settings › Embed. Leave as is unless PostCo changes it."
+    },
+    {
+      "type": "text",
+      "id": "help_label",
+      "label": "Help link",
+      "default": "Read our returns policy"
+    },
+    {
+      "type": "url",
+      "id": "help_link",
+      "label": "Help link URL",
+      "info": "Defaults to Help › Returns."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Returns portal"
+    }
+  ]
+}
+{% endschema %}

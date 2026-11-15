@@ -1,0 +1,190 @@
+{%- comment -%}
+  Coszus Latest News list (docs/HANDOFF.md section 7). The Shopify blog's posts as cards: photo,
+  category (the post's first tag), title and one line. Two across on desktop, one on mobile.
+{%- endcomment -%}
+
+{%- paginate blog.articles by section.settings.per_page -%}
+  <div class="coszus-page coszus-blog">
+    <h1 class="coszus-section-heading coszus-page__title">{{ section.settings.heading | default: blog.title | escape }}</h1>
+
+    {%- if blog.articles.size > 0 -%}
+      <div
+        class="coszus-blog__grid"
+        role="list"
+      >
+        {%- for article in blog.articles -%}
+          {%- liquid
+            assign line = article.excerpt | strip_html | strip
+            if line == blank
+              assign line = article.content | strip_html | truncatewords: 14
+            else
+              assign line = line | truncatewords: 14
+            endif
+          -%}
+          <a
+            class="coszus-blog__card"
+            href="{{ article.url }}"
+            role="listitem"
+          >
+            <span class="coszus-blog__media">
+              {%- if article.image -%}
+                {%- liquid
+                  assign loading = 'lazy'
+                  if forloop.index <= 2
+                    assign loading = 'eager'
+                  endif
+                -%}
+                {{-
+                  article.image
+                  | image_url: width: 1400
+                  | image_tag:
+                    widths: '400, 600, 800, 1000, 1400',
+                    sizes: '(min-width: 821px) 50vw, 100vw',
+                    loading: loading,
+                    alt: '',
+                    class: 'coszus-blog__image'
+                -}}
+              {%- endif -%}
+            </span>
+            <span class="coszus-blog__body">
+              {%- if article.tags.size > 0 -%}
+                <span class="coszus-kicker">{{ article.tags.first | escape }}</span>
+              {%- endif -%}
+              <span class="coszus-blog__title">{{ article.title | escape }}</span>
+              {%- if line != blank -%}
+                <span class="coszus-blog__line">{{ line | escape }}</span>
+              {%- endif -%}
+            </span>
+          </a>
+        {%- endfor -%}
+      </div>
+
+      {%- if paginate.pages > 1 -%}
+        <nav
+          class="coszus-blog__pages"
+          aria-label="{{ 'content.pagination.nav_label' | t }}"
+        >
+          {%- if paginate.previous -%}
+            <a
+              class="button-secondary"
+              href="{{ paginate.previous.url }}"
+            >
+              {{- 'coszus.newer_posts' | t -}}
+            </a>
+          {%- endif -%}
+          {%- if paginate.next -%}
+            <a
+              class="button-secondary"
+              href="{{ paginate.next.url }}"
+            >
+              {{- 'coszus.older_posts' | t -}}
+            </a>
+          {%- endif -%}
+        </nav>
+      {%- endif -%}
+    {%- else -%}
+      <p class="coszus-page__sub">{{ 'coszus.no_posts' | t }}</p>
+    {%- endif -%}
+  </div>
+{%- endpaginate -%}
+
+{% stylesheet %}
+  .coszus-blog__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px 28px;
+    margin-top: 22px;
+  }
+
+  .coszus-blog__card {
+    display: block;
+    color: var(--coszus-ink);
+    text-decoration: none;
+  }
+
+  .coszus-blog__media {
+    display: block;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-blog__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform calc(var(--coszus-motion) * 2) var(--coszus-ease);
+  }
+
+  @media (hover: hover) {
+    .coszus-blog__card:hover .coszus-blog__image {
+      transform: scale(1.03);
+    }
+  }
+
+  .coszus-blog__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 14px;
+  }
+
+  .coszus-blog__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .coszus-blog__line {
+    font-size: 0.8125rem;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-blog__pages {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 48px;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-blog__grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 32px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus news list",
+  "tag": "section",
+  "class": "coszus-blog-section",
+  "enabled_on": {
+    "templates": ["blog"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Latest News",
+      "info": "Defaults to the blog's title."
+    },
+    {
+      "type": "range",
+      "id": "per_page",
+      "label": "Posts per page",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "default": 12
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus news list"
+    }
+  ]
+}
+{% endschema %}

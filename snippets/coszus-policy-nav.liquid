@@ -1,0 +1,39 @@
+{%- doc -%}
+  Under every policy page (Settings > Policies): links to the other policies and a help box, so
+  the policy pages feel like part of the site. Styles for the policy text itself are in
+  assets/coszus.css (.shopify-policy__container).
+{%- enddoc -%}
+
+{%- liquid
+  assign help_url = '/pages/help'
+-%}
+
+<nav class="coszus-policy-nav" aria-label="Policies">
+  {%- if shop.policies.size > 1 -%}
+    <p class="coszus-kicker">Policies</p>
+    <ul class="coszus-policy-nav__list">
+      {%- for policy in shop.policies -%}
+        <li>
+          <a
+            href="{{ policy.url }}"
+            {% if policy.url == request.path %}
+              aria-current="page"
+            {% endif %}
+          >
+            {{- policy.title | escape -}}
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+  <div class="coszus-policy-nav__help">
+    <b>Still got a question?</b>
+    <p>Most answers are on our Help page, or email us and a real person will get back to you.</p>
+    <div class="coszus-buttons">
+      <a class="button" href="{{ help_url }}">Help</a>
+      {%- if shop.email != blank -%}
+        <a class="button-secondary" href="mailto:{{ shop.email }}">Email us</a>
+      {%- endif -%}
+    </div>
+  </div>
+</nav>

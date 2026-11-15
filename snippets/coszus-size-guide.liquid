@@ -1,0 +1,351 @@
+{%- doc -%}
+  Coszus size guide (HANDOFF section 6): a modal on desktop, a bottom sheet on mobile.
+  Renders nothing when there's no guide for the product, so the caller can capture the output
+  and hide its "Size guide" buttons when it's blank.
+
+  Where the guide comes from, first match wins:
+  1. The product's `custom.size_guide` metaobject (docs/METAFIELDS.md): name, unit, measured,
+     table, how_to_measure, fit_notes, image.
+  2. A "Size guide" block in the product section whose product types include this product's type
+     (not case sensitive), and whose department is empty or the product's department. "Men and
+     Women" guides also cover products in no department collection, never Juniors.
+  3. The department guide: a block with no product types for the product's department
+     (Men / Women / Juniors, from the department collections in Theme settings).
+  4. A block with no product types and no department (catch-all).
+
+  The metaobject is the source of the measurements. A guide that's still all dashes (the section
+  blocks until real charts go in) shows no table, only the "coming soon" line, whose "Message us"
+  links to Help's contact form. "3XL" in the size column shows as XXXL, whichever guide it comes from.
+
+  Tables are one row per line, cells split by `|`, first line the header. Numbers are converted
+  between cm and inches (1 in = 2.54 cm, rounded to 0.5) and a cm / in switch picks which shows:
+  inches for visitors in the US, cm for everyone else. The size column is never converted.
+  Pure CSS (radio buttons + :has), so there's no script.
+
+  @param {product} product - The product
+  @param {object} blocks - The section's blocks (section.blocks)
+  @param {string} dialog_id - ID for the dialog
+  @param {string} [coming_soon] - Shown when the guide has no measurements yet
+
+  @example
+  {% render 'coszus-size-guide', product: product, blocks: section.blocks, dialog_id: 'CoszusSizeGuide' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign guide_name = ''
+  assign guide_unit = ''
+  assign guide_measured_text = ''
+  assign guide_table = ''
+  assign guide_measure = ''
+  assign guide_notes = ''
+  assign guide_image = null
+
+  # 1. Product metaobject. The store's old page-reference field of the same name has no table.
+  assign guide = product.metafields.custom.size_guide.value
+  if guide.table != blank
+    assign guide_name = guide.name.value
+    assign guide_unit = guide.unit.value
+    assign guide_measured_text = guide.measured.value
+    assign guide_table = guide.table.value
+    assign guide_measure = guide.how_to_measure | metafield_tag
+    assign guide_notes = guide.fit_notes.value | newline_to_br
+    assign guide_image = guide.image.value
+  endif
+
+  # 2 to 4. Section blocks
+  if guide_table == blank
+    # The product's department, from the department collections. Juniors first, so a junior piece
+    # that's also in a men's collection gets the juniors guide.
+    assign department = ''
+    assign product_collections = product.collections | map: 'handle'
+    assign department_keys = 'juniors,men,women' | split: ','
+    for key in department_keys
+      assign collection_key = 'coszus_department_' | append: key | append: '_collection'
+      assign department_handle = settings[collection_key].handle
+      if department_handle != blank and product_collections contains department_handle
+        assign department = key
+        break
+      endif
+    endfor
+
+    assign product_type = product.type | downcase | strip
+    assign type_block = null
+    assign department_block = null
+    assign catch_all_block = null
+    for block in blocks
+      if block.type != 'size_guide' or block.settings.table == blank
+        continue
+      endif
+
+      assign block_department = block.settings.department
+      assign department_ok = false
+      if block_department == 'all' or block_department == blank
+        assign department_ok = true
+      elsif block_department == department
+        assign department_ok = true
+      elsif block_department == 'adults' and department == 'men'
+        assign department_ok = true
+      elsif block_department == 'adults' and department == 'women'
+        assign department_ok = true
+      elsif block_department == 'adults' and department == ''
+        # Unisex or not in a department collection: adult guides still apply (never to Juniors)
+        assign department_ok = true
+      endif
+      unless department_ok
+        continue
+      endunless
+
+      if block.settings.product_types == blank
+        if block_department == 'all' or block_department == blank
+          if catch_all_block == null
+            assign catch_all_block = block
+          endif
+        elsif department_block == null
+          assign department_block = block
+        endif
+        continue
+      endif
+
+      if product_type == blank or type_block
+        continue
+      endif
+      assign types = block.settings.product_types | downcase | split: ','
+      for type in types
+        assign type_clean = type | strip
+        if type_clean != blank and type_clean == product_type
+          assign type_block = block
+          break
+        endif
+      endfor
+    endfor
+
+    assign fallback_block = type_block
+    if fallback_block == null
+      assign fallback_block = department_block
+    endif
+    if fallback_block == null
+      assign fallback_block = catch_all_block
+    endif
+    if fallback_block
+      assign guide_name = fallback_block.settings.name
+      assign guide_unit = fallback_block.settings.unit
+      assign guide_measured_text = fallback_block.settings.measured
+      assign guide_table = fallback_block.settings.table
+      assign guide_notes = fallback_block.settings.tip
+      assign guide_image = fallback_block.settings.image
+    endif
+  endif
+
+  # The unit the table is written in. Older guides wrote notes like "cm, laid flat".
+  assign base_unit = 'cm'
+  assign unit_lower = guide_unit | downcase
+  unless unit_lower contains 'cm'
+    if unit_lower contains 'in'
+      assign base_unit = 'in'
+    endif
+  endunless
+  if guide_measured_text == blank
+    assign guide_measured_text = 'coszus.product.size_guide_measured' | t
+  endif
+
+  assign show_unit = 'cm'
+  if localization.country.iso_code == 'US'
+    assign show_unit = 'in'
+  endif
+
+  assign rows = guide_table | strip | newline_to_br | split: '<br />'
+  capture guide_check
+    render 'coszus-table-check', table: guide_table
+  endcapture
+  assign guide_filled = false
+  assign guide_measured = false
+  if guide_check contains 'filled'
+    assign guide_filled = true
+  endif
+  if guide_check contains 'measured'
+    assign guide_measured = true
+  endif
+  assign has_numbers = false
+  assign digits = '0,1,2,3,4,5,6,7,8,9' | split: ','
+-%}
+
+{%- if guide_table != blank -%}
+  {%- capture guide_rows -%}
+    {%- for row in rows -%}
+      {%- assign cells = row | strip | split: '|' -%}
+      {%- if cells.size == 0 -%}
+        {%- continue -%}
+      {%- endif -%}
+      {%- if forloop.first -%}
+        <thead>
+          <tr>
+            {%- for cell in cells -%}
+              {%- assign cell_text = cell | strip -%}
+              {%- if cell_text contains '(cm)' or cell_text contains '(in)' -%}
+                <th scope="col">
+                  <span data-unit="cm">{{ cell_text | replace: '(in)', '(cm)' | escape }}</span>
+                  <span data-unit="in">{{ cell_text | replace: '(cm)', '(in)' | escape }}</span>
+                </th>
+              {%- else -%}
+                <th scope="col">{{ cell_text | escape }}</th>
+              {%- endif -%}
+            {%- endfor -%}
+          </tr>
+        </thead>
+        <tbody>
+      {%- else -%}
+        <tr>
+          {%- for cell in cells -%}
+            {%- assign cell_text = cell | strip -%}
+            {%- if forloop.first -%}
+              {%- if cell_text == '3XL' -%}
+                {%- assign cell_text = 'XXXL' -%}
+              {%- endif -%}
+              <th scope="row">{{ cell_text | escape }}</th>
+              {%- continue -%}
+            {%- endif -%}
+            {%- liquid
+              # A number or a range ("96-100"): convert each part. Anything else shows as written.
+              assign parts = cell_text | replace: '–', '-' | split: '-'
+              assign converted = ''
+              assign numeric = true
+              if parts.size == 0 or parts.size > 2
+                assign numeric = false
+              endif
+              for part in parts
+                assign part = part | strip
+                assign leftover = part | remove_first: '.'
+                for digit in digits
+                  assign leftover = leftover | remove: digit
+                endfor
+                if part == blank or leftover != blank
+                  assign numeric = false
+                  break
+                endif
+                assign value = part | times: 1.0
+                if base_unit == 'cm'
+                  assign value = value | divided_by: 2.54
+                else
+                  assign value = value | times: 2.54
+                endif
+                assign value = value | times: 2 | round | divided_by: 2.0 | append: '' | remove: '.0'
+                unless forloop.first
+                  assign converted = converted | append: '–'
+                endunless
+                assign converted = converted | append: value
+              endfor
+            -%}
+            {%- if numeric -%}
+              {%- assign has_numbers = true -%}
+              <td>
+                <span data-unit="{{ base_unit }}">{{ cell_text | escape }}</span>
+                {%- if base_unit == 'cm' -%}
+                  <span data-unit="in">{{ converted }}</span>
+                {%- else -%}
+                  <span data-unit="cm">{{ converted }}</span>
+                {%- endif -%}
+              </td>
+            {%- else -%}
+              <td>{{ cell_text | escape }}</td>
+            {%- endif -%}
+          {%- endfor -%}
+        </tr>
+      {%- endif -%}
+      {%- if forloop.last -%}
+        </tbody>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+
+  <dialog
+    class="coszus-sheet coszus-sheet--guide"
+    id="{{ dialog_id }}"
+    data-unit-default="{{ show_unit }}"
+    aria-labelledby="{{ dialog_id }}-title"
+    data-mp-dialog
+  >
+    <div
+      class="coszus-sheet__backdrop"
+      data-mp-close
+    ></div>
+    <div class="coszus-sheet__panel">
+      <div class="coszus-sheet__top">
+        <h2
+          class="coszus-sheet__title"
+          id="{{ dialog_id }}-title"
+        >
+          {{- 'coszus.product.size_guide' | t -}}
+        </h2>
+        <button
+          type="button"
+          class="coszus-sheet__close"
+          data-mp-close
+          aria-label="{{ 'coszus.product.close' | t | escape }}"
+        >
+          {%- render 'coszus-icon', icon: 'close', px: 20 -%}
+        </button>
+      </div>
+      {%- if guide_measured -%}
+        <p class="coszus-guide__measured">{{ guide_measured_text | escape }}</p>
+      {%- endif -%}
+      <div class="coszus-guide__head">
+        <p class="coszus-guide__sub">
+          {{- product.title | escape -}}
+          {%- if guide_name != blank and guide_filled %} · {{ guide_name | escape }}{% endif -%}
+        </p>
+        {%- if has_numbers -%}
+          <fieldset class="coszus-guide__units">
+            <legend class="visually-hidden">{{ 'coszus.product.size_guide_units' | t }}</legend>
+            {%- for unit in (1..2) -%}
+              {%- liquid
+                if unit == 1
+                  assign unit_value = 'cm'
+                else
+                  assign unit_value = 'in'
+                endif
+                assign unit_key = 'coszus.product.size_guide_' | append: unit_value
+              -%}
+              <label>
+                <input
+                  type="radio"
+                  name="{{ dialog_id }}-unit"
+                  value="{{ unit_value }}"
+                  {% if unit_value == show_unit %}
+                    checked
+                  {% endif %}
+                >
+                <span>{{ unit_key | t }}</span>
+              </label>
+            {%- endfor -%}
+          </fieldset>
+        {%- elsif guide_unit != blank and guide_measured -%}
+          <p class="coszus-guide__sub">{{ 'coszus.product.size_guide_unit' | t: unit: base_unit }}</p>
+        {%- endif -%}
+      </div>
+      {%- if guide_filled -%}
+        <div class="coszus-guide__scroll">
+          <table class="coszus-guide__table">
+            {{- guide_rows -}}
+          </table>
+        </div>
+      {%- endif -%}
+      {%- if guide_measured == false and coming_soon != blank -%}
+        {%- capture contact_link %}<a href="/pages/help#contact">Message us</a>{% endcapture -%}
+        <p class="coszus-guide__soon">{{ coming_soon | escape | replace: 'Message us', contact_link }}</p>
+      {%- endif -%}
+      {%- if guide_image != blank -%}
+        {{
+          guide_image
+          | image_url: width: 900
+          | image_tag: loading: 'lazy', class: 'coszus-guide__image', alt: guide_image.alt, widths: '450, 900'
+        }}
+      {%- endif -%}
+      {%- if guide_measure != blank -%}
+        <div class="coszus-guide__tip">{{ guide_measure }}</div>
+      {%- endif -%}
+      {%- if guide_notes != blank -%}
+        <div class="coszus-guide__tip">{{ guide_notes }}</div>
+      {%- endif -%}
+    </div>
+  </dialog>
+{%- endif -%}

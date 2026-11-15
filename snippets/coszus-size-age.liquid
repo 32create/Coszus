@@ -1,0 +1,36 @@
+{%- doc -%}
+  The age range under one size button on a Juniors product, from a list like "S: 8-10 yrs,
+  M: 10-12 yrs" (the Juniors ages setting in the product section). Prints nothing for products
+  outside the Juniors collection (Theme settings), or when the list is empty or hasn't the size.
+
+  @param {product} product - The product
+  @param {string} size - The size, e.g. S
+  @param {string} ages - The list: size, colon, age; pairs split by commas
+
+  @example
+  {% render 'coszus-size-age', product: product, size: value.name, ages: section.settings.juniors_ages %}
+{%- enddoc -%}
+
+{%- liquid
+  assign is_juniors = false
+  assign juniors_handle = settings.coszus_department_juniors_collection.handle
+  if ages != blank and juniors_handle != blank
+    assign collection_handles = product.collections | map: 'handle'
+    if collection_handles contains juniors_handle
+      assign is_juniors = true
+    endif
+  endif
+
+  if is_juniors
+    assign size_clean = size | strip | downcase
+    assign pairs = ages | split: ','
+    for pair in pairs
+      assign pair_size = pair | split: ':' | first | strip | downcase
+      if pair_size == size_clean and pair contains ':'
+        assign age = pair | split: ':' | last | strip | escape
+        echo ' <span class="coszus-sizes__age">' | append: age | append: '</span>'
+        break
+      endif
+    endfor
+  endif
+-%}

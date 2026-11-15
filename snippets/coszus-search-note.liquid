@@ -1,0 +1,46 @@
+{%- doc -%}
+  "Showing results for hoodie" above instant results (docs/HANDOFF.md section 3).
+
+  Shopify's predictive search already forgives one wrong letter (the first four must be right) and
+  Search & Discovery adds synonyms, but neither says which word it used. So the note shows when a
+  word the shopper typed isn't in any result's title and Shopify's first suggested search starts
+  the same way (same first four letters) but reads differently: that suggestion is what was
+  matched. Otherwise nothing is shown rather than guessing.
+
+  @param {object} results - The predictive_search object
+
+  @example
+  {% render 'coszus-search-note', results: predictive_search %}
+{%- enddoc -%}
+
+{%- liquid
+  assign show_note = false
+  assign term = results.terms | downcase | strip
+  if settings.coszus_search_correction and term.size >= 4 and results.resources.queries.size > 0
+    assign suggestion = results.resources.queries.first.text | strip
+    assign suggestion_lower = suggestion | downcase
+    assign term_start = term | slice: 0, 4
+    assign suggestion_start = suggestion_lower | slice: 0, 4
+    if suggestion_lower != term and suggestion_start == term_start
+      assign titles = results.resources.products | map: 'title' | join: ' ' | downcase
+      assign words = term | split: ' '
+      for word in words
+        unless titles contains word
+          assign show_note = true
+          break
+        endunless
+      endfor
+    endif
+  endif
+-%}
+
+{%- if show_note -%}
+  {%- comment -%}
+    Escape here: _html translations don't escape interpolated values (checked on the preview), unlike
+    plain keys such as coszus.search.nothing_for, which must get the raw term
+  {%- endcomment -%}
+  {%- assign suggestion_safe = suggestion | escape -%}
+  <p class="coszus-search-note">
+    {{ 'coszus.search.showing_results_for_html' | t: term: suggestion_safe }}
+  </p>
+{%- endif -%}

@@ -1,0 +1,34 @@
+{%- doc -%}
+  Under "Nothing for …" in the search panel (docs/HANDOFF.md section 3): the popular searches as
+  pills, then a few products from Theme settings > Search > empty state collection as "Trending now".
+
+  @example
+  {% render 'coszus-search-no-results' %}
+{%- enddoc -%}
+
+{%- assign popular = settings.coszus_search_popular | split: ',' -%}
+{%- if popular.size > 0 -%}
+  <ul class="coszus-search-pills list-unstyled">
+    {%- for popular_entry in popular -%}
+      {%- assign term = popular_entry | strip -%}
+      {%- if term != blank -%}
+        <li>
+          <a
+            class="pills__pill"
+            href="{{ routes.search_url }}?q={{ term | url_encode }}&amp;options%5Bprefix%5D=last"
+            data-coszus-search-term="{{ term | escape }}"
+          >
+            {{- term | escape -}}
+          </a>
+        </li>
+      {%- endif -%}
+    {%- endfor -%}
+  </ul>
+{%- endif -%}
+
+{%- if settings.empty_state_collection != blank and settings.coszus_search_trending_heading != blank -%}
+  {%- liquid
+    assign trending = settings.empty_state_collection.products
+    render 'predictive-search-products-list', title: settings.coszus_search_trending_heading, products: trending, limit: 6
+  -%}
+{%- endif -%}

@@ -1,0 +1,2728 @@
+{%- comment -%}
+  Coszus product page (docs/HANDOFF.md section 6, docs/design/03-product.html).
+
+  Desktop: gallery two across in a long column (67%), buy panel sticky on the right (33%).
+  Mobile: swipe gallery with dots, panel below, and a sticky bar (name, price, Add to bag) once the
+  main button has scrolled away. With no size chosen, the sticky button opens a size sheet that
+  adds straight to the bag.
+
+  Add to bag goes through Horizon's product-form-component, so the bag drawer opens (Theme settings
+  → Cart → auto-open) and the bag count updates exactly as elsewhere. Size buttons, low stock,
+  the sheets, the next-day countdown and the sticky bar are assets/coszus-product.js.
+
+  Accordion rows, size guides and Worn by the family photos are section blocks: a section can't
+  read a theme block's settings. Store data is only read, never written.
+{%- endcomment -%}
+
+{%- liquid
+  assign selected_variant = product.selected_or_first_available_variant
+  assign url_variant = product.selected_variant
+
+  # Size option: the first option with "size" in its name (Size, Accessory size)
+  assign size_option = null
+  for option in product.options_with_values
+    assign option_name = option.name | downcase
+    if option_name contains 'size'
+      assign size_option = option
+      break
+    endif
+  endfor
+
+  # A size is only chosen up front from the address (?variant=) or when there's one size
+  assign size_preselected = false
+  if url_variant or size_option.values.size == 1 or size_option == null
+    assign size_preselected = true
+  endif
+
+  assign low_threshold = section.settings.low_stock_threshold
+  # Theme settings > Coszus Rewards, shared with the bag drawer so both show the same number
+  assign points_rate = settings.coszus_points_per_pound | default: 0
+  assign points = selected_variant.price | times: points_rate | divided_by: 100 | floor
+  # Pay later: Klarna UK is Pay in 3, Clearpay is Pay in 4. Each instalment rounds up to the penny.
+  assign split_price = selected_variant.price | times: 1.0 | divided_by: 4 | ceil
+  assign split_price_3 = selected_variant.price | times: 1.0 | divided_by: 3 | ceil
+
+  # Delivery perks are UK facts. Outside the UK the free delivery line and returns line switch to
+  # their International text (hidden when blank) and next-day is hidden. Same rule as the top bar
+  # and the bag bar.
+  assign is_uk = false
+  if localization.country.iso_code == 'GB'
+    assign is_uk = true
+  endif
+  assign free_delivery_text = section.settings.free_delivery_text
+  assign returns_text = section.settings.returns_text
+  assign show_next_day = section.settings.show_next_day
+  unless is_uk
+    assign free_delivery_text = section.settings.free_delivery_text_international
+    assign returns_text = section.settings.returns_text_international
+    assign show_next_day = false
+  endunless
+
+  # Fit and model line: "Boxy fit. Model is 6ft 1 and wears M."
+  assign fit_note = product.metafields.custom.fit_note.value | strip
+  if fit_note == blank
+    assign fit_label = product.metafields.shopify.fit.value.first.label | strip
+    if fit_label != blank
+      assign fit_lower = fit_label | downcase
+      if fit_lower contains 'fit'
+        assign fit_note = fit_label
+      else
+        assign fit_note = 'coszus.product.fit' | t: fit: fit_label
+      endif
+    endif
+  endif
+  assign model_info = product.metafields.custom.model_info.value | default: product.metafields.custom.model_height_and_wear_size.value | strip
+  assign model_line = ''
+  for part in (1..2)
+    if part == 1
+      assign piece = fit_note
+    else
+      assign piece = model_info
+    endif
+    if piece == blank
+      continue
+    endif
+    assign last_char = piece | slice: -1
+    unless last_char == '.' or last_char == '!'
+      assign piece = piece | append: '.'
+    endunless
+    assign model_line = model_line | append: ' ' | append: piece
+  endfor
+  assign model_line = model_line | strip
+
+  # Complete the set: custom.set_partner, else (optional) the old custom.upsell_products as "Goes well with"
+  assign partner = null
+  assign partner_heading = 'coszus.product.complete_the_set' | t
+  if section.settings.show_set
+    assign partner = product.metafields.custom.set_partner.value
+    if partner == blank and section.settings.set_fallback_upsell
+      for candidate in product.metafields.custom.upsell_products.value
+        if candidate.available and candidate.id != product.id
+          assign partner = candidate
+          assign partner_heading = 'coszus.product.goes_well_with' | t
+          break
+        endif
+      endfor
+    endif
+
+    # A product that's already a set ("Set" in the title, or product type Set) has nothing to
+    # complete, so the card gets the set heading instead (default "You might also like")
+    assign title_words = product.title | downcase | split: ' '
+    assign type_lower = product.type | downcase | strip
+    if title_words contains 'set' or type_lower == 'set'
+      if section.settings.set_product_heading != blank
+        assign partner_heading = section.settings.set_product_heading
+      endif
+    endif
+  endif
+
+  # Colour swatches: sister colourways of this style, from Content > Metaobjects > Colourways.
+  # One entry per style lists its products. Falls back to the old pl_swatches.groups app data.
+  assign colour_group = null
+  assign swatch_group = null
+  if section.settings.show_colour_swatches
+    paginate metaobjects.colourways.values by 250
+      for group in metaobjects.colourways.values
+        assign group_ids = group.products.value | map: 'id'
+        if group_ids contains product.id
+          assign colour_group = group
+          break
+        endif
+      endfor
+    endpaginate
+    if colour_group == null
+      for group in product.metafields.pl_swatches.groups.value
+        assign group_handles = group.swatches | map: 'handle'
+        if group_handles contains product.handle
+          assign swatch_group = group
+          break
+        endif
+      endfor
+    endif
+  endif
+
+  # Colour name: the product title minus the style name ("Women's Raw Gothic Hoodie" + "Brown"),
+  # else Shopify's Colour field
+  assign colour_name = blank
+  if colour_group
+    assign style_title = colour_group.title.value | strip
+    assign title_start = product.title | slice: 0, style_title.size | downcase
+    assign style_lower = style_title | downcase
+    if title_start == style_lower
+      assign colour_name = product.title | slice: style_title.size, 200 | strip
+    endif
+  endif
+  if colour_name == blank
+    assign colour_name = product.metafields.shopify['color-pattern'].value.first.label
+  endif
+
+  # Worn by the family: the product's own Out & About photos, else the section's photo blocks
+  assign family_images = null
+  if section.settings.family_use_product
+    assign family_images = product.metafields.custom.out_about_images.value
+  endif
+  assign family_blocks = section.blocks | where: 'type', 'photo'
+  # Only blocks with a photo count: a block added in the editor before its photo shows nothing
+  assign family_photo_count = 0
+  for block in family_blocks
+    if block.settings.image != blank
+      assign family_photo_count = family_photo_count | plus: 1
+    endif
+  endfor
+
+  assign dialog_prefix = 'CoszusProduct-' | append: section.id
+  assign form_id = 'CoszusProductForm-' | append: section.id
+-%}
+
+{%- assign guide_id = dialog_prefix | append: '-guide' -%}
+{%- capture size_guide -%}
+  {%- render 'coszus-size-guide',
+    product: product,
+    blocks: section.blocks,
+    dialog_id: guide_id,
+    coming_soon: section.settings.size_guide_soon
+  -%}
+{%- endcapture -%}
+{%- assign size_guide = size_guide | strip -%}
+
+{%- render 'coszus-product-structured-data', product: product -%}
+
+<script
+  src="{{ 'coszus-product.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+<coszus-product
+  class="coszus-product"
+  data-section-id="{{ section.id }}"
+  data-product-url="{{ product.url }}"
+  data-size-index="{% if size_option %}{{ size_option.position | minus: 1 }}{% endif %}"
+  data-text-select="{{ 'coszus.product.select_size' | t | escape }}"
+  data-text-add="{{ 'coszus.product.add_to_bag' | t | escape }}"
+  data-text-sold-out="{{ 'coszus.product.sold_out' | t | escape }}"
+  data-text-unavailable="{{ 'coszus.product.unavailable' | t | escape }}"
+  data-text-adding="{{ 'products.product.adding_to_cart' | t | escape }}"
+  data-text-added="{{ 'coszus.product.added' | t | escape }}"
+  data-text-add-error="{{ 'coszus.product.add_error' | t }}"
+  data-text-only-left="{{ 'coszus.product.only_left' | t: count: '[count]' | escape }}"
+  data-text-choose="{{ 'coszus.product.choose_size' | t | escape }}"
+  style="--mp-gallery-gap: {{ section.settings.gallery_gap }}px;"
+>
+  <script
+    type="application/json"
+    data-mp-variants
+  >
+    [
+      {%- for variant in product.variants -%}
+        {%- liquid
+          assign variant_split = variant.price | times: 1.0 | divided_by: 4 | ceil
+          assign variant_split_3 = variant.price | times: 1.0 | divided_by: 3 | ceil
+          assign variant_points = variant.price | times: points_rate | divided_by: 100 | floor
+          assign variant_low = 'null'
+          if low_threshold > 0 and variant.inventory_management == 'shopify' and variant.inventory_policy == 'deny' and variant.inventory_quantity > 0 and variant.inventory_quantity <= low_threshold
+            assign variant_low = variant.inventory_quantity
+          endif
+        -%}
+        {
+          "id": {{ variant.id }},
+          "available": {{ variant.available | json }},
+          "options": {{ variant.options | json }},
+          "price": {{ variant.price | money | strip_html | json }},
+          "compare": {% if variant.compare_at_price > variant.price %}{{ variant.compare_at_price | money | strip_html | json }}{% else %}null{% endif %},
+          "split": {{ variant_split | money | strip_html | json }},
+          "split3": {{ variant_split_3 | money | strip_html | json }},
+          "points": {{ variant_points }},
+          "low": {{ variant_low }}
+        }
+        {%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}
+    ]
+  </script>
+
+  <div class="coszus-product__layout">
+    <div class="coszus-product__media">
+      {%- render 'coszus-product-gallery', product: product, blend: section.settings.blend_images -%}
+    </div>
+
+    <div class="coszus-product__info">
+      <div class="coszus-product__panel">
+        <h1 class="coszus-product__title">{{ product.title | escape }}</h1>
+
+        {%- if settings.rating_on_product -%}
+          {%- render 'coszus-rating', product: product -%}
+        {%- endif -%}
+
+        <p
+          class="coszus-product__price"
+          data-mp-price-wrap
+        >
+          <s
+            class="coszus-product__compare"
+            data-mp-compare
+            {% unless selected_variant.compare_at_price > selected_variant.price %}
+              hidden
+            {% endunless %}
+          >
+            <span class="visually-hidden">{{ 'content.price_regular' | t }}</span>
+            <span data-mp-compare-value>{{ selected_variant.compare_at_price | money }}</span>
+          </s>
+          <span data-mp-price>{{ selected_variant.price | money }}</span>
+        </p>
+
+        {%- if section.settings.show_installments and section.settings.show_klarna or section.settings.show_installments and section.settings.show_clearpay -%}
+          {%- liquid
+            if section.settings.show_klarna and section.settings.show_clearpay
+              assign bnpl_text = section.settings.installments_text
+            elsif section.settings.show_klarna
+              assign bnpl_text = section.settings.installments_text_klarna
+            else
+              assign bnpl_text = section.settings.installments_text_clearpay
+            endif
+          -%}
+          {%- capture klarna_amount %}<b data-mp-split-3>{{ split_price_3 | money }}</b>{% endcapture -%}
+          {%- capture clearpay_amount %}<b data-mp-split>{{ split_price | money }}</b>{% endcapture -%}
+          {%- capture klarna_badge -%}
+            <span class="coszus-product__bnpl-badge coszus-product__bnpl-badge--klarna">Klarna.</span>
+          {%- endcapture -%}
+          {%- capture clearpay_badge -%}
+            <span class="coszus-product__bnpl-badge coszus-product__bnpl-badge--clearpay">
+              clearpay
+              {%- render 'coszus-icon', icon: 'clearpay', px: 9 -%}
+            </span>
+          {%- endcapture -%}
+          <p class="coszus-product__bnpl">
+            {{-
+              bnpl_text
+              | escape
+              | replace: '[klarna_amount]', klarna_amount
+              | replace: '[clearpay_amount]', clearpay_amount
+              | replace: '[klarna]', klarna_badge
+              | replace: '[clearpay]', clearpay_badge
+            -}}
+          </p>
+        {%- endif -%}
+
+        {%- if colour_group -%}
+          {%- comment -%} Colour dots: one per colourway, current one outlined, sold out faded {%- endcomment -%}
+          {%- capture swatches -%}
+            {%- assign swatch_count = 0 -%}
+            {%- for sibling in colour_group.products.value limit: 12 -%}
+              {%- if sibling.id == blank -%}
+                {%- continue -%}
+              {%- endif -%}
+              {%- liquid
+                assign swatch_count = swatch_count | plus: 1
+                assign dot_colours = sibling.metafields.custom.swatch_colour.value
+                assign dot_style = ''
+                if dot_colours.size > 1
+                  assign dot_style = 'background: linear-gradient(135deg, ' | append: dot_colours[0] | append: ' 50%, ' | append: dot_colours[1] | append: ' 50%);'
+                elsif dot_colours.size == 1
+                  assign dot_style = 'background: ' | append: dot_colours[0] | append: ';'
+                endif
+                assign sibling_name = sibling.title | slice: style_title.size, 200 | strip
+                if sibling_name == blank
+                  assign sibling_name = sibling.title
+                endif
+              -%}
+              <a
+                class="coszus-dot{% if sibling.id == product.id %} is-current{% endif %}{% unless sibling.available %} is-sold-out{% endunless %}"
+                href="{{ sibling.url }}"
+                {% if sibling.id == product.id %}
+                  aria-current="page"
+                {% endif %}
+                aria-label="{{ sibling_name | escape }}{% unless sibling.available %} ({{ 'coszus.product.sold_out' | t }}){% endunless %}"
+                title="{{ sibling_name | escape }}"
+              >
+                {%- if dot_style != blank -%}
+                  <span class="coszus-dot__fill" style="{{ dot_style }}"></span>
+                {%- elsif sibling.featured_image -%}
+                  {{
+                    sibling.featured_image
+                    | image_url: width: 120, height: 120, crop: 'center'
+                    | image_tag: loading: 'lazy', alt: '', class: 'coszus-dot__fill coszus-dot__img'
+                  }}
+                {%- else -%}
+                  <span class="coszus-dot__fill"></span>
+                {%- endif -%}
+              </a>
+            {%- endfor -%}
+          {%- endcapture -%}
+          {%- if swatch_count > 1 -%}
+            <div class="coszus-product__option coszus-product__option--colour">
+              <p class="coszus-product__label">
+                {{- 'coszus.product.colour' | t -}}
+                {%- if colour_name != blank %}: <b>{{ colour_name | escape }}</b>{% endif -%}
+              </p>
+              <div class="coszus-dots">{{ swatches }}</div>
+            </div>
+            {%- comment -%}
+              Faster switching: Chrome/Edge preload the other colourway as soon as you hover or press
+              (speculation rules); other browsers get a prefetch on hover / touch.
+            {%- endcomment -%}
+            <script type="speculationrules">
+              {"prefetch": [{"source": "document", "where": {"selector_matches": ".coszus-dot:not(.is-current)"}, "eagerness": "moderate"}]}
+            </script>
+            <script>
+              (() => {
+                if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) return;
+                const done = new Set();
+                const warm = (e) => {
+                  const a = e.target.closest && e.target.closest('.coszus-dot:not(.is-current)');
+                  if (!a || done.has(a.href)) return;
+                  done.add(a.href);
+                  const l = document.createElement('link');
+                  l.rel = 'prefetch';
+                  l.href = a.href;
+                  document.head.appendChild(l);
+                };
+                document.addEventListener('pointerenter', warm, { capture: true, passive: true });
+                document.addEventListener('touchstart', warm, { capture: true, passive: true });
+              })();
+            </script>
+          {%- endif -%}
+        {%- elsif swatch_group -%}
+          {%- capture swatches -%}
+            {%- assign swatch_count = 0 -%}
+            {%- for swatch in swatch_group.swatches limit: 12 -%}
+              {%- assign sibling = all_products[swatch.handle] -%}
+              {%- if sibling.id == blank -%}
+                {%- continue -%}
+              {%- endif -%}
+              {%- assign swatch_count = swatch_count | plus: 1 -%}
+              <a
+                class="coszus-swatch{% if sibling.id == product.id %} is-current{% endif %}{% unless sibling.available %} is-sold-out{% endunless %}"
+                href="{{ sibling.url }}"
+                {% if sibling.id == product.id %}
+                  aria-current="page"
+                {% endif %}
+                aria-label="{{ sibling.title | escape }}{% unless sibling.available %} ({{ 'coszus.product.sold_out' | t }}){% endunless %}"
+              >
+                {%- if sibling.featured_image -%}
+                  {{
+                    sibling.featured_image
+                    | image_url: width: 160
+                    | image_tag: widths: '80, 160', sizes: '58px', loading: 'lazy', alt: '', class: 'coszus-swatch__img'
+                  }}
+                {%- endif -%}
+              </a>
+            {%- endfor -%}
+          {%- endcapture -%}
+          {%- if swatch_count > 1 -%}
+            <div class="coszus-product__option">
+              <p class="coszus-product__label">
+                {{- 'coszus.product.colour' | t -}}
+                {%- if colour_name != blank %}: <b>{{ colour_name | escape }}</b>{% endif -%}
+              </p>
+              <div class="coszus-swatches">{{ swatches }}</div>
+            </div>
+          {%- endif -%}
+        {%- endif -%}
+
+        {%- unless product.has_only_default_variant -%}
+          {%- for option in product.options_with_values -%}
+            {%- liquid
+              assign is_size = false
+              # Juniors ages go under the size buttons only (snippets/coszus-size-age.liquid)
+              assign row_ages = ''
+              if size_option and option.position == size_option.position
+                assign is_size = true
+                assign row_ages = section.settings.juniors_ages
+              endif
+              assign option_index = option.position | minus: 1
+              assign option_key = 'option' | append: option.position
+            -%}
+            <div
+              class="coszus-product__option"
+              {% if is_size %}
+                data-mp-size-row
+              {% endif %}
+            >
+              <div class="coszus-product__option-head">
+                <p
+                  class="coszus-product__label{% if is_size %} coszus-product__label--size{% endif %}"
+                  id="{{ dialog_prefix }}-option-{{ option.position }}"
+                >
+                  <b>{{ option.name | escape }}</b>
+                  {%- if is_size -%}
+                    <em
+                      class="coszus-product__low"
+                      data-mp-low
+                      aria-live="polite"
+                    ></em>
+                  {%- endif -%}
+                </p>
+                {%- if is_size and size_guide != blank -%}
+                  <button
+                    type="button"
+                    class="coszus-product__guide"
+                    data-mp-open="{{ dialog_prefix }}-guide"
+                  >
+                    {%- render 'coszus-icon', icon: 'ruler', px: 17 -%}
+                    {{- 'coszus.product.size_guide' | t -}}
+                  </button>
+                {%- endif -%}
+              </div>
+              <div
+                class="coszus-sizes{% unless is_size %} coszus-sizes--option{% endunless %}"
+                role="group"
+                aria-labelledby="{{ dialog_prefix }}-option-{{ option.position }}"
+              >
+                {%- for value in option.values -%}
+                  {%- liquid
+                    assign pressed = false
+                    if is_size == false or size_preselected
+                      if url_variant
+                        if url_variant[option_key] == value.name
+                          assign pressed = true
+                        endif
+                      elsif selected_variant[option_key] == value.name
+                        assign pressed = true
+                      endif
+                    endif
+                  -%}
+                  <button
+                    type="button"
+                    class="coszus-sizes__button"
+                    data-mp-option="{{ option_index }}"
+                    data-mp-value="{{ value.name | escape }}"
+                    aria-pressed="{{ pressed }}"
+                    {% unless value.available %}
+                      aria-disabled="true"
+                    {% endunless %}
+                  >
+                    {{- value.name | escape -}}
+                    {%- render 'coszus-size-age', product: product, size: value.name, ages: row_ages -%}
+                    <span
+                      class="visually-hidden"
+                      data-mp-sold-out-label
+                      {% if value.available %}
+                        hidden
+                      {% endif %}
+                    >
+                      ({{ 'coszus.product.sold_out' | t }})</span
+                    >
+                  </button>
+                {%- endfor -%}
+              </div>
+              {%- if is_size and model_line != blank -%}
+                <p class="coszus-product__model">{{ model_line | escape }}</p>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        {%- endunless -%}
+
+        {%- comment -%} No size option (one size): the fit line sits in the same place, before Add to bag {%- endcomment -%}
+        {%- if size_option == null and model_line != blank -%}
+          <p class="coszus-product__model coszus-product__model--solo">{{ model_line | escape }}</p>
+        {%- endif -%}
+
+        <div class="coszus-product__buy">
+        <product-form-component
+          class="coszus-product__form"
+          data-section-id="{{ section.id }}"
+          data-product-id="{{ product.id }}"
+          on:submit="/handleSubmit"
+        >
+          <div
+            class="visually-hidden"
+            aria-live="assertive"
+            role="status"
+            aria-atomic="true"
+            ref="liveRegion"
+          ></div>
+          {%- form 'product', product, id: form_id, novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+            <input
+              type="hidden"
+              name="id"
+              ref="variantId"
+              value="{{ selected_variant.id }}"
+            >
+            <input
+              type="hidden"
+              name="quantity"
+              value="{{ selected_variant.quantity_rule.min | default: 1 }}"
+            >
+            <button
+              type="button"
+              class="coszus-product__add"
+              data-mp-add
+              {% unless product.available %}
+                disabled
+              {% endunless %}
+            >
+              {%- if product.available == false -%}
+                {{ 'coszus.product.sold_out' | t }}
+              {%- elsif size_preselected -%}
+                {{ 'coszus.product.add_to_bag' | t }}
+              {%- else -%}
+                {{ 'coszus.product.select_size' | t }}
+              {%- endif -%}
+            </button>
+          {%- endform -%}
+        </product-form-component>
+          {%- render 'coszus-wishlist-button', product: product, class: 'coszus-save--product', px: 18 -%}
+        </div>
+        <p
+          class="coszus-product__error"
+          data-mp-error
+          role="alert"
+          hidden
+        ></p>
+
+        {%- if section.settings.show_points or section.settings.show_free_delivery or show_next_day or section.settings.show_returns -%}
+          <ul class="coszus-perks">
+            {%- if section.settings.show_points and points_rate > 0 -%}
+              <li>
+                <span
+                  class="coszus-coin"
+                  aria-hidden="true"
+                >
+                  {%- if section.settings.coin_image -%}
+                    {{ section.settings.coin_image | image_url: width: 60 | image_tag: alt: '', class: 'coszus-coin__img', width: 22, height: 22 }}
+                  {%- else -%}
+                    <img
+                      class="coszus-coin__img"
+                      src="{{ 'coszus-points-coin-small.gif' | asset_url }}"
+                      alt=""
+                      width="22"
+                      height="22"
+                      loading="lazy"
+                    >
+                  {%- endif -%}
+                </span>
+                {%- capture points_html %}<span data-mp-points>{{ points }}</span>{% endcapture -%}
+                <span>{{ section.settings.points_text | replace: '[points]', points_html }}</span>
+              </li>
+            {%- endif -%}
+            {%- if section.settings.show_free_delivery and free_delivery_text != blank -%}
+              <li>
+                {%- render 'coszus-icon', icon: 'box', px: 18 -%}
+                <span>{{ free_delivery_text }}</span>
+              </li>
+            {%- endif -%}
+            {%- if show_next_day -%}
+              <li>
+                {%- render 'coszus-icon', icon: 'truck', px: 18 -%}
+                <span
+                  data-mp-next-day
+                  {% unless section.settings.next_day_paused %}
+                    data-cutoff="{{ section.settings.next_day_cutoff }}"
+                    data-last-day="{{ section.settings.next_day_last_day }}"
+                    data-template="{{ 'coszus.product.next_day_within_html' | t: time: '[time]' | escape }}"
+                  {% endunless %}
+                >
+                  {%- if section.settings.next_day_paused -%}
+                    {{ section.settings.next_day_paused_text }}
+                  {%- else -%}
+                    {{ section.settings.next_day_text }}
+                  {%- endif -%}
+                </span>
+              </li>
+            {%- endif -%}
+            {%- if section.settings.show_returns and returns_text != blank -%}
+              <li>
+                {%- render 'coszus-icon', icon: 'returns', px: 18 -%}
+                <span>{{ returns_text }}</span>
+              </li>
+            {%- endif -%}
+          </ul>
+        {%- endif -%}
+
+        {%- if partner -%}
+          {%- render 'coszus-set-card',
+            partner: partner,
+            heading: partner_heading,
+            section_id: section.id
+          -%}
+        {%- endif -%}
+
+        <div class="coszus-accordion">
+          {%- liquid
+            assign accordion_guide = ''
+            if size_guide != blank
+              assign accordion_guide = guide_id
+            endif
+          -%}
+          {%- for block in section.blocks -%}
+            {%- render 'coszus-product-accordion',
+              block: block,
+              product: product,
+              model_line: model_line,
+              guide_id: accordion_guide,
+              is_uk: is_uk
+            -%}
+          {%- endfor -%}
+        </div>
+
+        {%- if family_images.size > 0 or family_photo_count > 0 -%}
+          <section
+            class="coszus-family"
+            aria-labelledby="{{ dialog_prefix }}-family"
+          >
+            <div class="coszus-family__head">
+              <h2
+                class="coszus-family__title"
+                id="{{ dialog_prefix }}-family"
+              >
+                {{- section.settings.family_heading | escape -}}
+              </h2>
+              {%- if section.settings.family_handle != blank -%}
+                {%- if section.settings.family_link != blank -%}
+                  <a href="{{ section.settings.family_link }}">{{ section.settings.family_handle | escape }}</a>
+                {%- else -%}
+                  <span>{{ section.settings.family_handle | escape }}</span>
+                {%- endif -%}
+              {%- endif -%}
+            </div>
+            <div class="coszus-family__row">
+              {%- if family_images.size > 0 -%}
+                {%- for file in family_images limit: 12 -%}
+                  {%- assign family_image = file.preview_image | default: file -%}
+                  {%- assign family_alt = file.alt | default: product.title -%}
+                  <button
+                    type="button"
+                    class="coszus-family__item"
+                    data-mp-photo="{{ family_image | image_url: width: 1400 }}"
+                    data-mp-photo-alt="{{ family_alt | escape }}"
+                    aria-label="{{ 'coszus.product.open_photo' | t: number: forloop.index | escape }}"
+                  >
+                    {{
+                      family_image
+                      | image_url: width: 400
+                      | image_tag: widths: '200, 300, 400', sizes: '(min-width: 821px) calc(8.26vw - 20px), calc(40vw - 16px)', loading: 'lazy', alt: ''
+                    }}
+                  </button>
+                {%- endfor -%}
+              {%- else -%}
+                {%- for block in family_blocks limit: 12 -%}
+                  {%- if block.settings.image == blank -%}
+                    {%- continue -%}
+                  {%- endif -%}
+                  <button
+                    type="button"
+                    class="coszus-family__item"
+                    data-mp-photo="{{ block.settings.image | image_url: width: 1400 }}"
+                    data-mp-photo-alt="{{ block.settings.image.alt | default: product.title | escape }}"
+                    aria-label="{{ 'coszus.product.open_photo' | t: number: forloop.index | escape }}"
+                    {{ block.shopify_attributes }}
+                  >
+                    {{
+                      block.settings.image
+                      | image_url: width: 400
+                      | image_tag: widths: '200, 300, 400', sizes: '(min-width: 821px) calc(8.26vw - 20px), calc(40vw - 16px)', loading: 'lazy', alt: ''
+                    }}
+                  </button>
+                {%- endfor -%}
+              {%- endif -%}
+            </div>
+          </section>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+
+  {{ size_guide }}
+
+  {%- if size_option and size_preselected == false and product.available -%}
+    <dialog
+      class="coszus-sheet coszus-sheet--sizes"
+      id="{{ dialog_prefix }}-sizes"
+      aria-labelledby="{{ dialog_prefix }}-sizes-title"
+      data-mp-dialog
+      data-mp-size-sheet
+    >
+      <div
+        class="coszus-sheet__backdrop"
+        data-mp-close
+      ></div>
+      <div class="coszus-sheet__panel">
+        <div class="coszus-sheet__top">
+          <h2
+            class="coszus-sheet__title"
+            id="{{ dialog_prefix }}-sizes-title"
+          >
+            {{- 'coszus.product.select_size' | t -}}
+          </h2>
+          <button
+            type="button"
+            class="coszus-sheet__close"
+            data-mp-close
+            aria-label="{{ 'coszus.product.close' | t | escape }}"
+          >
+            {%- render 'coszus-icon', icon: 'close', px: 20 -%}
+          </button>
+        </div>
+        <div
+          class="coszus-sizes coszus-sizes--sheet"
+          role="group"
+          aria-labelledby="{{ dialog_prefix }}-sizes-title"
+        >
+          {%- for value in size_option.values -%}
+            <button
+              type="button"
+              class="coszus-sizes__button"
+              data-mp-sheet-value="{{ value.name | escape }}"
+              {% unless value.available %}
+                aria-disabled="true"
+              {% endunless %}
+            >
+              {{- value.name | escape -}}
+              {%- render 'coszus-size-age', product: product, size: value.name, ages: section.settings.juniors_ages -%}
+              <span
+                class="coszus-sizes__low"
+                data-mp-sheet-low
+              ></span>
+            </button>
+          {%- endfor -%}
+        </div>
+        {%- if size_guide != blank -%}
+          <button
+            type="button"
+            class="coszus-product__guide coszus-product__guide--sheet"
+            data-mp-open="{{ dialog_prefix }}-guide"
+          >
+            {%- render 'coszus-icon', icon: 'ruler', px: 17 -%}
+            {{- 'coszus.product.size_guide' | t -}}
+          </button>
+        {%- endif -%}
+      </div>
+    </dialog>
+  {%- endif -%}
+
+  {%- if family_images.size > 0 or family_photo_count > 0 -%}
+    <dialog
+      class="coszus-lightbox"
+      aria-label="{{ section.settings.family_heading | escape }}"
+      data-mp-dialog
+      data-mp-lightbox
+    >
+      <img
+        class="coszus-lightbox__img"
+        alt=""
+        width="1400"
+        height="1750"
+        data-mp-lightbox-img
+      >
+      <button
+        type="button"
+        class="coszus-lightbox__button coszus-lightbox__button--close"
+        data-mp-close
+        aria-label="{{ 'coszus.product.close' | t | escape }}"
+      >
+        {%- render 'coszus-icon', icon: 'close', px: 24 -%}
+      </button>
+      <button
+        type="button"
+        class="coszus-lightbox__button coszus-lightbox__button--prev"
+        data-mp-lightbox-step="-1"
+        aria-label="{{ 'coszus.product.previous' | t | escape }}"
+      >
+        {%- render 'coszus-icon', icon: 'chevron', px: 28 -%}
+      </button>
+      <button
+        type="button"
+        class="coszus-lightbox__button coszus-lightbox__button--next"
+        data-mp-lightbox-step="1"
+        aria-label="{{ 'coszus.product.next' | t | escape }}"
+      >
+        {%- render 'coszus-icon', icon: 'chevron', px: 28 -%}
+      </button>
+    </dialog>
+  {%- endif -%}
+
+  {%- if section.settings.show_sticky_bar and product.available -%}
+    <div
+      class="coszus-sticky"
+      data-mp-sticky
+      aria-hidden="true"
+      inert
+    >
+      <div class="coszus-sticky__text">
+        <b>{{ product.title | escape }}</b>
+        <span data-mp-sticky-price>{{ selected_variant.price | money }}</span>
+      </div>
+      <button
+        type="button"
+        class="coszus-sticky__add"
+        data-mp-sticky-add
+      >
+        {%- if size_preselected -%}
+          {{ 'coszus.product.add_to_bag' | t }}
+        {%- else -%}
+          {{ 'coszus.product.select_size' | t }}
+        {%- endif -%}
+      </button>
+    </div>
+  {%- endif -%}
+</coszus-product>
+
+{% stylesheet %}
+  .coszus-product {
+    --mp-panel-top: calc(var(--coszus-nav-gap, 12px) + var(--coszus-nav-height, 54px) + 16px);
+    --mp-soft: #f7f7f6;
+    --mp-soft-line: #e6e6e6;
+    --mp-faded: #c9c9c9;
+
+    display: block;
+    color: var(--coszus-ink);
+    font-family: var(--font-body--family);
+  }
+
+  .coszus-product__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 67fr) minmax(0, 33fr);
+  }
+
+  /* ---------- Gallery ---------- */
+  .coszus-gallery__track {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--mp-gallery-gap, 2px);
+    outline: none;
+  }
+
+  .coszus-gallery__track:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: -2px;
+  }
+
+  .coszus-gallery__item {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--coszus-card-media-background, var(--coszus-off-white));
+  }
+
+  .coszus-gallery__item:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .coszus-gallery__image,
+  .coszus-gallery__video,
+  .coszus-gallery__item iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    object-fit: cover;
+  }
+
+  .coszus-gallery__image--blend {
+    mix-blend-mode: multiply;
+  }
+
+  /* The tag on the first photo is the card tag pill (assets/coszus.css), the same as on the cards */
+
+  .coszus-gallery__placeholder {
+    fill: var(--coszus-concrete);
+    opacity: 0.4;
+  }
+
+  .coszus-gallery__dots {
+    display: none;
+  }
+
+  /* ---------- Buy panel ---------- */
+  .coszus-product__panel {
+    position: sticky;
+    top: var(--mp-panel-top);
+    max-height: calc(100vh - var(--mp-panel-top));
+    padding: 6px 32px 40px 28px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .coszus-product__panel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .coszus-product__title {
+    margin: 0 0 6px;
+    font-family: var(--font-body--family);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: normal;
+    text-transform: uppercase;
+  }
+
+  .coszus-product__price {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .coszus-product__compare {
+    margin-right: 6px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-product__compare[hidden] {
+    display: none;
+  }
+
+  .coszus-product__bnpl {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #333;
+  }
+
+  .coszus-product__bnpl b {
+    color: var(--coszus-ink);
+  }
+
+  .coszus-product__bnpl-badge {
+    display: inline-flex;
+    border-radius: 3px;
+    align-items: center;
+    gap: 2px;
+    height: 20px;
+    padding: 0 6px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: -0.02em;
+    color: #000;
+  }
+
+  .coszus-product__bnpl-badge--klarna {
+    background: #ffb3c7;
+    font-weight: 800;
+  }
+
+  .coszus-product__bnpl-badge--clearpay {
+    background: #b2fce4;
+    font-weight: 600;
+  }
+
+  .coszus-product__option {
+    margin-top: 22px;
+  }
+
+  .coszus-product__option-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .coszus-product__label {
+    margin: 0 0 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  .coszus-product__label b {
+    font-weight: 400;
+  }
+
+  .coszus-product__option-head .coszus-product__label {
+    margin: 0;
+  }
+
+  .coszus-product__label--size {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 15px;
+    text-transform: none;
+  }
+
+  .coszus-product__label--size b {
+    font-weight: 700;
+  }
+
+  .coszus-product__low {
+    font-size: 14px;
+    font-style: normal;
+    color: var(--coszus-rouge);
+  }
+
+  /* Padding (cancelled by the negative margin) gives a 44px tall hit area without moving
+     anything; the underline is drawn under the content, where the border used to be */
+  .coszus-product__guide {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: -11px -8px -8px;
+    padding: 11px 8px;
+    border: 0;
+    background: none;
+    color: var(--coszus-ink);
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .coszus-product__guide::after {
+    content: '';
+    position: absolute;
+    inset: auto 8px 8px;
+    height: 1px;
+    background: currentcolor;
+  }
+
+  /* Colour swatches: sibling products, current one outlined */
+  .coszus-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .coszus-swatch {
+    display: block;
+    width: 58px;
+    aspect-ratio: 4 / 5;
+    padding: 2px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+    background-color: var(--coszus-off-white);
+  }
+
+  .coszus-swatch:hover,
+  .coszus-swatch.is-current {
+    border-color: var(--coszus-ink);
+  }
+
+  .coszus-swatch.is-sold-out {
+    opacity: 0.45;
+  }
+
+  /* Colour dots (Content > Metaobjects > Colourways): round, current one ringed, sold out faded */
+  .coszus-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .coszus-dot {
+    position: relative;
+    display: block;
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    transition: border-color 0.15s ease;
+  }
+
+  .coszus-dot__fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--coszus-off-white);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  }
+
+  .coszus-dot__img {
+    object-fit: cover;
+  }
+
+  /* Ring only on hover (and keyboard focus); the colour name above shows which one you're on */
+  @media (hover: hover) {
+    .coszus-dot:hover {
+      border-color: var(--coszus-ink);
+    }
+  }
+
+  .coszus-dot:focus-visible {
+    border-color: var(--coszus-ink);
+    outline: none;
+  }
+
+  .coszus-dot.is-sold-out {
+    opacity: 0.4;
+  }
+
+  /* Strike drawn on top, so a colour dot's inline background can't hide it */
+  .coszus-dot.is-sold-out::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, transparent 47%, var(--coszus-ink) 47%, var(--coszus-ink) 53%, transparent 53%);
+    pointer-events: none;
+  }
+
+  .coszus-swatch__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    mix-blend-mode: multiply;
+  }
+
+  /* Sizes: one row of soft grey boxes. Selected dark, sold out faded (no strike line). */
+  .coszus-sizes {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .coszus-sizes--option {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .coszus-sizes__button {
+    position: relative;
+    min-width: 0;
+    height: 42px;
+    padding: 0 8px;
+    border: 1px solid var(--mp-soft-line);
+    border-radius: 6px;
+    background: var(--mp-soft);
+    color: var(--coszus-ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--coszus-motion-fast) ease, background-color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-sizes--option .coszus-sizes__button {
+    min-width: 56px;
+  }
+
+  .coszus-sizes__button:hover {
+    border-color: var(--coszus-ink);
+  }
+
+  .coszus-sizes__button[aria-pressed='true'] {
+    border-color: #232323;
+    background: #232323;
+    color: var(--coszus-paper);
+  }
+
+  .coszus-sizes__button[aria-disabled='true'] {
+    border-color: #f0f0f0;
+    background: #fbfbfb;
+    color: var(--mp-faded);
+    cursor: not-allowed;
+  }
+
+  /* Add to bag. The size boxes flash when it's pressed without a size. */
+  .coszus-product__buy {
+    display: flex;
+    gap: 6px;
+    margin-top: 24px;
+  }
+
+  .coszus-product__form {
+    display: block;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Wishlist bookmark next to Add to bag (snippets/coszus-wishlist-button.liquid) */
+  .coszus-save--product {
+    box-shadow: inset 0 0 0 1px var(--coszus-ink);
+  }
+
+  .coszus-product__add,
+  .coszus-sticky__add {
+    width: 100%;
+    height: 44px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: var(--style-border-radius-buttons-primary, 6px);
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color var(--coszus-motion-fast) ease;
+  }
+
+  .coszus-product__add:hover:not(:disabled),
+  .coszus-sticky__add:hover {
+    background: var(--coszus-petrol);
+  }
+
+  .coszus-product__add[data-need],
+  .coszus-product__add:disabled {
+    background: var(--coszus-muted);
+  }
+
+  .coszus-product__add:disabled {
+    cursor: default;
+  }
+
+  .coszus-product__add[data-state='added'] {
+    background: var(--coszus-petrol);
+  }
+
+  .coszus-product__add[aria-busy='true'],
+  .coszus-sticky__add[aria-busy='true'] {
+    cursor: progress;
+  }
+
+  [data-mp-size-row].is-flagged .coszus-sizes__button:not([aria-disabled='true']) {
+    border-color: var(--coszus-ink);
+  }
+
+  .coszus-product__error {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--coszus-rouge);
+  }
+
+  .coszus-product__error[hidden] {
+    display: none;
+  }
+
+  /* Fit and model line, straight under the sizes (or before Add to bag with no sizes) */
+  .coszus-product__model {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-product__model--solo {
+    margin-top: 22px;
+  }
+
+  /* ---------- Perks ---------- */
+  .coszus-perks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+  }
+
+  .coszus-perks li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .coszus-perks li > .coszus-icon {
+    flex: none;
+  }
+
+  .coszus-perks b,
+  .coszus-perks strong {
+    font-weight: 700;
+  }
+
+  /* Gold coin: a small copy of the points page GIF, which turns by itself */
+  .coszus-coin {
+    flex: none;
+    width: 22px;
+    height: 22px;
+  }
+
+  .coszus-coin__img {
+    display: block;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+  }
+
+  /* ---------- Complete the set ---------- */
+  .coszus-set {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 22px;
+    padding: 10px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 6px;
+  }
+
+  .coszus-set__image {
+    flex: none;
+    width: 48px;
+    aspect-ratio: 4 / 5;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-set__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    mix-blend-mode: multiply;
+  }
+
+  .coszus-set__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .coszus-set__kicker {
+    font-size: var(--coszus-kicker-size, 11px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-set__title {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .coszus-set__title:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-set__meta {
+    font-size: 11px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-set__compare {
+    margin-right: 4px;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-set__sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .coszus-set__size {
+    min-width: 30px;
+    height: 26px;
+    padding: 0 6px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 4px;
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .coszus-set__size:hover:not(:disabled),
+  .coszus-set__size.is-added {
+    border-color: var(--coszus-ink);
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  .coszus-set__error {
+    margin: 6px 0 0;
+    color: var(--coszus-rouge);
+    font-size: 12px;
+  }
+
+  .coszus-set__size:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .coszus-set__size--wide {
+    padding: 0 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Accordions ---------- */
+  .coszus-accordion {
+    margin-top: 26px;
+    border-bottom: 1px solid var(--coszus-line);
+  }
+
+  .coszus-accordion:empty {
+    display: none;
+  }
+
+  .coszus-accordion__row {
+    border-top: 1px solid var(--coszus-line);
+  }
+
+  .coszus-accordion__row summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .coszus-accordion__row summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .coszus-accordion__row summary::after {
+    content: '+';
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .coszus-accordion__row[open] summary::after {
+    content: '\2212';
+  }
+
+  .coszus-accordion__body {
+    padding-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #333;
+  }
+
+  .coszus-accordion__body > :first-child {
+    margin-top: 0;
+  }
+
+  .coszus-accordion__body p {
+    margin: 0 0 8px;
+  }
+
+  .coszus-accordion__body ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .coszus-accordion__body a,
+  .coszus-accordion__link {
+    color: var(--coszus-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-accordion__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  /* Delivery & returns: label / text rows */
+  .coszus-dr__title {
+    margin: 4px 0 8px;
+    font-family: var(--font-body--family);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-dr__rows + .coszus-dr__title {
+    margin-top: 18px;
+  }
+
+  .coszus-dr__rows {
+    margin: 0;
+  }
+
+  .coszus-dr__row {
+    display: grid;
+    grid-template-columns: 118px 1fr;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid #f0f0f0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .coszus-dr__row dt {
+    font-weight: 600;
+    color: var(--coszus-ink);
+  }
+
+  .coszus-dr__row dd {
+    margin: 0;
+    color: #444;
+  }
+
+  .coszus-dr__row dd strong {
+    font-weight: 600;
+    color: var(--coszus-ink);
+  }
+
+  .coszus-dr__links {
+    display: flex;
+    gap: 16px;
+    margin: 14px 0 0 !important;
+    font-size: 12px;
+  }
+
+  /* ---------- Worn by the family ---------- */
+  .coszus-family {
+    margin-top: 30px;
+  }
+
+  .coszus-family__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .coszus-family__title {
+    margin: 0;
+    font-family: var(--font-body--family);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: uppercase;
+  }
+
+  .coszus-family__head a,
+  .coszus-family__head span {
+    font-size: 12px;
+    color: var(--coszus-muted);
+    text-decoration: none;
+  }
+
+  .coszus-family__head a:hover {
+    color: var(--coszus-ink);
+  }
+
+  .coszus-family__row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .coszus-family__row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .coszus-family__item {
+    flex: 0 0 calc((100% - 18px) / 4);
+    aspect-ratio: 3 / 4;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--coszus-off-white);
+    cursor: zoom-in;
+    scroll-snap-align: start;
+  }
+
+  .coszus-family__item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform calc(var(--coszus-motion) * 1.5) ease;
+  }
+
+  @media (hover: hover) {
+    .coszus-family__item:hover img {
+      transform: scale(1.04);
+    }
+  }
+
+  /* ---------- Sheets: size guide (modal on desktop) and size picker. Bottom sheets on mobile. ---------- */
+  .coszus-sheet,
+  .coszus-lightbox {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--coszus-ink);
+    overflow: hidden;
+  }
+
+  .coszus-sheet::backdrop,
+  .coszus-lightbox::backdrop {
+    background: transparent;
+  }
+
+  .coszus-sheet__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.45);
+    opacity: 0;
+    transition: opacity var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-sheet__panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(520px, 94vw);
+    max-height: calc(100vh - 48px);
+    padding: 24px 24px 22px;
+    border-radius: 8px;
+    background: var(--coszus-paper);
+    overflow-y: auto;
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 10px));
+    transition: opacity var(--coszus-motion) var(--coszus-ease), transform var(--coszus-motion) var(--coszus-ease);
+  }
+
+  .coszus-sheet.is-open .coszus-sheet__backdrop {
+    opacity: 1;
+  }
+
+  .coszus-sheet.is-open .coszus-sheet__panel {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  .coszus-sheet__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .coszus-sheet__title {
+    margin: 0;
+    font-family: var(--font-body--family);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .coszus-sheet__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: -12px -12px -12px 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  /* Garment or body measurements, straight under the title */
+  .coszus-guide__measured {
+    margin: 0 0 12px;
+    font-size: 13px;
+  }
+
+  .coszus-guide__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .coszus-guide__sub {
+    margin: 0;
+    font-size: 12px;
+    color: var(--coszus-muted);
+  }
+
+  /* cm / in switch. Radio buttons, so it works without a script; :has picks the column text. */
+  .coszus-guide__units {
+    display: inline-flex;
+    flex: none;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid var(--coszus-line);
+    border-radius: 6px;
+  }
+
+  .coszus-guide__units label {
+    position: relative;
+  }
+
+  /* The invisible radio is the hit area: 44px tall, centred, so the switch looks the same */
+  .coszus-guide__units input {
+    position: absolute;
+    inset: min(0px, 50% - 22px) 0 auto;
+    width: 100%;
+    height: max(100%, 44px);
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .coszus-guide__units span {
+    display: block;
+    min-width: 44px;
+    padding: 11px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .coszus-guide__units input:checked + span {
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  .coszus-guide__units input:focus-visible + span {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: 2px;
+  }
+
+  /* The visitor's default unit (inches in the US) shows first, even without :has support */
+  .coszus-sheet--guide[data-unit-default='cm'] [data-unit='in'],
+  .coszus-sheet--guide[data-unit-default='in'] [data-unit='cm'] {
+    display: none;
+  }
+
+  .coszus-sheet--guide:has(input[value='cm']:checked) [data-unit='cm'],
+  .coszus-sheet--guide:has(input[value='in']:checked) [data-unit='in'] {
+    display: inline;
+  }
+
+  .coszus-sheet--guide:has(input[value='cm']:checked) [data-unit='in'],
+  .coszus-sheet--guide:has(input[value='in']:checked) [data-unit='cm'] {
+    display: none;
+  }
+
+  .coszus-guide__scroll {
+    overflow-x: auto;
+  }
+
+  .coszus-guide__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .coszus-guide__table thead th {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--coszus-ink);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: left;
+    text-transform: uppercase;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-guide__table tbody :is(th, td) {
+    padding: 9px 6px;
+    border-bottom: 1px solid #efefef;
+    text-align: left;
+  }
+
+  .coszus-guide__table tbody th {
+    font-weight: 600;
+  }
+
+  .coszus-guide__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-top: 16px;
+  }
+
+  .coszus-guide__tip {
+    margin: 16px 0 0;
+    font-size: 12px;
+    color: #333;
+  }
+
+  .coszus-guide__soon {
+    margin: 16px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .coszus-guide__soon a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .coszus-guide__tip p {
+    margin: 0 0 6px;
+  }
+
+  .coszus-sizes--sheet {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 14px;
+  }
+
+  .coszus-sizes--sheet .coszus-sizes__button {
+    height: 48px;
+  }
+
+  .coszus-sizes__low {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 4px;
+    font-size: 9.5px;
+    font-weight: 400;
+    color: var(--coszus-rouge);
+  }
+
+  .coszus-sizes__low:empty {
+    display: none;
+  }
+
+  /* Juniors: the age under each size, and four across so it fits */
+  .coszus-sizes:has(.coszus-sizes__age) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .coszus-sizes:has(.coszus-sizes__age) .coszus-sizes__button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    line-height: 1.15;
+  }
+
+  .coszus-sizes__age {
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .coszus-sizes--sheet .coszus-sizes__button:has(.coszus-sizes__low:not(:empty)) {
+    padding-bottom: 10px;
+  }
+
+  /* 22px above the text, as before: 11px margin + the 11px hit-area padding */
+  .coszus-product__guide--sheet {
+    margin-top: 11px;
+  }
+
+  /* ---------- Lightbox ---------- */
+  .coszus-lightbox {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgb(16 16 16 / 0.92);
+  }
+
+  .coszus-lightbox[open] {
+    display: flex;
+  }
+
+  .coszus-lightbox__img {
+    width: min(420px, 82vw);
+    height: auto;
+    max-height: 84vh;
+    border-radius: 4px;
+    object-fit: contain;
+  }
+
+  .coszus-lightbox__button {
+    position: absolute;
+    display: flex;
+    padding: 12px;
+    border: 0;
+    background: none;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .coszus-lightbox__button--close {
+    top: max(14px, env(safe-area-inset-top, 0px));
+    right: 14px;
+  }
+
+  .coszus-lightbox__button--prev {
+    left: 10px;
+  }
+
+  .coszus-lightbox__button--prev svg {
+    transform: scaleX(-1);
+  }
+
+  .coszus-lightbox__button--next {
+    right: 10px;
+  }
+
+  .coszus-lightbox__button[hidden] {
+    display: none;
+  }
+
+  .coszus-sticky {
+    display: none;
+  }
+
+  html.coszus-scroll-lock {
+    overflow: hidden;
+  }
+
+  /* ---------- Mobile ---------- */
+  @media screen and (max-width: 820px) {
+    .coszus-product__layout {
+      display: block;
+    }
+
+    /* Sideways only: overflow-x: auto alone makes overflow-y auto too, and iOS Safari then lets a
+       swipe that isn't perfectly level move the row up and down instead of to the next photo */
+    .coszus-gallery__track {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+    }
+
+    .coszus-gallery__track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .coszus-gallery__item {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+    }
+
+    /* Each dot is a 24 x 34 px button with the dot drawn in the middle, so it's easy to hit
+       (WCAG 2.2 target size). The negative margins keep the dots exactly where they were (10px
+       under the images) and the space below unchanged. */
+    /* The row overlaps the bottom of the photos, so only the dots themselves take a touch:
+       a swipe that starts low on a photo goes to the photos, not the full-width dots row */
+    .coszus-gallery__dots {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      margin-block: -9px -19px;
+      pointer-events: none;
+    }
+
+    .coszus-gallery__dot {
+      pointer-events: auto;
+    }
+
+    .coszus-gallery__dot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 24px;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    .coszus-gallery__dot::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--coszus-line);
+      transition: width var(--coszus-motion) ease, background-color var(--coszus-motion) ease;
+    }
+
+    .coszus-gallery__dot[aria-current='true']::before {
+      width: 18px;
+      background: var(--coszus-ink);
+    }
+
+    .coszus-gallery__dot:focus-visible {
+      outline: none;
+    }
+
+    .coszus-gallery__dot:focus-visible::before {
+      outline: 2px solid var(--coszus-ink);
+      outline-offset: 3px;
+    }
+
+    .coszus-product__panel {
+      position: static;
+      max-height: none;
+      padding: 16px var(--coszus-gutter, 20px) 32px;
+      overflow: visible;
+    }
+
+    .coszus-sizes {
+      gap: 5px;
+    }
+
+    .coszus-sizes__button {
+      height: 44px;
+      padding: 0 4px;
+      font-size: 12px;
+    }
+
+    .coszus-sizes--sheet {
+      gap: 8px;
+    }
+
+    .coszus-sizes--sheet .coszus-sizes__button {
+      height: 48px;
+      font-size: 13px;
+    }
+
+    .coszus-sizes:has(.coszus-sizes__age) .coszus-sizes__button,
+    .coszus-sizes--sheet:has(.coszus-sizes__age) .coszus-sizes__button {
+      height: 52px;
+    }
+
+    .coszus-dr__row {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+
+    .coszus-family__item {
+      flex-basis: 40%;
+    }
+
+    .coszus-set__size {
+      min-width: 44px;
+      height: 44px;
+      font-size: 12px;
+    }
+
+    .coszus-sheet__panel {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      max-height: 88vh;
+      padding: 16px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+      border-radius: 14px 14px 0 0;
+      opacity: 1;
+      transform: translateY(100%);
+    }
+
+    .coszus-sheet.is-open .coszus-sheet__panel {
+      transform: none;
+    }
+
+    /* Sticky bar: name, price and Add to bag, once the main button has scrolled away */
+    .coszus-sticky {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: var(--layer-sticky, 20);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--coszus-line);
+      background: rgb(255 255 255 / 0.92);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      transform: translateY(110%);
+      transition: transform var(--coszus-motion) var(--coszus-ease);
+    }
+
+    .coszus-sticky.is-visible {
+      transform: none;
+    }
+
+    .coszus-sticky__text {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 0;
+      font-size: 12px;
+    }
+
+    .coszus-sticky__text b {
+      overflow: hidden;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .coszus-sticky__add {
+      flex: none;
+      width: auto;
+      height: 42px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus product",
+  "class": "coszus-product-section",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Gallery"
+    },
+    {
+      "type": "range",
+      "id": "gallery_gap",
+      "label": "Gap between images",
+      "min": 0,
+      "max": 12,
+      "step": 1,
+      "unit": "px",
+      "default": 2
+    },
+    {
+      "type": "checkbox",
+      "id": "blend_images",
+      "label": "Blend images into the Off white background",
+      "info": "Lets white flat lays sit on Off white, like the product cards.",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Price"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_installments",
+      "label": "Show the pay later line",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "installments_text",
+      "label": "Pay later line",
+      "info": "Klarna and Clearpay both on. [klarna_amount] is the price ÷ 3, [clearpay_amount] the price ÷ 4; [klarna] and [clearpay] are the badges.",
+      "default": "Pay in 3 × [klarna_amount] with [klarna] or 4 × [clearpay_amount] with [clearpay]"
+    },
+    {
+      "type": "text",
+      "id": "installments_text_klarna",
+      "label": "Pay later line, Klarna only",
+      "default": "Pay in 3 × [klarna_amount] with [klarna]"
+    },
+    {
+      "type": "text",
+      "id": "installments_text_clearpay",
+      "label": "Pay later line, Clearpay only",
+      "default": "Pay in 4 × [clearpay_amount] with [clearpay]"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_klarna",
+      "label": "Klarna badge",
+      "info": "Only once Klarna is switched on in Shopify payments.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_clearpay",
+      "label": "Clearpay badge",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Colour and size"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_colour_swatches",
+      "label": "Show colour swatches",
+      "info": "Each colour is its own product. Swatches link to the other colours listed in the product's colour group (the store's pl_swatches.groups data). Products without a group show none.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "juniors_ages",
+      "label": "Juniors size ages",
+      "info": "Shown under each size button on products in the Juniors collection. Size, colon, age; split by commas. Empty hides them.",
+      "default": "S: 8-10 yrs, M: 10-12 yrs, L: 12-13 yrs, XL: 13-14 yrs"
+    },
+    {
+      "type": "text",
+      "id": "size_guide_soon",
+      "label": "Size guide without measurements",
+      "info": "Shown in place of the table while a guide has no measurements. \"Message us\" links to Help's contact form.",
+      "default": "Size guide coming soon. Message us and we'll measure it for you."
+    },
+    {
+      "type": "range",
+      "id": "low_stock_threshold",
+      "label": "\"Only X left\" at or under",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 10,
+      "info": "For the chosen size. 0 turns it off."
+    },
+    {
+      "type": "header",
+      "content": "Perks"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_points",
+      "label": "Coszus Rewards",
+      "default": true
+    },
+    {
+      "type": "inline_richtext",
+      "id": "points_text",
+      "label": "Points text",
+      "default": "Order and get <b>[points]</b> Coszus Rewards",
+      "info": "[points] is replaced with the points for the chosen size. Points per £1 is in Theme settings, shared with the bag."
+    },
+    {
+      "type": "image_picker",
+      "id": "coin_image",
+      "label": "Coin image",
+      "info": "Empty uses a small copy of the animated gold coin."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_free_delivery",
+      "label": "Free delivery",
+      "default": true
+    },
+    {
+      "type": "inline_richtext",
+      "id": "free_delivery_text",
+      "label": "Free delivery text",
+      "default": "<b>Free UK delivery</b> over £79.99"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "free_delivery_text_international",
+      "label": "Free delivery text, international",
+      "default": "<b>Worldwide delivery</b> | duties shown at checkout",
+      "info": "For visitors outside the UK. Empty hides the line for them."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_next_day",
+      "label": "Next-day delivery",
+      "default": true
+    },
+    {
+      "type": "paragraph",
+      "content": "Next-day delivery is UK only, so the line is hidden for visitors outside the UK."
+    },
+    {
+      "type": "range",
+      "id": "next_day_cutoff",
+      "label": "Next-day cut-off (UK time)",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "h",
+      "default": 14
+    },
+    {
+      "type": "select",
+      "id": "next_day_last_day",
+      "label": "Last next-day order day",
+      "options": [
+        { "value": "4", "label": "Thursday" },
+        { "value": "5", "label": "Friday" }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "next_day_text",
+      "label": "Next-day text outside the countdown",
+      "default": "<b>Next-day delivery</b> available, order by 2pm Mon to Thu",
+      "info": "Before the cut-off on an order day, this changes to \"Order within 1h 20m for next-day delivery\"."
+    },
+    {
+      "type": "checkbox",
+      "id": "next_day_paused",
+      "label": "Pause next-day delivery",
+      "info": "e.g. Black Friday week. Hides the countdown and shows the text below.",
+      "default": false
+    },
+    {
+      "type": "inline_richtext",
+      "id": "next_day_paused_text",
+      "label": "Text while paused",
+      "default": "<b>UK delivery</b> in 2 to 4 working days"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_returns",
+      "label": "Returns",
+      "default": true
+    },
+    {
+      "type": "inline_richtext",
+      "id": "returns_text",
+      "label": "Returns text",
+      "default": "<b>14-day returns</b> in the UK"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "returns_text_international",
+      "label": "Returns text, international",
+      "default": "<b>21-day returns</b> internationally",
+      "info": "For visitors outside the UK. Empty hides the line for them."
+    },
+    {
+      "type": "header",
+      "content": "Complete the set"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_set",
+      "label": "Show Complete the set",
+      "info": "The matching piece from the product's Set partner field (custom.set_partner).",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "set_fallback_upsell",
+      "label": "Otherwise show the first Upsell product as \"Goes well with\"",
+      "info": "Uses the store's existing Upsell Products field (custom.upsell_products) until set partners are filled in.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "set_product_heading",
+      "label": "Heading on products that are sets",
+      "info": "Replaces \"Complete the set\" on products with \"Set\" in the title or product type Set.",
+      "default": "You might also like"
+    },
+    {
+      "type": "text",
+      "id": "free_delivery_threshold",
+      "label": "Free delivery from (£)",
+      "default": "79.99",
+      "info": "The set line says \"with free delivery\" when the two pieces reach this. UK visitors only."
+    },
+    {
+      "type": "header",
+      "content": "Worn by the family"
+    },
+    {
+      "type": "text",
+      "id": "family_heading",
+      "label": "Heading",
+      "default": "Worn by the family"
+    },
+    {
+      "type": "text",
+      "id": "family_handle",
+      "label": "Handle",
+      "default": "@coszus"
+    },
+    {
+      "type": "url",
+      "id": "family_link",
+      "label": "Handle link"
+    },
+    {
+      "type": "checkbox",
+      "id": "family_use_product",
+      "label": "Use the product's own Out & About images",
+      "info": "From custom.out_about_images. Products without them show the Photo blocks. With neither, the row is hidden.",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Mobile"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sticky_bar",
+      "label": "Sticky Add to bag bar",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "description",
+      "name": "Description",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "The product description from Shopify. Hidden when empty."
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Description"
+        },
+        {
+          "type": "checkbox",
+          "id": "open",
+          "label": "Open by default",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "size_fit",
+      "name": "Size & fit",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Shows the fit and model line (custom.fit_note, custom.model_info or the old Model Height and Wear Size field), this text, and a link to the size guide."
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Size & fit"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Text",
+          "default": "<p>Take your normal size for the intended look, or size down for a closer fit.</p>"
+        },
+        {
+          "type": "checkbox",
+          "id": "open",
+          "label": "Open by default",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "delivery_returns",
+      "name": "Delivery & returns",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Delivery & returns"
+        },
+        {
+          "type": "text",
+          "id": "delivery_title",
+          "label": "Delivery title",
+          "default": "Delivery"
+        },
+        {
+          "type": "textarea",
+          "id": "delivery_rows",
+          "label": "Delivery rows",
+          "info": "One row per line: label | text. <strong> works for bold.",
+          "default": "UK standard | 2 to 4 working days by Royal Mail Tracked or DPD. £4.99, <strong>free over £79.99</strong>.\nUK next working day | DPD, £6.99. Order by 2pm Monday to Thursday."
+        },
+        {
+          "type": "textarea",
+          "id": "delivery_rows_international",
+          "label": "Delivery rows, international",
+          "info": "Shown instead of the rows above to visitors outside the UK. Empty hides the delivery part for them.",
+          "default": "Worldwide delivery | Duties shown at checkout."
+        },
+        {
+          "type": "text",
+          "id": "returns_title",
+          "label": "Returns title",
+          "default": "Returns"
+        },
+        {
+          "type": "textarea",
+          "id": "returns_rows",
+          "label": "Returns rows",
+          "info": "One row per line: label | text.",
+          "default": "How long | 14 days from delivery in the UK, 21 days internationally.\nCondition | Unworn, unwashed, tags on and in the original packaging."
+        },
+        {
+          "type": "url",
+          "id": "delivery_link",
+          "label": "Delivery page"
+        },
+        {
+          "type": "text",
+          "id": "delivery_link_label",
+          "label": "Delivery link text",
+          "default": "Full delivery info"
+        },
+        {
+          "type": "url",
+          "id": "returns_link",
+          "label": "Returns page"
+        },
+        {
+          "type": "text",
+          "id": "returns_link_label",
+          "label": "Returns link text",
+          "default": "Full returns policy"
+        },
+        {
+          "type": "checkbox",
+          "id": "open",
+          "label": "Open by default",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "care",
+      "name": "Care",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "The product's Materials & Care field (custom.materials_care), else this text."
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Care"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Text",
+          "default": "<p>Wash at 30°C inside out. Do not tumble dry. Always check the label.</p>"
+        },
+        {
+          "type": "checkbox",
+          "id": "open",
+          "label": "Open by default",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "accordion",
+      "name": "Accordion row",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "More info"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Text"
+        },
+        {
+          "type": "checkbox",
+          "id": "open",
+          "label": "Open by default",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "size_guide",
+      "name": "Size guide",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Used when a product has no size guide of its own (custom.size_guide). Matched on product type, then the department guide (no product types, a department set), then a guide with neither."
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Name",
+          "default": "Tops"
+        },
+        {
+          "type": "text",
+          "id": "product_types",
+          "label": "Product types",
+          "info": "Comma separated, e.g. Hoodie, Top, T-shirt. Not case sensitive. Empty = the department guide (or every product, with no department).",
+          "default": "Hoodie, Top, T-shirt"
+        },
+        {
+          "type": "select",
+          "id": "department",
+          "label": "Department",
+          "options": [
+            { "value": "all", "label": "All departments" },
+            { "value": "adults", "label": "Men and Women" },
+            { "value": "men", "label": "Men" },
+            { "value": "women", "label": "Women" },
+            { "value": "juniors", "label": "Juniors" }
+          ],
+          "default": "all",
+          "info": "From the department collections in Theme settings. Men and Women guides also cover products in no department collection; Juniors products never get one. Keep one guide with no product types and All departments as the catch-all."
+        },
+
+        {
+          "type": "select",
+          "id": "unit",
+          "label": "Table written in",
+          "options": [
+            { "value": "cm", "label": "cm" },
+            { "value": "in", "label": "Inches" }
+          ],
+          "default": "cm",
+          "info": "Visitors can switch between cm and inches. US visitors see inches first."
+        },
+        {
+          "type": "text",
+          "id": "measured",
+          "label": "Measurements are of",
+          "default": "Garment measurements, laid flat",
+          "info": "One line under the title, e.g. \"Body measurements\" for a guide measured on the body."
+        },
+        {
+          "type": "textarea",
+          "id": "table",
+          "label": "Table",
+          "info": "One row per line, cells split by |. First line is the header.",
+          "default": "Size | Chest | Length | Sleeve\nS | – | – | –\nM | – | – | –\nL | – | – | –\nXL | – | – | –"
+        },
+        {
+          "type": "richtext",
+          "id": "tip",
+          "label": "Fit tip"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Measuring diagram"
+        }
+      ]
+    },
+    {
+      "type": "photo",
+      "name": "Family photo",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Customer photos for Worn by the family, shown on products without their own Out & About images. Set the image's alt text in Files."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Photo"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus product"
+    }
+  ]
+}
+{% endschema %}

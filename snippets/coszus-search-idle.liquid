@@ -1,0 +1,83 @@
+{%- doc -%}
+  Search panel before typing (docs/HANDOFF.md section 3): "Shop" as big text links (Men, Women,
+  Juniors, Sale in Rouge, from Theme settings > Departments), a quiet "Popular" list, and recent
+  searches when there are any. No product images until the shopper types.
+
+  Popular and recent terms are links to the results page, so they work without JS; with JS
+  (assets/coszus-search.js) they run in the panel instead. Recent searches live on the shopper's
+  device (localStorage) and are drawn by <coszus-search-recent>.
+
+  @example
+  {% render 'coszus-search-idle' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign departments = 'men,women,juniors,sale' | split: ','
+  assign popular = settings.coszus_search_popular | split: ','
+-%}
+
+<div class="coszus-search-idle">
+  <div class="coszus-search-idle__col">
+    {%- if settings.coszus_search_shop_heading != blank -%}
+      <h3 class="coszus-search__kicker">{{ settings.coszus_search_shop_heading | escape }}</h3>
+    {%- endif -%}
+    <ul class="coszus-search-idle__shop list-unstyled">
+      {%- for key in departments -%}
+        {%- liquid
+          assign label_key = 'coszus_department_' | append: key | append: '_label'
+          assign collection_key = 'coszus_department_' | append: key | append: '_collection'
+          assign department_collection = settings[collection_key]
+          assign label = settings[label_key] | default: department_collection.title
+        -%}
+        {%- if department_collection != blank and label != blank -%}
+          <li>
+            <a
+              class="coszus-search-idle__shop-link{% if key == 'sale' %} coszus-search-idle__shop-link--sale{% endif %}"
+              href="{{ department_collection.url }}"
+            >
+              <span>{{ label | escape }}</span>
+              <span
+                class="coszus-search-idle__arrow"
+                aria-hidden="true"
+                >→</span
+              >
+            </a>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    </ul>
+  </div>
+
+  <div class="coszus-search-idle__col coszus-search-idle__col--side">
+    {%- if popular.size > 0 -%}
+      {%- if settings.coszus_search_popular_heading != blank -%}
+        <h3 class="coszus-search__kicker">{{ settings.coszus_search_popular_heading | escape }}</h3>
+      {%- endif -%}
+      <ul class="coszus-search-idle__terms list-unstyled">
+        {%- for popular_entry in popular -%}
+          {%- assign term = popular_entry | strip -%}
+          {%- if term != blank -%}
+            <li>
+              <a
+                href="{{ routes.search_url }}?q={{ term | url_encode }}&amp;options%5Bprefix%5D=last"
+                data-coszus-search-term="{{ term | escape }}"
+              >
+                {{- term | escape -}}
+              </a>
+            </li>
+          {%- endif -%}
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+
+    <coszus-search-recent
+      class="coszus-search-recent"
+      data-heading="{{ settings.coszus_search_recent_heading | escape }}"
+      data-clear="{{ 'coszus.search.clear_recent' | t | escape }}"
+      data-clear-label="{{ 'coszus.search.clear_recent_label' | t | escape }}"
+      data-search-url="{{ routes.search_url }}"
+      data-skip-subtree-update
+      hidden
+    ></coszus-search-recent>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+{%- doc -%}
+  Plain-text table for the Help page (delivery, size guide). One row per line, cells split by "|",
+  first line is the header row. Same format as the size_guide metaobject's table (docs/METAFIELDS.md).
+  " // " in a cell starts a smaller second line under it, e.g. "Rest of Europe // EU countries:
+  duties covered up to €150".
+
+  @param {string} table - The table text
+
+  @example
+  {% render 'coszus-table', table: block.settings.table %}
+{%- enddoc -%}
+
+{%- liquid
+  assign rows = table | strip | newline_to_br | split: '<br />'
+  assign header = rows.first | split: '|'
+-%}
+
+{%- if rows.size > 0 -%}
+  <div class="coszus-table__scroll">
+    <table class="coszus-table">
+      <thead>
+        <tr>
+          {%- for cell in header -%}
+            <th scope="col">{{ cell | strip | escape }}</th>
+          {%- endfor -%}
+        </tr>
+      </thead>
+      <tbody>
+        {%- for row in rows offset: 1 -%}
+          {%- assign row = row | strip -%}
+          {%- if row == blank -%}
+            {%- continue -%}
+          {%- endif -%}
+          {%- assign cells = row | split: '|' -%}
+          <tr>
+            {%- for cell in cells -%}
+              {%- assign cell_text = cell | strip -%}
+              {%- comment -%} Sizes are written XXXL, never 3XL {%- endcomment -%}
+              {%- if forloop.first and cell_text == '3XL' -%}
+                {%- assign cell_text = 'XXXL' -%}
+              {%- endif -%}
+              {%- assign cell_lines = cell_text | split: ' // ' -%}
+              <td>
+                {{- cell_lines.first | escape -}}
+                {%- if cell_lines.size > 1 -%}
+                  <small class="coszus-table__sub">{{ cell_text | remove_first: cell_lines.first | remove_first: ' // ' | escape }}</small>
+                {%- endif -%}
+              </td>
+            {%- endfor -%}
+          </tr>
+        {%- endfor -%}
+      </tbody>
+    </table>
+  </div>
+{%- endif -%}

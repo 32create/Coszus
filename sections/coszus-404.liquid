@@ -1,0 +1,147 @@
+{%- comment -%}
+  Coszus 404 (docs/HANDOFF.md section 7): "This page has gone off the grid", Shop men / women /
+  juniors buttons (blocks) and a link that opens the search panel (the search page without JS).
+{%- endcomment -%}
+
+<script
+  src="{{ 'coszus-pages.js' | asset_url }}"
+  type="module"
+></script>
+
+<div class="coszus-page coszus-404">
+  {%- comment -%}
+    Decorative: drawn from CSS so it isn't page text (contrast checkers flag it even when
+    aria-hidden). The H1 carries the message.
+  {%- endcomment -%}
+  <p
+    class="coszus-404__number"
+    aria-hidden="true"
+  ></p>
+  <h1 class="coszus-section-heading coszus-404__title">{{ section.settings.heading | escape }}</h1>
+  {%- if section.settings.text != blank -%}
+    <p class="coszus-page__sub">{{ section.settings.text | escape }}</p>
+  {%- endif -%}
+  {%- if section.blocks.size > 0 -%}
+    <div class="coszus-buttons coszus-404__buttons">
+      {%- for block in section.blocks -%}
+        <a
+          class="button"
+          href="{{ block.settings.link | default: routes.all_products_collection_url }}"
+          {{ block.shopify_attributes }}
+        >
+          {{- block.settings.label | escape -}}
+        </a>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+  {%- if section.settings.search_label != blank -%}
+    <a
+      class="coszus-link coszus-404__search"
+      href="{{ routes.search_url }}"
+      data-coszus-open-search
+    >
+      {{- section.settings.search_label | escape -}}
+    </a>
+  {%- endif -%}
+</div>
+
+{% stylesheet %}
+  .coszus-404 {
+    padding-block: 60px 96px;
+    text-align: center;
+  }
+
+  .coszus-404__number {
+    margin: 0;
+  }
+
+  .coszus-404__number::before {
+    content: '404';
+    display: block;
+    font-size: clamp(90px, 14vw, 180px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--coszus-line);
+  }
+
+  .coszus-404__title {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .coszus-404 .coszus-page__sub {
+    margin: 0 auto 24px;
+  }
+
+  .coszus-404__buttons {
+    justify-content: center;
+  }
+
+  .coszus-404__search {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 0.8125rem;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus 404",
+  "tag": "section",
+  "class": "coszus-404-section",
+  "enabled_on": {
+    "templates": ["404"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "This page has gone off the grid"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Text",
+      "default": "The link might be old or the product's sold out. Try one of these instead."
+    },
+    {
+      "type": "text",
+      "id": "search_label",
+      "label": "Search link",
+      "default": "Or search Coszus"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "shop_button",
+      "name": "Button",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Shop men"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link",
+          "info": "Defaults to all products."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus 404",
+      "blocks": [
+        {
+          "type": "shop_button"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

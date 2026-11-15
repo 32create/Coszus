@@ -1,0 +1,364 @@
+{%- comment -%}
+  Coszus Black Friday page (templates/page.black-friday.json, docs/launch/black-friday-switch.md).
+  Three full width photo tiles, Men / Women / Juniors, each one link to that department's sale.
+  On phones the three tiles share the screen under the top bar and nav, so all three show without
+  scrolling (svh, so the browser's toolbar doesn't push the last one off). Only linked from the
+  homepage hero's Black Friday slide.
+
+  Each tile is a block: photo (and an optional phone photo), label, and which sale it opens. The
+  link comes from Theme settings > Black Friday > Sale collections, so the Juniors sale is set in one
+  place; a block's own Link overrides it. The top tile carries the small "Short line".
+
+  Schedule: Theme settings > Black Friday. Before it's live (or with the switch off) visitors who
+  reach the page are sent to the homepage, and nothing of it shows. The theme editor shows it with
+  "Preview in the theme editor" ticked, and a note without.
+{%- endcomment -%}
+
+{%- liquid
+  assign bf_on = false
+  if settings.bf_enabled or request.design_mode and settings.bf_editor_preview
+    assign bf_on = true
+  endif
+  assign hero_font = settings.type_heading_font | font_modify: 'weight', '700'
+-%}
+
+{%- unless request.design_mode -%}
+  <script>
+    if (document.documentElement.getAttribute('data-bf') !== 'live') {
+      window.location.replace({{ routes.root_url | json }});
+    }
+  </script>
+{%- endunless -%}
+
+{%- if request.design_mode -%}
+  <p
+    class="coszus-bf-page__editor-note"
+    data-bf-off
+  >
+    Black Friday isn't live yet, so visitors are sent to the homepage. To see this page, tick Theme
+    settings &gt; Black Friday &gt; Preview in the theme editor.
+  </p>
+{%- endif -%}
+
+{%- if bf_on -%}
+  {%- if hero_font -%}
+    {% style %}
+      {{ hero_font | font_face: font_display: 'swap' }}
+    {% endstyle %}
+  {%- endif -%}
+
+  <div
+    class="coszus-bf-page"
+    data-bf-on
+    {% if hero_font %}
+      style="--bf-page-font: '{{ hero_font.family }}', {{ hero_font.fallback_families }};"
+    {% endif %}
+  >
+    <h1 class="visually-hidden">{{ settings.bf_name | escape }}</h1>
+    <ul
+      class="coszus-bf-page__tiles"
+      role="list"
+      style="--bf-page-count: {{ section.blocks.size | at_least: 1 }};"
+    >
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign sale_key = 'bf_sale_' | append: block.settings.sale
+          assign sale_collection = settings[sale_key]
+          if sale_collection == blank and block.settings.sale == 'juniors'
+            assign sale_collection = collections['juniors-sale']
+          endif
+          assign sale_url = nil
+          if sale_collection.id != blank
+            assign sale_url = sale_collection.url
+          endif
+          assign link = block.settings.link | default: sale_url | default: routes.all_products_collection_url
+          assign image = block.settings.image
+          assign mobile_image = block.settings.mobile_image
+          if forloop.first
+            assign loading = 'eager'
+            assign fetchpriority = 'high'
+          else
+            assign loading = 'lazy'
+            assign fetchpriority = 'auto'
+          endif
+        -%}
+        <li
+          class="coszus-bf-page__tile"
+          {{ block.shopify_attributes }}
+        >
+          <a
+            class="coszus-bf-page__link"
+            href="{{ link }}"
+          >
+            <div class="coszus-bf-page__media">
+              {%- if image != blank -%}
+                <picture>
+                  {%- if mobile_image != blank -%}
+                    <source
+                      media="(max-width: 820px)"
+                      srcset="
+                        {{ mobile_image | image_url: width: 600 }} 600w,
+                        {{ mobile_image | image_url: width: 900 }} 900w,
+                        {{ mobile_image | image_url: width: 1200 }} 1200w
+                      "
+                      sizes="100vw"
+                    >
+                  {%- endif -%}
+                  {%- liquid
+                    assign focal = image.presentation.focal_point | default: 'center'
+                    assign focal_style = 'object-position: ' | append: focal
+                  -%}
+                  {{
+                    image
+                    | image_url: width: 2400
+                    | image_tag:
+                      widths: '600, 900, 1200, 1600, 2000, 2400',
+                      sizes: '100vw',
+                      loading: loading,
+                      fetchpriority: fetchpriority,
+                      class: 'coszus-bf-page__image',
+                      style: focal_style,
+                      alt: ''
+                  }}
+                </picture>
+              {%- else -%}
+                {%- assign placeholder_number = forloop.index | minus: 1 | modulo: 3 | plus: 1 -%}
+                {%- assign placeholder_name = 'hero-apparel-' | append: placeholder_number -%}
+                {{ placeholder_name | placeholder_svg_tag: 'coszus-bf-page__image coszus-bf-page__placeholder' }}
+              {%- endif -%}
+              <span class="coszus-bf-page__shade"></span>
+            </div>
+            <div class="coszus-bf-page__copy">
+              {%- if forloop.first and settings.bf_tagline != blank -%}
+                <span class="coszus-bf-page__eyebrow">{{ settings.bf_tagline | escape }}</span>
+              {%- endif -%}
+              <h2 class="coszus-bf-page__label">{{ block.settings.label | escape }}</h2>
+              {%- if section.settings.button_label != blank -%}
+                <span class="button-secondary coszus-bf-page__button">
+                  {{- section.settings.button_label | escape -}}
+                </span>
+              {%- endif -%}
+            </div>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .coszus-bf-page__editor-note {
+    margin: 16px var(--coszus-gutter);
+    padding: 12px 14px;
+    border: 1px dashed var(--coszus-concrete);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  /* The three tiles share the screen under the top bar and the nav (svh: the visible height on phones) */
+  .coszus-bf-page__tiles {
+    --bf-page-tile-height: calc(
+      (100vh - var(--coszus-top-bar-height, 0px) - var(--coszus-header-spacer, 0px)) / var(--bf-page-count, 3)
+    );
+    --bf-page-tile-height: calc(
+      (100svh - var(--coszus-top-bar-height, 0px) - var(--coszus-header-spacer, 0px)) / var(--bf-page-count, 3)
+    );
+
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coszus-bf-page__tile {
+    height: var(--bf-page-tile-height);
+    min-height: 160px;
+  }
+
+  .coszus-bf-page__link {
+    position: relative;
+    display: block;
+    height: 100%;
+    overflow: hidden;
+    background: var(--coszus-ink);
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .coszus-bf-page__link:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: -4px;
+    box-shadow: inset 0 0 0 4px #fff;
+  }
+
+  .coszus-bf-page__media,
+  .coszus-bf-page__media picture {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .coszus-bf-page__image {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--coszus-motion) ease;
+  }
+
+  .coszus-bf-page__placeholder {
+    background: #2a2a2a;
+    fill: rgb(255 255 255 / 0.25);
+  }
+
+  /* Same left-to-right shade as the campaign hero copy, so white text reads on any photo */
+  .coszus-bf-page__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.25) 45%, rgb(0 0 0 / 0.1) 100%);
+    pointer-events: none;
+  }
+
+  .coszus-bf-page__copy {
+    position: absolute;
+    inset-inline: var(--coszus-gutter);
+    bottom: 26px;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .coszus-bf-page__eyebrow {
+    margin-bottom: 10px;
+    font-size: var(--coszus-kicker-size, 0.6875rem);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: var(--coszus-kicker-tracking, 0.16em);
+    text-transform: uppercase;
+  }
+
+  .coszus-bf-page__label {
+    margin: 0;
+    color: inherit;
+    font-family: var(--bf-page-font, var(--font-heading--family));
+    font-weight: 700;
+    font-size: clamp(40px, 5vw, 72px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .coszus-bf-page__button {
+    margin-top: 16px;
+  }
+
+  @media (hover: hover) {
+    .coszus-bf-page__link:hover .coszus-bf-page__image {
+      transform: scale(1.03);
+    }
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-bf-page__copy {
+      bottom: 16px;
+    }
+
+    .coszus-bf-page__eyebrow {
+      margin-bottom: 6px;
+    }
+
+    .coszus-bf-page__label {
+      font-size: 34px;
+    }
+
+    .coszus-bf-page__button {
+      min-height: 34px;
+      margin-top: 10px;
+      padding-block: 8px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .coszus-bf-page__image {
+      transition: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus Black Friday",
+  "tag": "section",
+  "class": "coszus-black-friday-section",
+  "max_blocks": 3,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Shows while Black Friday is live (Theme settings > Black Friday). Before that, visitors are sent to the homepage. The page heading is the Sale name and the top tile's small line is the Short line, both in Theme settings > Black Friday."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Shop sale"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "tile",
+      "name": "Tile",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Men"
+        },
+        {
+          "type": "select",
+          "id": "sale",
+          "label": "Opens",
+          "options": [
+            { "value": "men", "label": "Men sale" },
+            { "value": "women", "label": "Women sale" },
+            { "value": "juniors", "label": "Juniors sale" }
+          ],
+          "default": "men",
+          "info": "The sale collection set in Theme settings > Black Friday."
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link",
+          "info": "Optional. Leave blank to use the sale collection above."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Phone image",
+          "info": "Optional. A wide crop works best: each tile is a third of the phone screen."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus Black Friday",
+      "blocks": [
+        { "type": "tile", "settings": { "label": "Men", "sale": "men" } },
+        { "type": "tile", "settings": { "label": "Women", "sale": "women" } },
+        { "type": "tile", "settings": { "label": "Juniors", "sale": "juniors" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

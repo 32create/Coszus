@@ -1,0 +1,735 @@
+{%- doc -%}
+  "Join the Family": the one sign-up box, used in the footer, the wishlist panel (after a guest's
+  first save) and on the Coszus Rewards page. Copy lives in Theme settings > Join the Family, so it's
+  the same everywhere. Laid out as a reward: heading, three perk rows, then a short form.
+
+  It's Shopify's customer form: the email lands in Customers with email marketing on, and the answers
+  go on as customer tags for Omnisend: newsletter, source:{source}, shopping-for:men, birthday:DD-MM.
+  After joining, assets/coszus-join.js sends them to Shopify sign-in (email filled in, back to this
+  page), or shows a thank-you with a sign-in button when that's turned off.
+
+  @param {string} source - Where it was shown: footer | wishlist | rewards. Saved as the tag source:{source}
+  @param {string} id - Unique on the page
+  @param {string} [layout] - 'footer' (perks beside the form on desktop; email first, birthday and
+    "Shopping for" open underneath) or 'panel' (everything shown). Defaults to 'panel'.
+  @param {string} [heading] - Overrides Theme settings > Join the Family > Heading (the wishlist panel's
+    "Don't lose it."). The thank-you switches back to the main heading.
+  @param {boolean} [saved] - Room for the product they just saved (filled in by assets/coszus-join-panel.js)
+  @param {boolean} [birthday] - Ask for a birthday. Defaults to false.
+  @param {string} [birthday_label] - Birthday question
+  @param {string} [birthday_note] - Small note after the birthday question
+  @param {boolean} [interests] - Show the "Shopping for" chips. Defaults to true.
+
+  @example
+  {% render 'coszus-join', source: 'footer', id: section.id, layout: 'footer', birthday: true, birthday_label: 'Birthday' %}
+{%- enddoc -%}
+
+{%- liquid
+  assign layout = layout | default: 'panel'
+  assign form_id = 'CoszusJoin-' | append: id
+  assign show_interests = true
+  if interests == false
+    assign show_interests = false
+  endif
+  assign interest_options = settings.join_interests | split: ','
+  if interest_options.size == 0
+    assign show_interests = false
+  endif
+  # New customer accounts: back to this page after signing in. assets/coszus-join.js adds the email.
+  if routes.account_login_url contains 'customer_authentication'
+    assign login_url = request.path | url_encode | prepend: '/customer_authentication/login?return_to='
+  else
+    assign login_url = routes.account_login_url
+  endif
+  assign button_label = settings.join_button | default: 'Join'
+  assign heading_text = heading | default: settings.join_heading
+-%}
+
+<script
+  src="{{ 'coszus-join.js' | asset_url }}"
+  type="module"
+></script>
+
+<coszus-join
+  class="coszus-signup coszus-join coszus-join--{{ layout }}"
+  data-source="{{ source | escape }}"
+>
+  <div class="coszus-join__intro">
+    {%- if saved -%}
+      <div
+        class="coszus-join__saved"
+        data-join-saved
+        hidden
+      >
+        <img
+          class="coszus-join__saved-image"
+          alt=""
+          width="44"
+          height="55"
+          data-join-saved-image
+        >
+        <p class="coszus-join__saved-text">
+          <span class="coszus-join__saved-tick">
+            {{- 'coszus.join_saved' | t }} <span aria-hidden="true">✓</span>
+          </span>
+          <span
+            class="coszus-join__saved-title"
+            data-join-saved-title
+          ></span>
+        </p>
+      </div>
+    {%- endif -%}
+
+    {%- if heading_text != blank -%}
+      <h2
+        id="{{ form_id }}-heading"
+        class="coszus-section-heading coszus-join__heading"
+        {% if heading != blank and settings.join_heading != blank %}
+          data-heading-done="{{ settings.join_heading | escape }}"
+        {% endif %}
+      >
+        {{- heading_text | escape -}}
+      </h2>
+    {%- endif -%}
+
+    {%- capture perks -%}
+      {%- for n in (1..3) -%}
+        {%- liquid
+          assign perk_label_key = 'join_perk_' | append: n | append: '_label'
+          assign perk_text_key = 'join_perk_' | append: n | append: '_text'
+          assign perk_label = settings[perk_label_key]
+          assign perk_text = settings[perk_text_key]
+          case n
+            when 1
+              assign perk_icon = 'spend'
+            when 2
+              assign perk_icon = 'vip'
+            else
+              assign perk_icon = 'wishlist'
+          endcase
+        -%}
+        {%- comment -%} Perk 3 is the wishlist perk (bookmark icon). Hide it while the wishlist is off (PR #43). {%- endcomment -%}
+        {%- if n == 3 and settings.wishlist_enabled != true -%}
+          {%- continue -%}
+        {%- endif -%}
+        {%- if perk_label != blank -%}
+          <li class="coszus-join__perk">
+            <span class="coszus-join__perk-icon">{%- render 'coszus-icon', icon: perk_icon, px: 16 -%}</span>
+            <span>
+              <b class="coszus-join__perk-label">{{ perk_label | escape }}</b>
+              {%- if perk_text != blank %} {{ perk_text | escape }}{% endif -%}
+              {%- if n == 1 and settings.join_perk_1_note != blank -%}
+                <small class="coszus-join__perk-note">{{ settings.join_perk_1_note | escape }}</small>
+              {%- endif -%}
+            </span>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endcapture -%}
+    {%- if perks != blank -%}
+      <ul
+        class="coszus-join__perks"
+        role="list"
+      >
+        {{ perks }}
+      </ul>
+    {%- endif -%}
+  </div>
+
+  {%- form 'customer', id: form_id, class: 'coszus-signup__form' -%}
+    {%- assign posted = form.posted_successfully? -%}
+    <input
+      type="hidden"
+      name="contact[tags]"
+      value="newsletter,source:{{ source | escape }}"
+    >
+
+    <div
+      class="coszus-join__done"
+      data-join-done
+      tabindex="-1"
+      {% unless posted %}
+        hidden
+      {% endunless %}
+    >
+      <p class="coszus-signup__done">{{ settings.join_success | escape }}</p>
+      {%- if shop.customer_accounts_enabled and settings.join_success_button != blank -%}
+        <a
+          class="button coszus-join__signin-button"
+          href="{{ login_url }}"
+          data-join-signin
+        >
+          {{- settings.join_success_button | escape -}}
+        </a>
+      {%- endif -%}
+    </div>
+
+    <div
+      class="coszus-join__body"
+      data-join-body
+      {% if posted %}
+        hidden
+      {% endif %}
+    >
+      <div class="coszus-signup__row">
+        <label
+          class="visually-hidden"
+          for="{{ form_id }}-email"
+        >
+          {{- 'blocks.email_signup.label' | t -}}
+        </label>
+        <input
+          id="{{ form_id }}-email"
+          class="coszus-signup__email"
+          type="email"
+          name="contact[email]"
+          placeholder="{{ 'blocks.email_signup.placeholder' | t }}"
+          autocomplete="email"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          required
+          {% if form.errors %}
+            aria-invalid="true"
+            aria-describedby="{{ form_id }}-error"
+          {% endif %}
+        >
+        {%- if layout == 'footer' -%}
+          <button
+            type="submit"
+            class="coszus-signup__arrow"
+            aria-label="{{ button_label | escape }}"
+          >
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+            >
+              <path d="M4 12h15M13 6l6 6-6 6"/>
+            </svg>
+          </button>
+        {%- endif -%}
+      </div>
+
+      {%- if form.errors -%}
+        <p
+          id="{{ form_id }}-error"
+          class="coszus-signup__error"
+          role="alert"
+        >
+          {{ form.errors.translated_fields.email | capitalize }}
+          {{ form.errors.messages.email }}
+        </p>
+      {%- endif -%}
+
+      {%- comment -%}
+        Footer: birthday and "Shopping for" open together underneath once the email field is used
+        (assets/coszus-join.js), side by side on desktop. In the panel they're always shown.
+      {%- endcomment -%}
+      <div
+        class="coszus-signup__step"
+        {% if layout == 'footer' %}
+          data-signup-step="more" inert
+        {% endif %}
+      >
+        <div class="coszus-signup__step-inner">
+          <div class="coszus-signup__extras">
+            {%- if birthday -%}
+              <fieldset class="coszus-signup__question">
+                <legend class="coszus-signup__label">
+                  {{ birthday_label | default: 'Birthday' | escape }}
+                  {%- if birthday_note != blank %}
+                    <span>{{ birthday_note | escape }}</span>
+                  {%- endif -%}
+                </legend>
+                <div class="coszus-signup__birthday">
+                  <label
+                    class="visually-hidden"
+                    for="{{ form_id }}-day"
+                  >
+                    {{- 'coszus.day' | t -}}
+                  </label>
+                  <input
+                    id="{{ form_id }}-day"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    placeholder="DD"
+                    autocomplete="bday-day"
+                    data-birthday
+                  >
+                  <span aria-hidden="true">/</span>
+                  <label
+                    class="visually-hidden"
+                    for="{{ form_id }}-month"
+                  >
+                    {{- 'coszus.month' | t -}}
+                  </label>
+                  <input
+                    id="{{ form_id }}-month"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    placeholder="MM"
+                    autocomplete="bday-month"
+                    data-birthday
+                  >
+                </div>
+              </fieldset>
+            {%- endif -%}
+
+            {%- if show_interests -%}
+              <fieldset class="coszus-signup__question">
+                <legend class="coszus-signup__label">
+                  {{- settings.join_interests_label | escape -}}
+                  {%- if settings.join_interests_note != blank %}
+                    <span>{{ settings.join_interests_note | escape }}</span>
+                  {%- endif -%}
+                </legend>
+                <div class="coszus-signup__chips">
+                  {%- for interest in interest_options -%}
+                    {%- assign interest_label = interest | strip -%}
+                    {%- if interest_label != blank -%}
+                      <button
+                        type="button"
+                        class="coszus-signup__chip"
+                        aria-pressed="false"
+                        data-interest="{{ interest_label | handleize }}"
+                      >
+                        {{- interest_label | escape -}}
+                      </button>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </div>
+              </fieldset>
+            {%- endif -%}
+          </div>
+
+          {%- comment -%} The footer submits with the arrow in the email field {%- endcomment -%}
+          {%- if layout != 'footer' -%}
+            <button
+              type="submit"
+              class="button coszus-signup__submit"
+            >
+              {{- button_label | escape -}}
+            </button>
+          {%- endif -%}
+        </div>
+      </div>
+
+      {%- capture footnotes -%}
+        {%- if settings.join_fine_print != blank -%}
+          <p class="coszus-signup__fine">{{ settings.join_fine_print | escape }}</p>
+        {%- endif -%}
+        {%- if shop.customer_accounts_enabled and settings.join_signin_link != blank -%}
+          {%- unless customer -%}
+            <p class="coszus-join__signin">
+              {{ settings.join_signin_text | escape }}
+              <a
+                class="coszus-link"
+                href="{{ login_url }}"
+                data-join-signin
+              >
+                {{- settings.join_signin_link | escape -}}
+              </a>
+            </p>
+          {%- endunless -%}
+        {%- endif -%}
+      {%- endcapture -%}
+      {%- if footnotes != blank -%}
+        <div class="coszus-join__footnotes">{{ footnotes }}</div>
+      {%- endif -%}
+    </div>
+  {%- endform -%}
+</coszus-join>
+
+{% stylesheet %}
+  /* Join the Family: a reward first (heading + perks), then a short form. One rhythm everywhere:
+     12px between a label and its field, 16px between steps, quiet footnotes at the bottom. */
+  .coszus-signup {
+    display: block;
+    width: min(480px, 100%);
+  }
+
+  .coszus-join__heading {
+    margin: 0 0 14px;
+    line-height: 1;
+  }
+
+  /* ---------- Perks ---------- */
+  .coszus-join__perks {
+    display: grid;
+    gap: 9px;
+    margin: 0 0 20px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coszus-join__perk {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .coszus-join__perk-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-join__perk-label {
+    margin-right: 2px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* The small print under the 10% offer, on its own line */
+  .coszus-join__perk-note {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+
+  /* ---------- Saved product (wishlist panel) ---------- */
+  .coszus-join__saved {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 14px;
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-join__saved[hidden] {
+    display: none;
+  }
+
+  .coszus-join__saved-image {
+    flex: none;
+    width: 44px;
+    height: 55px;
+    border-radius: 4px;
+    object-fit: cover;
+    background: var(--coszus-paper);
+  }
+
+  .coszus-join__saved-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+
+  .coszus-join__saved-tick {
+    color: var(--coszus-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .coszus-join__saved-title {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---------- Email: one box, one focus ring ---------- */
+  .coszus-signup__row {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    padding: 0 4px 0 14px;
+    border: 1px solid var(--coszus-ink);
+    border-radius: var(--style-border-radius-inputs, 6px);
+    background: var(--coszus-paper);
+  }
+
+  .coszus-signup__row:focus-within {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: 2px;
+  }
+
+  .coszus-signup__email {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--coszus-ink);
+    font: inherit;
+    /* 16px so iPhones don't zoom in */
+    font-size: 1rem;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .coszus-signup__email::placeholder {
+    color: var(--coszus-muted);
+    opacity: 1;
+  }
+
+  .coszus-signup__arrow {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: calc(var(--style-border-radius-inputs, 6px) - 2px);
+    background: none;
+    color: var(--coszus-ink);
+    cursor: pointer;
+  }
+
+  .coszus-signup__arrow:hover,
+  .coszus-signup__arrow:focus-visible {
+    background: var(--coszus-off-white);
+    outline: none;
+  }
+
+  .coszus-signup__error {
+    margin: 8px 0 0;
+    color: var(--coszus-rouge);
+    font-size: 0.75rem;
+  }
+
+  /* ---------- Thank-you ---------- */
+  .coszus-signup__done {
+    margin: 0;
+    padding: 14px;
+    border-radius: var(--style-border-radius-inputs, 6px);
+    background: var(--coszus-off-white);
+    font-size: 0.875rem;
+  }
+
+  .coszus-join__done:focus {
+    outline: none;
+  }
+
+  .coszus-join__signin-button {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  /* ---------- Birthday and "Shopping for" ---------- */
+  .coszus-signup__extras {
+    display: grid;
+    gap: 16px;
+    padding-top: 16px;
+  }
+
+  .coszus-signup__question {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .coszus-signup__label {
+    display: block;
+    margin: 0 0 8px;
+    padding: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .coszus-signup__label span {
+    color: var(--coszus-muted);
+    font-weight: 400;
+  }
+
+  .coszus-signup__birthday {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .coszus-signup__birthday input {
+    box-sizing: border-box;
+    width: 54px;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--coszus-ink);
+    border-radius: var(--style-border-radius-inputs, 6px);
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    font: inherit;
+    font-size: 1rem;
+    text-align: center;
+    outline: none;
+  }
+
+  .coszus-signup__birthday input:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: 2px;
+  }
+
+  .coszus-signup__birthday span {
+    color: var(--coszus-muted);
+  }
+
+  /* Wrapped rows 12px apart so the chips' 44px hit areas don't overlap */
+  .coszus-signup__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 6px;
+  }
+
+  .coszus-signup__chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid color-mix(in srgb, var(--coszus-ink) 30%, transparent);
+    border-radius: 999px;
+    background: var(--coszus-paper);
+    color: var(--coszus-ink);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition:
+      background-color var(--coszus-motion-fast) ease,
+      border-color var(--coszus-motion-fast) ease,
+      color var(--coszus-motion-fast) ease;
+  }
+
+  /* 44px tall hit area, centred on the chip, so the look doesn't change (::before is the tick) */
+  .coszus-signup__chip::after {
+    content: '';
+    position: absolute;
+    inset: min(0px, 50% - 22px) 0;
+  }
+
+  .coszus-signup__chip:hover {
+    border-color: var(--coszus-ink);
+  }
+
+  .coszus-signup__chip:focus-visible {
+    outline: 2px solid var(--coszus-ink);
+    outline-offset: 2px;
+  }
+
+  .coszus-signup__chip[aria-pressed='true'] {
+    border-color: var(--coszus-ink);
+    background: var(--coszus-ink);
+    color: var(--coszus-paper);
+  }
+
+  /* A tick on chosen chips; aria-pressed already says it, so screen readers skip the tick */
+  .coszus-signup__chip[aria-pressed='true']::before {
+    content: '\2713' / '';
+    font-size: 0.6875rem;
+  }
+
+  .coszus-signup__submit {
+    width: 100%;
+    margin: 18px 0 0;
+  }
+
+  /* ---------- Footnotes: fine print and sign-in, small and quiet ---------- */
+  .coszus-join__footnotes {
+    display: grid;
+    gap: 4px;
+    margin-top: 14px;
+    color: var(--coszus-muted);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+
+  .coszus-signup__fine,
+  .coszus-join__signin {
+    margin: 0;
+  }
+
+  .coszus-join__signin a {
+    color: var(--coszus-ink);
+  }
+
+  /* ---------- Footer: the extras open downward (grid rows 0fr to 1fr) ---------- */
+  .coszus-join--footer .coszus-signup__step {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows var(--coszus-motion) var(--coszus-ease),
+      opacity var(--coszus-motion) ease;
+  }
+
+  .coszus-join--footer .coszus-signup__step.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .coszus-join--footer .coszus-signup__step-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* The focus ring, chip outlines and the chips' 44px hit area need room inside the clipped step.
+     The step's negative margin takes back the extra padding so nothing below moves. */
+  .coszus-join--footer .coszus-signup__extras {
+    padding-inline: 3px;
+    padding-bottom: 6px;
+    margin-inline: -3px;
+  }
+
+  .coszus-join--footer .coszus-signup__step.is-open {
+    margin-bottom: -3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .coszus-join--footer .coszus-signup__step {
+      transition: none;
+    }
+  }
+
+  /* Desktop footer: perks on the left, the form on the right; birthday beside "Shopping for" */
+  @media screen and (min-width: 821px) {
+    .coszus-join--footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+      column-gap: 64px;
+      align-items: start;
+      width: 100%;
+    }
+
+    .coszus-join--footer .coszus-join__perks {
+      margin-bottom: 0;
+    }
+
+    .coszus-join--footer .coszus-signup__extras {
+      grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
+      column-gap: 32px;
+    }
+  }
+{% endstylesheet %}

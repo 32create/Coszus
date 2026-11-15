@@ -1,0 +1,67 @@
+{%- doc -%}
+  Star rating for one product, from Shopify's standard review metafields: reviews.rating (a rating
+  with its own scale) and reviews.rating_count. Judge.me and most review apps write both. Renders
+  nothing unless the product has a rating above zero and at least one review, so products without
+  reviews look exactly as before. No app script: the stars are one CSS-masked span (assets/coszus.css).
+
+  With `schema`, outputs the product's aggregateRating JSON-LD member instead (with a trailing comma,
+  for sections/coszus-product.liquid to put inside the product node), under the same rule.
+
+  Turned on and off in Theme settings > Star ratings (cards and product page separately).
+
+  @param {product} product - The product to rate
+  @param {string} [style] - 'card' (small stars and a bracketed count) or 'product' (default)
+  @param {boolean} [schema] - Output `"aggregateRating":{...},` for structured data, not stars
+
+  @example
+  {% render 'coszus-rating', product: product, style: 'card' %}
+  {% render 'coszus-rating', product: product, schema: true %}
+{%- enddoc -%}
+
+{%- liquid
+  assign rating_data = product.metafields.reviews.rating.value
+  assign rating = rating_data.rating | plus: 0
+  assign rating_count = product.metafields.reviews.rating_count.value | plus: 0
+  assign scale_min = rating_data.scale_min | plus: 0
+  assign scale_max = rating_data.scale_max | plus: 0
+  if scale_max <= 0
+    assign scale_min = 1
+    assign scale_max = 5
+  endif
+-%}
+
+{%- if rating > 0 and rating_count > 0 -%}
+  {%- if schema -%}
+    "aggregateRating":{"@type":"AggregateRating","ratingValue":{{ rating | json }},"bestRating":{{ scale_max | json }},"worstRating":{{ scale_min | json }},"ratingCount":{{ rating_count | json }}},
+  {%- else -%}
+    {%- liquid
+      # Fill as a share of the scale, so a 1–10 scale still draws as five stars
+      assign fill = rating | times: 100.0 | divided_by: scale_max | round: 1
+      if fill > 100
+        assign fill = 100
+      endif
+      assign rating_out_of_5 = rating | times: 5.0 | divided_by: scale_max | round: 1
+      assign count_text = 'coszus.product.review_count' | t: count: rating_count
+      assign tag = 'p'
+      if style == 'card'
+        assign tag = 'span'
+      endif
+    -%}
+    <{{ tag }} class="coszus-rating coszus-rating--{{ style | default: 'product' }}">
+      <span
+        class="coszus-rating__stars"
+        style="--coszus-rating-fill: {{ fill }}%;"
+        aria-hidden="true"
+      ></span>
+      <span
+        class="coszus-rating__count"
+        aria-hidden="true"
+      >
+        {%- if style == 'card' -%}({{ rating_count }}){%- else -%}{{ count_text }}{%- endif -%}
+      </span>
+      <span class="visually-hidden">
+        {{- 'coszus.product.rating' | t: rating: rating_out_of_5 }}, {{ count_text -}}
+      </span>
+    </{{ tag }}>
+  {%- endif -%}
+{%- endif -%}

@@ -1,0 +1,49 @@
+{%- doc -%}
+  The product's JSON-LD, from Shopify's `structured_data` filter, plus two things it leaves out.
+  Both go straight after the @context, which only the top-level node carries:
+  - image: Shopify's ProductGroup (products with variants) has no top-level image, so the first five
+    are added. A Product without variants already has one.
+  - aggregateRating: only when the product has a rating and at least one review (reviews.rating /
+    reviews.rating_count, written by the review app, see snippets/coszus-rating.liquid) and the
+    stars are shown on the page (Theme settings > Star ratings). Google wants the rating in the
+    markup to be visible to shoppers too. Never a site-wide score.
+
+  @param {product} product - The product
+
+  @example
+  {%- render 'coszus-product-structured-data', product: product -%}
+{%- enddoc -%}
+
+{%- liquid
+  assign product_data = product | structured_data
+  assign product_extra = ''
+  if product.images.size > 0 and product_data contains '"@type":"ProductGroup"'
+    capture product_images
+      echo '"image":['
+      for image in product.images limit: 5
+        echo image | image_url: width: 1920 | prepend: 'https:' | json
+        unless forloop.last
+          echo ','
+        endunless
+      endfor
+      echo '],'
+    endcapture
+    assign product_extra = product_extra | append: product_images
+  endif
+  if settings.rating_on_product
+    unless product_data contains '"aggregateRating"'
+      capture product_rating
+        render 'coszus-rating', product: product, schema: true
+      endcapture
+      assign product_extra = product_extra | append: product_rating
+    endunless
+  endif
+  if product_extra != blank
+    assign product_context = '"@context":"http:\/\/schema.org\/",'
+    assign product_context_extra = product_context | append: product_extra
+    assign product_data = product_data | replace_first: product_context, product_context_extra
+  endif
+-%}
+<script type="application/ld+json">
+  {{ product_data }}
+</script>

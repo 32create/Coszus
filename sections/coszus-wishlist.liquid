@@ -1,0 +1,215 @@
+{%- comment -%}
+  Coszus Wishlist page (docs/HANDOFF.md section 7). Saved products with size buttons that add
+  to the bag, and an empty state.
+
+  Saved products live in the visitor's browser (assets/coszus-wishlist.js). This page reads the
+  list and fetches each product as sections/coszus-wishlist-item.liquid, so cards, prices and stock
+  are always live. Products that no longer exist drop off the list.
+
+  Account-linked version (later): signed-in customers' `custom.wishlist` metafield (list of
+  product references) is read here and merged into the list, so whatever the private wishlist app
+  writes shows up with no theme change. See the hook at the top of assets/coszus-wishlist.js.
+{%- endcomment -%}
+
+{%- liquid
+  assign account_handles = ''
+  if customer
+    assign account_products = customer.metafields.custom.wishlist.value
+    if account_products != blank
+      assign account_handles = account_products | map: 'handle'
+    endif
+  endif
+  assign empty_link = section.settings.empty_button_link | default: routes.all_products_collection_url
+-%}
+
+<script
+  src="{{ 'coszus-pages.js' | asset_url }}"
+  type="module"
+></script>
+<script
+  src="{{ 'coszus-quick-add.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+<coszus-wishlist
+  class="coszus-page coszus-wishlist"
+  data-root="{{ routes.root_url | append: '/' | replace: '//', '/' }}"
+  data-count-one="{{ 'coszus.wishlist_count_one' | t }}"
+  data-count-other="{{ 'coszus.wishlist_count_other' | t }}"
+>
+  <div class="coszus-wishlist__head">
+    <h1 class="coszus-section-heading coszus-page__title">{{ section.settings.heading | escape }}</h1>
+    <span
+      class="coszus-wishlist__count"
+      data-wishlist-count
+      aria-live="polite"
+    ></span>
+  </div>
+
+  {%- if section.settings.text != blank or settings.wishlist_account_endpoint != blank and customer == null -%}
+    <p class="coszus-page__sub">
+      {{ section.settings.text | escape }}
+      {%- if settings.wishlist_account_endpoint != blank and customer == null %}
+        <a href="{{ routes.account_login_url }}">{{ section.settings.sign_in_label | escape }}</a>
+        {{ section.settings.sign_in_text | escape -}}
+      {%- endif -%}
+    </p>
+  {%- endif -%}
+
+  {%- if settings.wishlist_enabled -%}
+    <div
+      class="coszus-wishlist__grid"
+      role="list"
+      aria-busy="true"
+      data-wishlist-grid
+    ></div>
+  {%- else -%}
+    <p class="coszus-note">{{ 'coszus.wishlist_off' | t }}</p>
+  {%- endif -%}
+
+  <div
+    class="coszus-wishlist__empty"
+    data-wishlist-empty
+    hidden
+  >
+    <h2 class="coszus-section-heading">{{ section.settings.empty_heading | escape }}</h2>
+    <p class="coszus-page__sub">{{ section.settings.empty_text | escape }}</p>
+    {%- if section.settings.empty_button_label != blank -%}
+      <a
+        class="button"
+        href="{{ empty_link }}"
+      >
+        {{- section.settings.empty_button_label | escape -}}
+      </a>
+    {%- endif -%}
+  </div>
+
+  {%- if account_handles != blank -%}
+    <script type="application/json" data-wishlist-account>
+      {{ account_handles | json }}
+    </script>
+  {%- endif -%}
+</coszus-wishlist>
+
+{% stylesheet %}
+  .coszus-wishlist {
+    display: block;
+  }
+
+  .coszus-wishlist__head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .coszus-wishlist__count {
+    font-size: 0.8125rem;
+    color: var(--coszus-muted);
+  }
+
+  .coszus-wishlist__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 40px 16px;
+    margin-top: 8px;
+  }
+
+  .coszus-wishlist__grid[hidden] {
+    display: none;
+  }
+
+  .coszus-wishlist__slot {
+    aspect-ratio: 4 / 5;
+    background: var(--coszus-off-white);
+  }
+
+  .coszus-wishlist__empty {
+    padding: 60px 0;
+    text-align: center;
+  }
+
+  .coszus-wishlist__empty .coszus-section-heading {
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .coszus-wishlist__empty .coszus-page__sub {
+    margin-inline: auto;
+  }
+
+  @media screen and (max-width: 820px) {
+    .coszus-wishlist__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px 10px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Coszus wishlist",
+  "tag": "section",
+  "class": "coszus-wishlist-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Wishlist"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "Intro",
+      "default": "Saved for later."
+    },
+    {
+      "type": "text",
+      "id": "sign_in_label",
+      "label": "Sign in link",
+      "default": "Sign in",
+      "info": "Only shows once the account wishlist endpoint is set (Theme settings > Product cards). Until then lists stay on the device."
+    },
+    {
+      "type": "text",
+      "id": "sign_in_text",
+      "label": "After the sign in link",
+      "default": "to keep your wishlist on every device."
+    },
+    {
+      "type": "header",
+      "content": "Empty"
+    },
+    {
+      "type": "text",
+      "id": "empty_heading",
+      "label": "Heading",
+      "default": "Nothing saved yet"
+    },
+    {
+      "type": "text",
+      "id": "empty_text",
+      "label": "Text",
+      "default": "Tap the bookmark on anything you like and it'll wait here."
+    },
+    {
+      "type": "text",
+      "id": "empty_button_label",
+      "label": "Button label",
+      "default": "Shop new in"
+    },
+    {
+      "type": "url",
+      "id": "empty_button_link",
+      "label": "Button link",
+      "info": "Defaults to all products."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Coszus wishlist"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,19 @@
+{%- doc -%}
+  Outputs the free UK delivery threshold in pence (Theme settings > Bag > "Free delivery over (£)"),
+  or 0 when free delivery doesn't apply to this visitor (not paying in pounds, or not in the UK).
+  The one place the threshold is parsed: snippets/cart-drawer.liquid captures it once and passes it
+  to the delivery bar, the footer rows and the add-ons. "Show free delivery bar" is checked by the
+  callers that only show something when the bar is on.
+
+  @example
+  {%- capture threshold -%}{% render 'coszus-free-delivery-threshold' %}{%- endcapture -%}
+  {%- assign threshold = threshold | strip | plus: 0 -%}
+{%- enddoc -%}
+
+{%- liquid
+  assign threshold = settings.coszus_free_delivery_threshold | remove: '£' | remove: ',' | strip | times: 100 | round
+  unless threshold > 0 and cart.currency.iso_code == 'GBP' and localization.country.iso_code == 'GB'
+    assign threshold = 0
+  endunless
+  echo threshold
+-%}

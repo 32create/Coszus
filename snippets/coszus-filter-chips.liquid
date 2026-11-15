@@ -1,0 +1,79 @@
+{%- doc -%}
+  Active filter chips for the collection bar (sections/coszus-collection.liquid): one per applied
+  filter (nothing when none are on), each a link that removes itself, plus "Clear all" when more than one is on. The links use
+  data-mc-action="clear-and-apply", so coszus-collection.js re-renders without a page load.
+
+  @param {collection} collection - The collection being filtered
+  @param {number} count - How many filters are on
+  @param {string} [safe_sort] - The sort_by to keep on "Clear all", only when it's one of the collection's sort options
+
+  @example
+  {% render 'coszus-filter-chips', collection: collection, count: active_filter_count, safe_sort: safe_sort %}
+{%- enddoc -%}
+
+{%- if count > 0 -%}
+<ul
+  class="coszus-collection__chip-list"
+  role="list"
+>
+  {%- for filter in collection.filters -%}
+    {%- if filter.type == 'price_range' -%}
+      {%- if filter.min_value.value != null or filter.max_value.value != null -%}
+        {%- liquid
+          assign chip_min = filter.min_value.value | default: 0 | money_without_trailing_zeros | strip_html
+          if filter.max_value.value != null
+            assign chip_max = filter.max_value.value | money_without_trailing_zeros | strip_html
+            assign chip_label = chip_min | append: ' – ' | append: chip_max
+          else
+            assign chip_label = chip_min | append: '+'
+          endif
+        -%}
+        <li>
+          <a
+            class="coszus-collection__chip"
+            href="{{ filter.url_to_remove }}"
+            data-mc-action="clear-and-apply"
+            aria-label="{{ 'coszus.collection.remove_filter' | t: filter: chip_label | escape }}"
+          >
+            {{- chip_label -}}
+            {%- render 'coszus-icon', icon: 'close' -%}
+          </a>
+        </li>
+      {%- endif -%}
+    {%- else -%}
+      {%- assign filter_label_lower = filter.label | downcase -%}
+      {%- for value in filter.active_values -%}
+        {%- liquid
+          if filter_label_lower contains 'size'
+            assign chip_label = filter.label | append: ' ' | append: value.label
+          else
+            assign chip_label = value.label
+          endif
+        -%}
+        <li>
+          <a
+            class="coszus-collection__chip"
+            href="{{ value.url_to_remove }}"
+            data-mc-action="clear-and-apply"
+            aria-label="{{ 'coszus.collection.remove_filter' | t: filter: chip_label | escape }}"
+          >
+            {{- chip_label | escape -}}
+            {%- render 'coszus-icon', icon: 'close' -%}
+          </a>
+        </li>
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if count > 1 -%}
+    <li>
+      <a
+        class="coszus-collection__chip-clear"
+        href="{{ collection.url }}{% if safe_sort %}?sort_by={{ safe_sort | url_encode }}{% endif %}"
+        data-mc-action="clear-and-apply"
+      >
+        {{- 'coszus.collection.clear_all' | t -}}
+      </a>
+    </li>
+  {%- endif -%}
+</ul>
+{%- endif -%}
