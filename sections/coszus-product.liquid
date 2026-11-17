@@ -1,0 +1,339 @@
+{%- comment -%}
+  Coszus product page, from the mockup.
+  Gallery (2 across on desktop, swipe on phone), sticky buy panel, size buttons,
+  size guide drawer, real Shopify product form (so apps and express checkout work),
+  dispatch countdown, accordions, Style with + You may also like from Shopify's
+  recommendations, recently viewed, sticky add bar on phone.
+  Optional product metafields (all custom.*): model_line, bullets (list), fabric_care.
+{%- endcomment -%}
+{%- liquid
+  assign current = product.selected_or_first_available_variant
+  assign size_index = nil
+  for o in product.options_with_values
+    assign on = o.name | downcase
+    if on contains 'size'
+      assign size_index = forloop.index0
+    endif
+  endfor
+  assign colour = ''
+  for o in product.options_with_values
+    assign on = o.name | downcase
+    if on contains 'colour' or on contains 'color'
+      assign colour = o.selected_value
+    endif
+  endfor
+  assign photo_count = 0
+  for m in product.media
+    if m.media_type == 'image'
+      assign photo_count = photo_count | plus: 1
+    endif
+  endfor
+  assign model_line = product.metafields.custom.model_line | default: section.settings.model_line
+  assign klarna = product.price | divided_by: 3
+-%}
+
+<div class="cz cz-pdp" id="CzPdp-{{ section.id }}" data-url="{{ product.url }}" data-handle="{{ product.handle }}">
+  <div class="cz-pdp-grid">
+    <div class="cz-gal-w">
+      <span class="cz-cnt">{{ photo_count }} PHOTOS · SWIPE</span>
+      <div class="cz-gal" data-cz-gal>
+        {%- for m in product.media -%}
+          <figure data-media-id="{{ m.id }}">
+            {%- case m.media_type -%}
+              {%- when 'image' -%}
+                {%- liquid
+                  assign load = 'eager'
+                  if forloop.index > 2
+                    assign load = 'lazy'
+                  endif
+                  assign malt = m.alt | default: product.title
+                -%}
+                {{ m | image_url: width: 1400 | image_tag: alt: malt, loading: load, widths: '600,900,1200,1400', sizes: '(min-width: 901px) 33vw, 100vw' }}
+              {%- when 'video' -%}
+                {{ m | video_tag: autoplay: true, loop: true, muted: true, playsinline: true, controls: false, image_size: '1200x' }}
+              {%- else -%}
+                {{ m | media_tag }}
+            {%- endcase -%}
+            {%- if forloop.first and model_line != blank -%}<div class="cz-mi">{{ model_line }}</div>{%- endif -%}
+          </figure>
+        {%- else -%}
+          <figure>{{ 'product-apparel-1' | placeholder_svg_tag }}</figure>
+        {%- endfor -%}
+      </div>
+    </div>
+
+    <div class="cz-panel">
+      <h1>{{ product.title | upcase }}{% if colour != '' %} | {{ colour | upcase }}{% endif %}</h1>
+      <div class="cz-price-row">
+        <span class="cz-price" data-cz-price>
+          {%- if current.compare_at_price > current.price -%}
+            <s>{{ current.compare_at_price | money }}</s> <b>{{ current.price | money }}</b>
+          {%- else -%}
+            {{ current.price | money }}
+          {%- endif -%}
+        </span>
+        {%- if product.metafields.reviews.rating.value != blank -%}
+          <a href="#reviews" class="cz-stars"><span aria-hidden="true">★★★★★</span><u>{{ product.metafields.reviews.rating.value.rating | round: 1 }} ({{ product.metafields.reviews.rating_count }})</u></a>
+        {%- endif -%}
+      </div>
+
+      {%- assign bullets = product.metafields.custom.bullets.value -%}
+      {%- if bullets != blank -%}
+        <ul class="cz-bul">{%- for b in bullets -%}<li>{{ b }}</li>{%- endfor -%}</ul>
+      {%- endif -%}
+
+      {%- if colour != '' -%}
+        <div class="cz-lbl" style="margin-top:22px;"><strong>Colour:</strong> {{ colour }}</div>
+        {%- for o in product.options_with_values -%}
+          {%- assign on = o.name | downcase -%}
+          {%- if on contains 'colour' or on contains 'color' -%}
+            <div class="cz-sws">
+              {%- for v in o.values -%}
+                {%- assign vimg = nil -%}
+                {%- for variant in product.variants -%}{%- if variant.options contains v and variant.featured_image -%}{%- assign vimg = variant.featured_image -%}{%- break -%}{%- endif -%}{%- endfor -%}
+                <button type="button" class="cz-sw{% if v == colour %} on{% endif %}" data-cz-opt="{{ forloop.parentloop.index0 }}" data-value="{{ v | escape }}" aria-label="{{ v | escape }}" aria-pressed="{% if v == colour %}true{% else %}false{% endif %}">
+                  {%- if vimg -%}{{ vimg | image_url: width: 120 | image_tag: alt: '' }}{%- else -%}<span>{{ v }}</span>{%- endif -%}
+                </button>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+
+      {%- if size_index != nil -%}
+        <div class="cz-lbl cz-szhd">
+          <span><strong>Size</strong> <span data-cz-szlabel>{% if product.selected_variant %}{{ current.options[size_index] }}{% else %}Select a size{% endif %}</span></span>
+          {%- if section.settings.size_page != blank -%}<button type="button" class="cz-link" data-cz-guide>Size guide</button>{%- endif -%}
+        </div>
+        <div class="cz-szs-row">
+          {%- for v in product.options_with_values[size_index].values -%}
+            {%- assign avail = false -%}
+            {%- for variant in product.variants -%}{%- if variant.options[size_index] == v and variant.available -%}{%- assign avail = true -%}{%- break -%}{%- endif -%}{%- endfor -%}
+            <button type="button" class="cz-sz" data-cz-opt="{{ size_index }}" data-value="{{ v | escape }}" aria-pressed="{% if product.selected_variant and current.options[size_index] == v %}true{% else %}false{% endif %}"{% unless avail %} data-out="1" aria-label="{{ v | escape }} sold out"{% endunless %}>{{ v }}</button>
+          {%- endfor -%}
+        </div>
+        {%- if section.settings.fit_note != blank -%}<div class="cz-note">{{ section.settings.fit_note }}</div>{%- endif -%}
+      {%- endif -%}
+
+      {%- form 'product', product, id: 'CzForm', class: 'cz-form', data-cz-form: '', novalidate: 'novalidate' -%}
+        <input type="hidden" name="id" value="{{ current.id }}" data-cz-vid>
+        <button type="submit" name="add" class="cz-cta" data-cz-cta {% unless current.available %}disabled{% endunless %}>
+          {%- if current.available -%}{% if size_index != nil and product.selected_variant == nil %}SELECT A SIZE{% else %}ADD TO BAG{% endif %}{%- else -%}SOLD OUT{%- endif -%}
+        </button>
+        <div class="cz-xp">{{ form | payment_button }}</div>
+      {%- endform -%}
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when '@app' -%}<div class="cz-app">{% render block %}</div>
+          {%- when 'liquid' -%}<div class="cz-app" {{ block.shopify_attributes }}>{{ block.settings.liquid }}</div>
+        {%- endcase -%}
+      {%- endfor -%}
+
+      <div class="cz-usps">
+        <div class="cz-usp" data-cz-stock>
+          {%- if current.available -%}<span class="cz-dot"></span>In stock, ready to ship{%- else -%}<span class="cz-dot off"></span>Sold out in this size{%- endif -%}
+        </div>
+        <div class="cz-usp"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.5"/><circle cx="17" cy="17.5" r="1.5"/></svg><span data-cz-dispatch>Order before 3pm Mon to Fri for same day dispatch</span></div>
+        <div class="cz-usp"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>{{ section.settings.usp_ship }}</div>
+        <div class="cz-usp"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>{{ section.settings.usp_returns }}</div>
+        {%- if section.settings.show_klarna -%}
+          <div class="cz-usp"><span class="cz-k">K.</span>Pay in 3 interest free payments of {{ klarna | money }}</div>
+        {%- endif -%}
+      </div>
+
+      <div class="cz-acc">
+        {%- if product.description != blank -%}
+          <details open><summary>Details <span class="cz-pl" aria-hidden="true">+</span></summary><div class="cz-rte">{{ product.description }}</div></details>
+        {%- endif -%}
+        {%- if product.metafields.custom.fabric_care != blank -%}
+          <details><summary>Fabric &amp; Care <span class="cz-pl" aria-hidden="true">+</span></summary><div class="cz-rte">{{ product.metafields.custom.fabric_care | metafield_tag }}</div></details>
+        {%- endif -%}
+        <details><summary>Shipping &amp; Returns <span class="cz-pl" aria-hidden="true">+</span></summary><div class="cz-rte">{{ section.settings.ship_text }}</div></details>
+      </div>
+    </div>
+  </div>
+
+  {%- if section.settings.show_style_with -%}
+    <section class="cz-sec" data-cz-recs="complementary" data-url="{{ routes.product_recommendations_url }}?section_id=coszus-recs&product_id={{ product.id }}&limit=4&intent=complementary" hidden>
+      <h2 class="cz-h2">STYLE WITH</h2>
+      <div class="cz-grid" data-cz-recs-target></div>
+    </section>
+  {%- endif -%}
+
+  <section class="cz-sec" data-cz-recs="related" data-url="{{ routes.product_recommendations_url }}?section_id=coszus-recs&product_id={{ product.id }}&limit=4&intent=related" hidden>
+    <h2 class="cz-h2">YOU MAY ALSO LIKE</h2>
+    <div class="cz-grid" data-cz-recs-target></div>
+  </section>
+
+  <section class="cz-sec" data-cz-recent hidden>
+    <h2 class="cz-h2">RECENTLY VIEWED</h2>
+    <div class="cz-grid six" data-cz-recent-target></div>
+  </section>
+  <div style="height:var(--cz-sec);"></div>
+
+  <div class="cz-sticky">
+    <div style="flex:1;min-width:0;"><div class="cz-st-n">{{ product.title | upcase }}</div><div class="cz-st-p" data-cz-st-p>{{ current.price | money }}{% if size_index != nil and product.selected_variant %} · {{ current.options[size_index] }}{% endif %}</div></div>
+    <button type="button" class="cz-cta" data-cz-sticky-cta>{% if current.available %}{% if size_index != nil and product.selected_variant == nil %}SELECT SIZE{% else %}ADD TO BAG{% endif %}{% else %}SOLD OUT{% endif %}</button>
+  </div>
+
+  {%- if section.settings.size_page != blank -%}
+    <div class="cz-drw" data-cz-drw hidden>
+      <div class="cz-drw-p" role="dialog" aria-modal="true" aria-label="Size and fit">
+        <div class="cz-drw-h"><strong>SIZE &amp; FIT</strong><button type="button" class="cz-drw-x" data-cz-drw-x aria-label="Close">×</button></div>
+        {%- if section.settings.fit_note != blank -%}<div class="cz-sg-fit">{{ section.settings.fit_note }}</div>{%- endif -%}
+        <div class="cz-rte">{{ pages[section.settings.size_page].content }}</div>
+      </div>
+    </div>
+  {%- endif -%}
+
+  <script type="application/json" data-cz-variants>{{ product.variants | json }}</script>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('CzPdp-{{ section.id }}');
+  if (!root || root.dataset.ready) return; root.dataset.ready = '1';
+  var variants = JSON.parse(root.querySelector('[data-cz-variants]').textContent);
+  var sizeIdx = {{ size_index | json }};
+  var hasSize = sizeIdx !== null;
+  var picked = hasSize ? {{ product.selected_variant | json }} !== null : true;
+  var current = variants.find(function (v) { return v.id === {{ current.id }}; }) || variants[0];
+  var sel = current.options.slice();
+  var form = root.querySelector('[data-cz-form]');
+  var cta = root.querySelector('[data-cz-cta]');
+  var sCta = root.querySelector('[data-cz-sticky-cta]');
+  var money = function (c) { return '£' + (c / 100).toFixed(2); };
+
+  function label() {
+    if (!current.available) return 'SOLD OUT';
+    if (!picked) return 'SELECT A SIZE';
+    return 'ADD TO BAG';
+  }
+  function update() {
+    current = variants.find(function (v) { return v.options.every(function (o, i) { return o === sel[i]; }); }) || current;
+    root.querySelector('[data-cz-vid]').value = current.id;
+    cta.textContent = label(); cta.disabled = !current.available;
+    sCta.textContent = picked ? (current.available ? 'ADD TO BAG' : 'SOLD OUT') : 'SELECT SIZE';
+    var p = root.querySelector('[data-cz-price]');
+    p.innerHTML = current.compare_at_price > current.price ? '<s>' + money(current.compare_at_price) + '</s> <b>' + money(current.price) + '</b>' : money(current.price);
+    root.querySelector('[data-cz-st-p]').textContent = money(current.price) + (hasSize && picked ? ' · ' + current.options[sizeIdx] : '');
+    var sl = root.querySelector('[data-cz-szlabel]'); if (sl && picked) sl.textContent = current.options[sizeIdx];
+    var st = root.querySelector('[data-cz-stock]');
+    st.innerHTML = current.available ? '<span class="cz-dot"></span>In stock, ready to ship' : '<span class="cz-dot off"></span>Sold out in this size';
+    root.querySelectorAll('[data-cz-opt]').forEach(function (b) {
+      var i = Number(b.dataset.czOpt);
+      b.setAttribute('aria-pressed', (i !== sizeIdx || picked) && sel[i] === b.dataset.value ? 'true' : 'false');
+      b.classList.toggle('on', sel[i] === b.dataset.value);
+      if (hasSize && i === sizeIdx) {
+        var avail = variants.some(function (v) { return v.available && v.options[sizeIdx] === b.dataset.value && v.options.every(function (o, j) { return j === sizeIdx || o === sel[j]; }); });
+        b.toggleAttribute('data-out', !avail);
+      }
+    });
+    if (current.featured_media) {
+      var fig = root.querySelector('[data-media-id="' + current.featured_media.id + '"]');
+      if (fig && window.innerWidth <= 900) fig.parentNode.scrollTo({ left: fig.offsetLeft, behavior: 'smooth' });
+    }
+    var u = new URL(window.location.href); u.searchParams.set('variant', current.id); history.replaceState(null, '', u.toString());
+  }
+
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cz-opt]');
+    if (b) {
+      if (b.hasAttribute('data-out') && Number(b.dataset.czOpt) === sizeIdx) return;
+      sel[Number(b.dataset.czOpt)] = b.dataset.value;
+      if (Number(b.dataset.czOpt) === sizeIdx) picked = true;
+      update(); return;
+    }
+    if (e.target.closest('[data-cz-sticky-cta]')) {
+      if (!picked) { root.querySelector('.cz-szs-row').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      if (current.available) form.requestSubmit(); return;
+    }
+    if (e.target.closest('[data-cz-guide]')) { var d = root.querySelector('[data-cz-drw]'); d.hidden = false; document.documentElement.style.overflow = 'hidden'; return; }
+    if (e.target.closest('[data-cz-drw-x]') || e.target.matches('[data-cz-drw]')) { root.querySelector('[data-cz-drw]').hidden = true; document.documentElement.style.overflow = ''; }
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!picked) { if (window.czToast) czToast('Pick a size first'); root.querySelector('.cz-szs-row').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    var drawer = document.querySelector('cart-drawer');
+    var fd = new FormData(form);
+    if (drawer && drawer.getSectionsToRender) { fd.append('sections', drawer.getSectionsToRender().map(function (s) { return s.id; })); fd.append('sections_url', window.location.pathname); }
+    cta.disabled = true; cta.textContent = 'ADDING…';
+    fetch(window.routes.cart_add_url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/javascript' }, body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        cta.disabled = false; cta.textContent = label();
+        if (res.status) { if (window.czToast) czToast(res.description || 'Could not add that'); return; }
+        if (drawer && drawer.renderContents) { drawer.classList.remove('is-empty'); drawer.renderContents(res); }
+        else if (window.czToast) czToast('Added to your bag');
+        document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));
+      }).catch(function () { cta.disabled = false; cta.textContent = label(); form.submit(); });
+  });
+
+  // Dispatch countdown: same day dispatch before 3pm UK time, Mon to Fri
+  (function () {
+    var el = root.querySelector('[data-cz-dispatch]'); if (!el) return;
+    function tick() {
+      var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+      var d = now.getDay(), cut = new Date(now); cut.setHours(15, 0, 0, 0);
+      if (d >= 1 && d <= 5 && now < cut) {
+        var m = Math.floor((cut - now) / 60000);
+        el.innerHTML = 'Order in <strong>' + Math.floor(m / 60) + 'h ' + (m % 60) + 'm</strong> for same day dispatch';
+      } else {
+        var nd = (d === 5 && now >= cut) || d === 6 ? 'Monday' : 'tomorrow';
+        el.innerHTML = 'Order now, ships <strong>' + nd + '</strong>';
+      }
+    }
+    tick(); setInterval(tick, 30000);
+  })();
+
+  // Recommendations
+  root.querySelectorAll('[data-cz-recs]').forEach(function (sec) {
+    fetch(sec.dataset.url).then(function (r) { return r.text(); }).then(function (html) {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var out = doc.querySelector('[data-cz-recs-out]');
+      if (out && out.children.length) { sec.querySelector('[data-cz-recs-target]').innerHTML = out.innerHTML; sec.hidden = false; }
+    }).catch(function () {});
+  });
+
+  // Recently viewed (saved in this browser)
+  (function () {
+    var key = 'czRecent', h = root.dataset.handle, list = [];
+    try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+    var show = list.filter(function (x) { return x !== h; }).slice(0, 6);
+    try { localStorage.setItem(key, JSON.stringify([h].concat(show).slice(0, 12))); } catch (e) {}
+    if (!show.length) return;
+    var sec = root.querySelector('[data-cz-recent]'), tgt = root.querySelector('[data-cz-recent-target]');
+    Promise.all(show.map(function (x) { return fetch('/products/' + x + '.js').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); })).then(function (ps) {
+      ps.filter(Boolean).forEach(function (p) {
+        var a = document.createElement('a'); a.href = p.url; a.className = 'cz-mini';
+        a.innerHTML = '<span class="cz-mini-i">' + (p.featured_image ? '<img loading="lazy" alt="" src="' + p.featured_image + (p.featured_image.indexOf('?') > -1 ? '&' : '?') + 'width=400">' : '') + '</span><span class="cz-nr"><span class="cz-pn"></span><span>' + money(p.price) + '</span></span>';
+        a.querySelector('.cz-pn').textContent = p.title; tgt.appendChild(a);
+      });
+      if (tgt.children.length) sec.hidden = false;
+    });
+  })();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Coszus product",
+  "class": "section-coszus-product",
+  "settings": [
+    { "type": "text", "id": "model_line", "label": "Model line on the first photo", "info": "Used when the product has no custom.model_line metafield", "default": "Model is 6'0 wearing size M" },
+    { "type": "text", "id": "fit_note", "label": "Fit note under the sizes", "default": "Fits true to size. Between sizes? Size down for a closer fit." },
+    { "type": "page", "id": "size_page", "label": "Size guide page", "info": "Opens in a side drawer from the Size guide link" },
+    { "type": "text", "id": "usp_ship", "label": "Shipping line", "default": "Free UK shipping over £80" },
+    { "type": "text", "id": "usp_returns", "label": "Returns line", "default": "Free exchanges and 14 day returns" },
+    { "type": "checkbox", "id": "show_klarna", "label": "Show Klarna pay in 3 line", "default": true },
+    { "type": "richtext", "id": "ship_text", "label": "Shipping & returns accordion", "default": "<p>Free UK shipping over £80. Orders before 3pm Monday to Friday leave the same day from our UK warehouse. Free exchanges and 14 day returns.</p>" },
+    { "type": "checkbox", "id": "show_style_with", "label": "Show Style with (complementary products)", "default": true, "info": "Set complementary products in the Search & Discovery app" }
+  ],
+  "blocks": [
+    { "type": "@app" },
+    { "type": "liquid", "name": "Custom Liquid", "settings": [ { "type": "liquid", "id": "liquid", "label": "Liquid" } ] }
+  ]
+}
+{% endschema %}

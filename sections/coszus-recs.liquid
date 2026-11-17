@@ -1,0 +1,7 @@
+{%- comment -%}Rendered by the product page through Shopify's recommendations endpoint.{%- endcomment -%}
+{%- if recommendations.performed and recommendations.products_count > 0 -%}
+  <div data-cz-recs-out>{%- for p in recommendations.products -%}{%- render 'coszus-card', product: p -%}{%- endfor -%}</div>
+{%- endif -%}
+{% schema %}
+{ "name": "Coszus recommendations", "settings": [] }
+{% endschema %}

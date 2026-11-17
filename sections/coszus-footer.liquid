@@ -48,7 +48,7 @@
   </div>
 </footer>
 
-{%- if section.settings.ea_show and section.settings.ea_url != blank -%}
+{%- if section.settings.ea_show and section.settings.ea_url != blank and template.name != 'product' -%}
   <a class="cz-ea" href="{{ section.settings.ea_url }}">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 17l-6.5 4 2-7.5L2 9h7z"/></svg>
     <span class="cz-eal">BLACK FRIDAY&nbsp;</span>EARLY ACCESS
