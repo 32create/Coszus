@@ -20,7 +20,7 @@
     {%- endform -%}
     {%- if section.settings.whatsapp_url != blank -%}<a href="{{ section.settings.whatsapp_url }}" class="cz-bfwa" target="_blank" rel="noopener">Or join the WhatsApp community</a>{%- endif -%}
   </div>
-  <div class="cz-bfhero-i">{%- if section.settings.image != blank -%}{{ section.settings.image | image_url: width: 1600 | image_tag: alt: '', loading: 'eager', widths: '700,1100,1600', sizes: '(min-width: 901px) 48vw, 100vw' }}{%- endif -%}</div>
+  <div class="cz-bfhero-i">{%- render 'coszus-img', image: section.settings.image, asset: section.settings.image_asset, width: 1600, alt: '', loading: 'eager', sizes: '(min-width: 901px) 48vw, 100vw' -%}</div>
 </section>
 {% schema %}
 {
@@ -33,7 +33,8 @@
     { "type": "text", "id": "button", "label": "Button", "default": "GET EARLY ACCESS" },
     { "type": "text", "id": "tag", "label": "Customer tag for sign-ups", "default": "bf-early-access", "info": "Build the Klaviyo early access segment from this tag" },
     { "type": "url", "id": "whatsapp_url", "label": "WhatsApp community link" },
-    { "type": "image_picker", "id": "image", "label": "Image" }
+    { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "text", "id": "image_asset", "label": "Or theme image file", "info": "Used when no image is picked above" }
   ],
   "presets": [ { "name": "Coszus Black Friday hero" } ]
 }

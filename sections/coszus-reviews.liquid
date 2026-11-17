@@ -1,3 +1,4 @@
+{%- if section.blocks.size > 0 -%}
 <section class="cz cz-revs" id="reviews">
   <div class="cz-kick" style="color:var(--cz-brown);">{{ section.settings.kicker }}</div>
   {%- if section.settings.heading != blank -%}<div class="cz-revs-h"><span aria-hidden="true">★★★★★</span> {{ section.settings.heading }}</div>{%- endif -%}
@@ -10,6 +11,7 @@
     {%- endfor -%}
   </div>
 </section>
+{%- endif -%}
 {% schema %}
 {
   "name": "Coszus reviews",

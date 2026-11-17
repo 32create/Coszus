@@ -14,8 +14,8 @@
       {%- if section.settings.video_url.type == 'youtube' -%}
         <iframe src="https://www.youtube.com/embed/{{ section.settings.video_url.id }}?rel=0" title="{{ section.settings.heading | strip_html | escape }}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
       {%- endif -%}
-    {%- elsif section.settings.image != blank -%}
-      {{ section.settings.image | image_url: width: 1600 | image_tag: alt: '', loading: 'lazy', widths: '700,1100,1600', sizes: '(min-width: 901px) 50vw, 100vw' }}
+    {%- elsif section.settings.image != blank or section.settings.image_asset != blank -%}
+      {%- render 'coszus-img', image: section.settings.image, asset: section.settings.image_asset, width: 1600, alt: '', sizes: '(min-width: 901px) 50vw, 100vw' -%}
     {%- endif -%}
   </div>
 </section>
@@ -27,6 +27,7 @@
     { "type": "textarea", "id": "heading", "label": "Heading", "default": "BUILT BY REMI\nAND LEONEL" },
     { "type": "richtext", "id": "text", "label": "Text", "default": "<p>Two lines from the boys on why they started Coszus, in their words.</p>" },
     { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "text", "id": "image_asset", "label": "Or theme image file", "info": "Used when no image is picked above" },
     { "type": "video_url", "id": "video_url", "label": "Or YouTube video", "accept": ["youtube"] },
     { "type": "checkbox", "id": "image_left", "label": "Image on the left", "default": false },
     { "type": "text", "id": "b1", "label": "Main button", "default": "WATCH ON YOUTUBE" },

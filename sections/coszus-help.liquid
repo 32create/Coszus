@@ -7,7 +7,7 @@
     <div class="cz-help-l">{%- for link in ml.links -%}<a href="{{ link.url }}">{{ link.title }}</a>{%- endfor -%}</div>
   </div>
   <a class="cz-help-i" href="{{ section.settings.url | default: '#' }}">
-    {%- if section.settings.image != blank -%}{{ section.settings.image | image_url: width: 1600 | image_tag: alt: '', loading: 'lazy', widths: '700,1100,1600', sizes: '(min-width: 901px) 50vw, 100vw' }}{%- endif -%}
+    {%- render 'coszus-img', image: section.settings.image, asset: section.settings.image_asset, width: 1600, alt: '', sizes: '(min-width: 901px) 50vw, 100vw' -%}
     <span class="cz-help-c"><span class="cz-k">{{ section.settings.i_kicker }}</span><span class="cz-t">{{ section.settings.i_title }}</span>{%- if section.settings.i_button != blank -%}<span class="cz-btn">{{ section.settings.i_button }}</span>{%- endif -%}</span>
   </a>
 </section>
@@ -21,6 +21,7 @@
     { "type": "link_list", "id": "menu", "label": "Help links", "info": "Shipping, Returns & exchange, Size guide, Contact" },
     { "type": "header", "content": "Lookbook image" },
     { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "text", "id": "image_asset", "label": "Or theme image file", "info": "Used when no image is picked above" },
     { "type": "text", "id": "i_kicker", "label": "Small heading", "default": "NOT SURE HOW TO STYLE IT?" },
     { "type": "text", "id": "i_title", "label": "Title", "default": "SEE THE LOOKBOOK" },
     { "type": "text", "id": "i_button", "label": "Button", "default": "Show me" },

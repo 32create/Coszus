@@ -44,9 +44,17 @@
   {%- else -%}
     <div class="cz-grid" data-cz-grid style="padding-top:3px;">
       {%- for product in collection.products -%}
-        {%- if forloop.index == section.settings.camp_position and paginate.current_page == 1 and section.settings.camp_image != blank and active_count == 0 -%}
+        {%- liquid
+          assign show_camp = false
+          if forloop.index == section.settings.camp_position and paginate.current_page == 1 and active_count == 0
+            if section.settings.camp_image != blank or section.settings.camp_asset != blank
+              assign show_camp = true
+            endif
+          endif
+        -%}
+        {%- if show_camp -%}
           <a class="cz-camp" href="{{ section.settings.camp_url | default: '#' }}">
-            {{ section.settings.camp_image | image_url: width: 1400 | image_tag: alt: section.settings.camp_title, loading: 'lazy', sizes: '(min-width: 901px) 50vw, 100vw', widths: '700,1000,1400' }}
+            {%- render 'coszus-img', image: section.settings.camp_image, asset: section.settings.camp_asset, width: 1400, alt: section.settings.camp_title, sizes: '(min-width: 901px) 50vw, 100vw' -%}
             <span><small>{{ section.settings.camp_kicker }}</small><b>{{ section.settings.camp_title }}</b><u>{{ section.settings.camp_link }}</u></span>
           </a>
         {%- endif -%}
@@ -156,6 +164,7 @@
     { "type": "range", "id": "per_page", "label": "Products per page", "min": 12, "max": 48, "step": 4, "default": 24 },
     { "type": "header", "content": "Campaign tile" },
     { "type": "image_picker", "id": "camp_image", "label": "Image", "info": "Takes up 2x2 spots on page 1. Hidden when filters are on." },
+      { "type": "text", "id": "camp_asset", "label": "Or theme image file", "info": "Used when no image is picked above" },
     { "type": "range", "id": "camp_position", "label": "Show before product", "min": 1, "max": 12, "step": 1, "default": 5 },
     { "type": "text", "id": "camp_kicker", "label": "Small heading", "default": "WORN BY YOU" },
     { "type": "text", "id": "camp_title", "label": "Title", "default": "THE CONTRAST POLO" },

@@ -1,7 +1,7 @@
 <section class="cz cz-tiles">
   {%- for block in section.blocks -%}
     <a class="cz-tile" href="{{ block.settings.url | default: '#' }}" {{ block.shopify_attributes }}>
-      {%- if block.settings.image != blank -%}{{ block.settings.image | image_url: width: 1200 | image_tag: alt: '', loading: 'lazy', widths: '500,800,1200', sizes: '(min-width: 901px) 33vw, 100vw' }}{%- endif -%}
+      {%- render 'coszus-img', image: block.settings.image, asset: block.settings.image_asset, width: 1200, alt: block.settings.label, sizes: '(min-width: 901px) 33vw, 100vw' -%}
       <span>{{ block.settings.label }}</span>
     </a>
   {%- endfor -%}
@@ -12,6 +12,7 @@
   "max_blocks": 4,
   "blocks": [ { "type": "tile", "name": "Tile", "settings": [
     { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "text", "id": "image_asset", "label": "Or theme image file", "info": "Used when no image is picked above" },
     { "type": "text", "id": "label", "label": "Label", "default": "HOODIES" },
     { "type": "url", "id": "url", "label": "Link" }
   ]}],

@@ -5,7 +5,7 @@
       {%- case block.type -%}
         {%- when 'countdown' -%}
           <a class="cz-sl cz-bfs" href="{{ block.settings.url | default: '#' }}" {{ block.shopify_attributes }} aria-label="{{ block.settings.heading | strip_html | escape }}, slide {{ forloop.index }} of {{ forloop.length }}">
-            {%- if block.settings.image != blank -%}{{ block.settings.image | image_url: width: 2400 | image_tag: alt: '', loading: 'eager', widths: '900,1400,2000,2400', sizes: '100vw' }}{%- endif -%}
+            {%- render 'coszus-img', image: block.settings.image, asset: block.settings.image_asset, width: 2400, alt: '', loading: 'eager', sizes: '100vw' -%}
             <span class="cz-bfc">
               <span class="cz-bfk">{{ block.settings.kicker }}</span>
               <span class="cz-bfh">{{ block.settings.heading | newline_to_br }}</span>
@@ -25,9 +25,10 @@
                 assign t_key = 'title_' | append: i
                 assign b_key = 'button_' | append: i
                 assign u_key = 'url_' | append: i
+                assign a_key = 'asset_' | append: i
               -%}
               <a class="cz-half" href="{{ block.settings[u_key] | default: '#' }}">
-                {%- if block.settings[img_key] != blank -%}{{ block.settings[img_key] | image_url: width: 1400 | image_tag: alt: block.settings[t_key], loading: 'lazy', widths: '600,900,1400', sizes: '50vw' }}{%- endif -%}
+                {%- render 'coszus-img', image: block.settings[img_key], asset: block.settings[a_key], width: 1400, alt: block.settings[t_key], sizes: '50vw' -%}
                 <span class="cz-cap"><span class="cz-k">{{ block.settings[k_key] }}</span><span class="cz-t">{{ block.settings[t_key] }}</span>{%- if block.settings[b_key] != blank -%}<span class="cz-btn">{{ block.settings[b_key] }}</span>{%- endif -%}</span>
               </a>
             {%- endfor -%}
@@ -60,6 +61,7 @@
   "blocks": [
     { "type": "countdown", "name": "Countdown slide", "settings": [
       { "type": "image_picker", "id": "image", "label": "Image" },
+      { "type": "text", "id": "image_asset", "label": "Or theme image file", "info": "Used when no image is picked above" },
       { "type": "text", "id": "kicker", "label": "Small heading", "default": "STARTS FRIDAY 27 NOVEMBER" },
       { "type": "textarea", "id": "heading", "label": "Heading", "default": "BLACK\nFRIDAY" },
       { "type": "text", "id": "text", "label": "Text", "default": "Up to 30% off. The community gets in first, so sign up for early access." },
@@ -70,12 +72,14 @@
     { "type": "split", "name": "Two image slide", "settings": [
       { "type": "header", "content": "Left" },
       { "type": "image_picker", "id": "image_1", "label": "Image" },
+      { "type": "text", "id": "asset_1", "label": "Or theme image file", "info": "Used when no image is picked above" },
       { "type": "text", "id": "kicker_1", "label": "Small heading", "default": "BACK IN STOCK" },
       { "type": "text", "id": "title_1", "label": "Title", "default": "ALL STAR CAP" },
       { "type": "text", "id": "button_1", "label": "Button", "default": "Shop caps" },
       { "type": "url", "id": "url_1", "label": "Link" },
       { "type": "header", "content": "Right" },
       { "type": "image_picker", "id": "image_2", "label": "Image" },
+      { "type": "text", "id": "asset_2", "label": "Or theme image file", "info": "Used when no image is picked above" },
       { "type": "text", "id": "kicker_2", "label": "Small heading", "default": "NEW IN" },
       { "type": "text", "id": "title_2", "label": "Title", "default": "EMBROIDERED ZIP HOODIE" },
       { "type": "text", "id": "button_2", "label": "Button", "default": "Shop hoodies" },

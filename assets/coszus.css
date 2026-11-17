@@ -252,7 +252,7 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-usp strong{color:var(--cz-brown)}
 .cz-dot{width:8px;height:8px;border-radius:50%;background:#3d7a4a;box-shadow:0 0 0 4px #e3efe5;margin:0 4px;flex:none}
 .cz-dot.off{background:#b3aea8;box-shadow:0 0 0 4px #eee}
-.cz-k{display:inline-flex;align-items:center;justify-content:center;height:18px;padding:0 5px;background:#ffb3c7;color:#17120f;font-size:9px;font-weight:700;border-radius:3px}
+.cz-kl{display:inline-flex;align-items:center;justify-content:center;height:18px;padding:0 5px;background:#ffb3c7;color:#17120f;font-size:9px;font-weight:700;border-radius:3px}
 .cz-acc{margin-top:18px;border-top:1px solid var(--cz-line)}
 .cz-acc details{border-bottom:1px solid var(--cz-line)}
 .cz-acc summary{list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:54px;font-size:12.5px;letter-spacing:.04em;cursor:pointer}
@@ -459,3 +459,9 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-ft-logo{width:220px;height:90px;max-height:none;object-fit:cover;object-position:center}
 .cz-mnu-top img{width:120px;height:40px;max-height:none;object-fit:cover}
 @media (max-width:900px){.cz-logo img{width:150px;height:48px}}
+/* photo crops for the shoot images */
+.cz-bfs img{object-position:70% 35%}
+.cz-split .cz-half img{object-position:center 25%}
+.cz-tile img{object-position:center 30%}
+.cz-story-i img{object-position:65% center}
+.cz-story-i img{object-position:60% 35%}
