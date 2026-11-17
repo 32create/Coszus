@@ -593,3 +593,19 @@ html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
 .cz-bfstrip-in{width:100%;box-sizing:border-box;color:var(--cz-cream)}
 .cz-panel h1,.cz-col-hd h1{font-family:var(--cz-serif) !important}
 .cz-col-hd h1 span{font-family:var(--cz-font) !important}
+
+/* ================= Type: Menyard-style (one clean sans, bold caps headlines) ================= */
+:root{--cz-serif:var(--cz-font)}
+.cz-bfh,.cz-bfband h1,.cz-bfhero h1,.cz-lock h1,.cz-story h2,.cz-t,.cz-help-t h2,.cz-steal-t h2,.cz-help-c .cz-t,.cz-col-hd h1,.cz-panel h1{font-family:var(--cz-font) !important;font-weight:700 !important;text-transform:uppercase !important;letter-spacing:-.02em !important}
+.cz-bfh{font-size:clamp(56px,8vw,120px);line-height:.9}
+.cz-bfhero h1,.cz-lock h1{font-size:clamp(56px,7vw,112px);line-height:.9}
+.cz-bfband h1{font-size:clamp(48px,7vw,112px);line-height:.92}
+.cz-story h2,.cz-steal-t h2{font-size:clamp(28px,3vw,42px);line-height:1}
+.cz-help-t h2{font-size:clamp(22px,2vw,30px)}
+.cz-t{font-size:clamp(22px,2vw,30px)}
+.cz-col-hd h1{font-size:clamp(26px,2.6vw,38px)}
+.cz-panel h1{font-size:18px !important;letter-spacing:.01em !important;line-height:1.25}
+/* product names back to bold caps, like Menyard */
+.cz-nr{text-transform:uppercase;font-weight:600;font-size:11.5px;letter-spacing:.03em}
+.cz-set-n a{text-transform:uppercase;letter-spacing:.03em;font-size:11px}
+@media (max-width:900px){.cz-t{font-size:16px}.cz-panel h1{font-size:16px !important}}
