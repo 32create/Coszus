@@ -42,3 +42,17 @@
   window.addEventListener('resize', setHd, { passive: true });
   document.addEventListener('DOMContentLoaded', setHd);
 })();
+
+/* Countdown clocks: any element with data-cz-cd="2026-11-27T00:00:00Z" */
+(function () {
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    document.querySelectorAll('[data-cz-cd]').forEach(function (el) {
+      var t = Date.parse(el.dataset.czCd); if (isNaN(t)) return;
+      var left = Math.max(0, t - Date.now());
+      var set = function (k, v) { var b = el.querySelector('[data-' + k + ']'); if (b) b.textContent = pad(v); };
+      set('d', Math.floor(left / 864e5)); set('h', Math.floor(left / 36e5) % 24); set('m', Math.floor(left / 6e4) % 60); set('s', Math.floor(left / 1e3) % 60);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () { tick(); setInterval(tick, 1000); });
+})();

@@ -1,0 +1,32 @@
+<section class="cz cz-ugcs">
+  <h2 class="cz-h2" style="padding:0 var(--cz-g);">{{ section.settings.heading }}</h2>
+  {%- if section.settings.sub != blank -%}<p class="cz-row-sub" style="padding:0 var(--cz-g);margin:-18px 0 28px;">{{ section.settings.sub }}</p>{%- endif -%}
+  <div class="cz-ugcwrap"><div class="cz-ugc">
+    {%- for i in (1..2) -%}
+      {%- for block in section.blocks -%}
+        <a href="{{ block.settings.product.url | default: block.settings.url | default: '#' }}" {% if i == 1 %}{{ block.shopify_attributes }}{% else %}aria-hidden="true" tabindex="-1"{% endif %}>
+          {%- if block.settings.image != blank -%}{{ block.settings.image | image_url: width: 700 | image_tag: alt: 'Customer photo', loading: 'lazy' }}{%- endif -%}
+          {%- if block.settings.handle != blank -%}<span class="cz-ug-h">{{ block.settings.handle }}</span>{%- endif -%}
+          {%- if block.settings.product != blank -%}<span class="cz-ug-p">Shop {{ block.settings.product.title }}</span>{%- endif -%}
+        </a>
+      {%- endfor -%}
+    {%- endfor -%}
+  </div></div>
+</section>
+{% schema %}
+{
+  "name": "Coszus styled by you",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "STYLED BY YOU" },
+    { "type": "text", "id": "sub", "label": "Line under the heading", "default": "Tag @coszus to be featured. Tap a fit to shop it." }
+  ],
+  "max_blocks": 12,
+  "blocks": [ { "type": "photo", "name": "Customer photo", "settings": [
+    { "type": "image_picker", "id": "image", "label": "Photo" },
+    { "type": "text", "id": "handle", "label": "Instagram handle", "default": "@handle" },
+    { "type": "product", "id": "product", "label": "Product in the photo" },
+    { "type": "url", "id": "url", "label": "Or link" }
+  ]}],
+  "presets": [ { "name": "Coszus styled by you", "blocks": [ { "type": "photo" }, { "type": "photo" }, { "type": "photo" }, { "type": "photo" }, { "type": "photo" } ] } ]
+}
+{% endschema %}

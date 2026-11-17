@@ -1,0 +1,40 @@
+{%- comment -%} Black Friday page hero: countdown + early access sign-up (Shopify customer form, tagged for Klaviyo). {%- endcomment -%}
+<section class="cz cz-bfhero">
+  <div class="cz-bfhero-t">
+    <div class="cz-bfk">{{ section.settings.kicker }}</div>
+    <h1>{{ section.settings.heading | newline_to_br }}</h1>
+    <p>{{ section.settings.text }}</p>
+    {%- if section.settings.ends != blank -%}
+      <div class="cz-cd" role="timer" data-cz-cd="{{ section.settings.ends }}"><div><b data-d>00</b><span>DAYS</span></div><div><b data-h>00</b><span>HRS</span></div><div><b data-m>00</b><span>MINS</span></div><div><b data-s>00</b><span>SECS</span></div></div>
+    {%- endif -%}
+    {%- form 'customer', id: 'CzEarly', class: 'cz-bfform' -%}
+      <input type="hidden" name="contact[tags]" value="newsletter,{{ section.settings.tag }}">
+      {%- if form.posted_successfully? -%}
+        <div role="status" class="cz-bfok">You're on the list. We'll send your early access link.</div>
+      {%- else -%}
+        <label for="CzEarlyEmail" class="cz-vh">Email</label>
+        <input id="CzEarlyEmail" type="email" name="contact[email]" required placeholder="Email address" autocomplete="email">
+        <button type="submit">{{ section.settings.button }}</button>
+        {%- if form.errors -%}<div class="cz-bfok" role="alert" style="flex-basis:100%;font-weight:400;">{{ form.errors.messages.email | default: 'Check your email and try again.' }}</div>{%- endif -%}
+      {%- endif -%}
+    {%- endform -%}
+    {%- if section.settings.whatsapp_url != blank -%}<a href="{{ section.settings.whatsapp_url }}" class="cz-bfwa" target="_blank" rel="noopener">Or join the WhatsApp community</a>{%- endif -%}
+  </div>
+  <div class="cz-bfhero-i">{%- if section.settings.image != blank -%}{{ section.settings.image | image_url: width: 1600 | image_tag: alt: '', loading: 'eager', widths: '700,1100,1600', sizes: '(min-width: 901px) 48vw, 100vw' }}{%- endif -%}</div>
+</section>
+{% schema %}
+{
+  "name": "Coszus Black Friday hero",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Small heading", "default": "STARTS FRIDAY 27 NOVEMBER" },
+    { "type": "textarea", "id": "heading", "label": "Heading", "default": "BLACK\nFRIDAY" },
+    { "type": "textarea", "id": "text", "label": "Text", "default": "Up to 30% off. The community gets in first, so sign up and you'll get the link before it goes live." },
+    { "type": "text", "id": "ends", "label": "Count down to", "info": "Like 2026-11-27T00:00:00Z. Blank hides the clock.", "default": "2026-11-27T00:00:00Z" },
+    { "type": "text", "id": "button", "label": "Button", "default": "GET EARLY ACCESS" },
+    { "type": "text", "id": "tag", "label": "Customer tag for sign-ups", "default": "bf-early-access", "info": "Build the Klaviyo early access segment from this tag" },
+    { "type": "url", "id": "whatsapp_url", "label": "WhatsApp community link" },
+    { "type": "image_picker", "id": "image", "label": "Image" }
+  ],
+  "presets": [ { "name": "Coszus Black Friday hero" } ]
+}
+{% endschema %}

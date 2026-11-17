@@ -1,0 +1,40 @@
+{%- comment -%} Split cream panel: Our story (homepage) or the drop panel (Black Friday page). {%- endcomment -%}
+<section class="cz cz-story{% if section.settings.image_left %} left{% endif %}">
+  <div class="cz-story-t">
+    <div class="cz-kick">{{ section.settings.kicker }}</div>
+    <h2>{{ section.settings.heading | newline_to_br }}</h2>
+    {%- if section.settings.text != blank -%}<div class="cz-story-p">{{ section.settings.text }}</div>{%- endif -%}
+    <div class="cz-story-b">
+      {%- if section.settings.b1 != blank -%}<a class="cz-b1" href="{{ section.settings.u1 | default: '#' }}">{% if section.settings.b1_play %}<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>{% endif %}{{ section.settings.b1 }}</a>{%- endif -%}
+      {%- if section.settings.b2 != blank -%}<a class="cz-b2" href="{{ section.settings.u2 | default: '#' }}">{{ section.settings.b2 }}</a>{%- endif -%}
+    </div>
+  </div>
+  <div class="cz-story-i">
+    {%- if section.settings.video_url != blank -%}
+      {%- if section.settings.video_url.type == 'youtube' -%}
+        <iframe src="https://www.youtube.com/embed/{{ section.settings.video_url.id }}?rel=0" title="{{ section.settings.heading | strip_html | escape }}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      {%- endif -%}
+    {%- elsif section.settings.image != blank -%}
+      {{ section.settings.image | image_url: width: 1600 | image_tag: alt: '', loading: 'lazy', widths: '700,1100,1600', sizes: '(min-width: 901px) 50vw, 100vw' }}
+    {%- endif -%}
+  </div>
+</section>
+{% schema %}
+{
+  "name": "Coszus split panel",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Small heading", "default": "OUR STORY" },
+    { "type": "textarea", "id": "heading", "label": "Heading", "default": "BUILT BY REMI\nAND LEONEL" },
+    { "type": "richtext", "id": "text", "label": "Text", "default": "<p>Two lines from the boys on why they started Coszus, in their words.</p>" },
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "video_url", "id": "video_url", "label": "Or YouTube video", "accept": ["youtube"] },
+    { "type": "checkbox", "id": "image_left", "label": "Image on the left", "default": false },
+    { "type": "text", "id": "b1", "label": "Main button", "default": "WATCH ON YOUTUBE" },
+    { "type": "checkbox", "id": "b1_play", "label": "Play icon on main button", "default": true },
+    { "type": "url", "id": "u1", "label": "Main button link" },
+    { "type": "text", "id": "b2", "label": "Second button", "default": "OUR STORY" },
+    { "type": "url", "id": "u2", "label": "Second button link" }
+  ],
+  "presets": [ { "name": "Coszus split panel" } ]
+}
+{% endschema %}
