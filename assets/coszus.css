@@ -634,3 +634,4 @@ html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
 @media (max-width:900px){.cz-worn-r{grid-auto-columns:62%}}
 /* Kiwi size chart's CSS pulls every parent of its chart up by 27px; undo that on our layout */
 div.shopify-section.section-coszus-product,div.cz.cz-pdp,div.cz-pdp .cz-pdp-grid,div.cz-pdp .cz-panel{margin-bottom:0 !important}
+div.cz.cz-pdp{padding-bottom:var(--cz-sec)}
