@@ -1622,6 +1622,26 @@
         "type": "url",
         "id": "nav_8_url",
         "label": "Link 8 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_9_label",
+        "label": "Link 9"
+      },
+      {
+        "type": "url",
+        "id": "nav_9_url",
+        "label": "Link 9 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_10_label",
+        "label": "Link 10"
+      },
+      {
+        "type": "url",
+        "id": "nav_10_url",
+        "label": "Link 10 goes to"
       }
     ]
   }

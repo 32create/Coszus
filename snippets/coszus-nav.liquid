@@ -3,9 +3,9 @@
   render 'coszus-nav', cls: 'cz-ml', arrow: true, menu: linklists['main-menu']
 {%- endcomment -%}
 {%- assign any = false -%}
-{%- for i in (1..8) -%}{%- assign k = 'nav_' | append: i | append: '_label' -%}{%- if settings[k] != blank -%}{%- assign any = true -%}{%- endif -%}{%- endfor -%}
+{%- for i in (1..10) -%}{%- assign k = 'nav_' | append: i | append: '_label' -%}{%- if settings[k] != blank -%}{%- assign any = true -%}{%- endif -%}{%- endfor -%}
 {%- if any -%}
-  {%- for i in (1..8) -%}
+  {%- for i in (1..10) -%}
     {%- assign lk = 'nav_' | append: i | append: '_label' -%}{%- assign uk = 'nav_' | append: i | append: '_url' -%}
     {%- assign label = settings[lk] -%}
     {%- if label == blank -%}{%- continue -%}{%- endif -%}
