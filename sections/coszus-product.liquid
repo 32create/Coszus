@@ -199,6 +199,7 @@
     </div>
   {%- endif -%}
 
+  <script type="application/ld+json">{{ product | structured_data }}</script>
   <script type="application/json" data-cz-variants>{{ product.variants | json }}</script>
 </div>
 
@@ -215,7 +216,8 @@
   var form = root.querySelector('[data-cz-form]');
   var cta = root.querySelector('[data-cz-cta]');
   var sCta = root.querySelector('[data-cz-sticky-cta]');
-  var money = function (c) { return '£' + (c / 100).toFixed(2); };
+  var moneyFmt = {{ shop.money_format | json }};
+  var money = function (c) { var v = (c / 100).toFixed(2); return moneyFmt.replace(/\{\{\s*\w+\s*\}\}/, moneyFmt.indexOf('no_decimals') > -1 ? String(Math.round(c / 100)) : (moneyFmt.indexOf('comma') > -1 ? v.replace('.', ',') : v)); };
 
   function label() {
     if (!current.available) return 'SOLD OUT';
@@ -252,7 +254,6 @@
   root.addEventListener('click', function (e) {
     var b = e.target.closest('[data-cz-opt]');
     if (b) {
-      if (b.hasAttribute('data-out') && Number(b.dataset.czOpt) === sizeIdx) return;
       sel[Number(b.dataset.czOpt)] = b.dataset.value;
       if (Number(b.dataset.czOpt) === sizeIdx) picked = true;
       update(); return;

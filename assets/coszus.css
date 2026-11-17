@@ -465,3 +465,5 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-tile img{object-position:center 30%}
 .cz-story-i img{object-position:65% center}
 .cz-story-i img{object-position:60% 35%}
+
+.cz-sz[data-out][aria-pressed=true]{border-color:var(--cz-ink);color:#8a8580}
