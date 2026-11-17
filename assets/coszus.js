@@ -52,6 +52,7 @@
     document.querySelectorAll('[data-cz-cd]').forEach(function (el) {
       var t = Date.parse(el.dataset.czCd); if (isNaN(t)) return;
       var left = Math.max(0, t - Date.now());
+      if (left === 0) { el.style.display = 'none'; return; }
       var set = function (k, v) { var b = el.querySelector('[data-' + k + ']'); if (b) b.textContent = pad(v); };
       set('d', Math.floor(left / 864e5)); set('h', Math.floor(left / 36e5) % 24); set('m', Math.floor(left / 6e4) % 60); set('s', Math.floor(left / 1e3) % 60);
     });
