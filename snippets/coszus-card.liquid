@@ -81,8 +81,8 @@
       assign colour = o.selected_value
     endif
   endfor
-  if colour == '' and product.metafields.custom.colour != blank
-    assign colour = product.metafields.custom.colour
+  if colour == '' and product.metafields.custom.color_name != blank
+    assign colour = product.metafields.custom.color_name.value
   endif
 -%}
 <div class="cz-card">

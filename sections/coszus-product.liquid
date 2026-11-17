@@ -28,7 +28,7 @@
       assign photo_count = photo_count | plus: 1
     endif
   endfor
-  assign model_line = product.metafields.custom.model_line | default: section.settings.model_line
+  assign model_line = product.metafields.custom.model_info.value | default: product.metafields.custom.model_line | default: section.settings.model_line
   assign klarna = product.price | divided_by: 3
 -%}
 
@@ -82,7 +82,19 @@
         <ul class="cz-bul">{%- for b in bullets -%}<li>{{ b }}</li>{%- endfor -%}</ul>
       {%- endif -%}
 
-      {%- if colour != '' -%}
+      {%- assign group = product.metafields.custom.product_group.value -%}
+      {%- if group != blank -%}
+        <div class="cz-lbl" style="margin-top:22px;"><strong>Colour:</strong> {{ product.metafields.custom.color_name.value | default: colour }}</div>
+        <div class="cz-sws">
+          {%- for p in collections.all.products -%}
+            {%- if p.metafields.custom.product_group.value == group -%}
+              <a href="{{ p.url }}" class="cz-sw{% if p.id == product.id %} on{% endif %}" title="{{ p.metafields.custom.color_name.value | default: p.title | escape }}"{% if p.id == product.id %} aria-current="true"{% endif %}>
+                {%- if p.featured_image -%}{{ p.featured_image | image_url: width: 140 | image_tag: alt: p.metafields.custom.color_name.value | default: p.title }}{%- endif -%}
+              </a>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      {%- elsif colour != '' -%}
         <div class="cz-lbl" style="margin-top:22px;"><strong>Colour:</strong> {{ colour }}</div>
         {%- for o in product.options_with_values -%}
           {%- assign on = o.name | downcase -%}
