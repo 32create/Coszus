@@ -609,3 +609,15 @@ html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
 .cz-nr{text-transform:uppercase;font-weight:600;font-size:11.5px;letter-spacing:.03em}
 .cz-set-n a{text-transform:uppercase;letter-spacing:.03em;font-size:11px}
 @media (max-width:900px){.cz-t{font-size:16px}.cz-panel h1{font-size:16px !important}}
+/* colour swatches: photo fills the tile, no box; the chosen one gets a thin bar underneath */
+.cz-sws{gap:10px}
+.cz-sw{position:relative;width:54px;height:66px;padding:0 !important;border:0 !important;border-radius:2px;overflow:visible;background:#ececea;opacity:.7;transition:opacity .2s}
+.cz-sw img{width:100%;height:100%;object-fit:cover;display:block;border-radius:2px;transform:scale(1.18)}
+.cz-sw{overflow:hidden}
+.cz-sw:hover{opacity:1}
+.cz-sw.on{opacity:1;overflow:visible}
+.cz-sw.on img{clip-path:inset(0 round 2px)}
+.cz-sw.on::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:2px;background:var(--cz-brown)}
+.cz-sw,.cz-sw.on{overflow:hidden}
+.cz-sw.on img{clip-path:none}
+.cz-sw.on::after{bottom:0;height:2px;z-index:1}
