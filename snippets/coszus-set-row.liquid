@@ -1,0 +1,13 @@
+{%- comment -%} One "Complete the set" row on the product page. render 'coszus-set-row', p: product {%- endcomment -%}
+{%- if p.available -%}
+  <div class="cz-set-r">
+    <a href="{{ p.url }}" class="cz-set-i">{%- if p.featured_image -%}{{ p.featured_image | image_url: width: 200 | image_tag: alt: '', loading: 'lazy' }}{%- endif -%}</a>
+    <div class="cz-set-n"><a href="{{ p.url }}">{{ p.title }}</a><span>{{ p.price | money }}</span></div>
+    {%- if p.has_only_default_variant -%}
+      <button type="button" class="cz-set-b" data-cz-add="{{ p.selected_or_first_available_variant.id }}" data-cz-name="{{ p.title | escape }}">ADD</button>
+    {%- else -%}
+      <select class="cz-set-s" aria-label="Size for {{ p.title | escape }}" data-cz-set-sel><option value="">Size</option>{%- for v in p.variants -%}{%- if v.available -%}<option value="{{ v.id }}">{{ v.title }}</option>{%- endif -%}{%- endfor -%}</select>
+      <button type="button" class="cz-set-b" data-cz-add="" data-cz-name="{{ p.title | escape }}" disabled>ADD</button>
+    {%- endif -%}
+  </div>
+{%- endif -%}

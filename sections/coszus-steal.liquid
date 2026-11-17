@@ -1,0 +1,65 @@
+{%- comment -%}
+  Steal their style: one campaign photo with tappable dots on each piece, and the pieces listed
+  beside it with quick add. Each block is one piece: product + where the dot sits (% across, % down).
+{%- endcomment -%}
+{%- assign has_items = false -%}
+{%- for b in section.blocks -%}{%- if b.settings.product != blank -%}{%- assign has_items = true -%}{%- endif -%}{%- endfor -%}
+{%- if has_items or request.design_mode -%}
+<section class="cz cz-steal" id="CzSteal-{{ section.id }}">
+  <div class="cz-steal-img">
+    {%- render 'coszus-img', image: section.settings.image, asset: section.settings.image_asset, width: 1600, alt: section.settings.heading, sizes: '(min-width: 901px) 55vw, 100vw' -%}
+    {%- for b in section.blocks -%}
+      {%- if b.settings.product == blank -%}{%- continue -%}{%- endif -%}
+      <button type="button" class="cz-dot" style="left:{{ b.settings.x }}%;top:{{ b.settings.y }}%;" data-cz-dot="{{ forloop.index0 }}" aria-label="Show {{ b.settings.product.title | escape }}" {{ b.shopify_attributes }}><span></span></button>
+    {%- endfor -%}
+  </div>
+  <div class="cz-steal-t">
+    <div class="cz-kick" style="color:var(--cz-brown);">{{ section.settings.kicker }}</div>
+    <h2>{{ section.settings.heading }}</h2>
+    {%- if section.settings.text != blank -%}<p>{{ section.settings.text }}</p>{%- endif -%}
+    <div class="cz-steal-list">
+      {%- for b in section.blocks -%}
+        {%- assign p = b.settings.product -%}
+        {%- if p == blank -%}{%- continue -%}{%- endif -%}
+        <div class="cz-steal-r" data-cz-item="{{ forloop.index0 }}">
+          <a href="{{ p.url }}" class="cz-set-i">{%- if p.featured_image -%}{{ p.featured_image | image_url: width: 240 | image_tag: alt: '', loading: 'lazy' }}{%- endif -%}</a>
+          <div class="cz-set-n"><a href="{{ p.url }}">{{ p.title }}</a><span>{{ p.price | money }}</span></div>
+          <a href="{{ p.url }}" class="cz-set-b">SHOP</a>
+        </div>
+      {%- endfor -%}
+      {%- if has_items == false -%}<p style="font-size:12px;color:var(--cz-mute);">Add a block per piece in the photo, pick the product and move the dot.</p>{%- endif -%}
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  var r = document.getElementById('CzSteal-{{ section.id }}'); if (!r) return;
+  function pick(i) {
+    r.querySelectorAll('[data-cz-dot]').forEach(function (d) { d.classList.toggle('on', d.dataset.czDot === String(i)); });
+    r.querySelectorAll('[data-cz-item]').forEach(function (d) { d.classList.toggle('on', d.dataset.czItem === String(i)); });
+    var it = r.querySelector('[data-cz-item="' + i + '"]'); if (it && window.innerWidth <= 900) it.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  r.addEventListener('click', function (e) { var d = e.target.closest('[data-cz-dot]'); if (d) pick(d.dataset.czDot); });
+  r.addEventListener('mouseover', function (e) { var d = e.target.closest('[data-cz-item]'); if (d) pick(d.dataset.czItem); });
+})();
+</script>
+{%- endif -%}
+{% schema %}
+{
+  "name": "Coszus steal their style",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Photo" },
+    { "type": "text", "id": "image_asset", "label": "Or theme image file" },
+    { "type": "text", "id": "kicker", "label": "Small heading", "default": "STEAL THEIR STYLE" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "SHOP THE FIT" },
+    { "type": "text", "id": "text", "label": "Text", "default": "Tap a dot to see the piece." }
+  ],
+  "max_blocks": 6,
+  "blocks": [ { "type": "piece", "name": "Piece", "settings": [
+    { "type": "product", "id": "product", "label": "Product" },
+    { "type": "range", "id": "x", "label": "Dot across (%)", "min": 0, "max": 100, "step": 1, "default": 50 },
+    { "type": "range", "id": "y", "label": "Dot down (%)", "min": 0, "max": 100, "step": 1, "default": 50 }
+  ]}],
+  "presets": [ { "name": "Coszus steal their style" } ]
+}
+{% endschema %}

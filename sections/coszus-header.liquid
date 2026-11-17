@@ -37,7 +37,7 @@
         {{ section.settings.logo_dark | image_url: width: 300 | image_tag: alt: shop.name, loading: 'lazy' }}
       {%- endif -%}
     </div>
-    <form action="{{ routes.search_url }}" method="get" role="search" class="cz-msearch">
+    <form action="{{ routes.search_url }}" method="get" role="search" class="cz-msearch" data-cz-search-open data-cz-close>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1d1715" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
       <label class="cz-vh" for="CzMenuSearch">Search</label>
       <input id="CzMenuSearch" type="search" name="q" placeholder="Search for…">
@@ -66,13 +66,36 @@
     <div class="cz-mloc">{{ localization.country.iso_code }} / {{ cart.currency.symbol }} / English</div>
   </nav>
 
+
+  <div class="cz-srch" id="CzSearch" hidden>
+    <div class="cz-srch-p" role="dialog" aria-modal="true" aria-label="Search">
+      <form action="{{ routes.search_url }}" method="get" role="search" class="cz-srch-f">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <label class="cz-vh" for="CzSearchInput">Search</label>
+        <input id="CzSearchInput" type="search" name="q" placeholder="Search hoodies, caps, polos…" autocomplete="off" data-cz-search-input>
+        <input type="hidden" name="options[prefix]" value="last">
+        <button type="button" class="cz-srch-x" data-cz-search-close aria-label="Close search">×</button>
+      </form>
+      <div class="cz-srch-b">
+        <div class="cz-srch-pop" data-cz-search-pop>
+          <small>POPULAR</small>
+          <div>{%- for link in menu.links limit: 8 -%}<a href="{{ link.url }}">{{ link.title }}</a>{%- endfor -%}</div>
+        </div>
+        <div class="cz-srch-res" data-cz-search-res hidden>
+          <div class="cz-grid six" data-cz-search-grid></div>
+          <a class="cz-srch-all" href="#" data-cz-search-all>SEE ALL RESULTS</a>
+        </div>
+        <p class="cz-srch-none" data-cz-search-none hidden>Nothing for that. Try "hoodie", "cap" or "polo".</p>
+      </div>
+    </div>
+  </div>
   <div class="cz-hd">
     <div class="cz-hbar">
       <div style="display:flex;align-items:center;">
         <button type="button" class="cz-ib cz-mb" data-cz-open aria-label="Open menu" aria-controls="CzMenu" aria-expanded="false">
           <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg>
         </button>
-        <a class="cz-ib" href="{{ routes.search_url }}" aria-label="Search">
+        <a class="cz-ib" href="{{ routes.search_url }}" aria-label="Search" data-cz-search-open>
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
         </a>
       </div>
@@ -108,6 +131,13 @@
         </a>
       </div>
     </div>
+    {%- if settings.bf_collection != blank -%}
+      <a class="cz-bfstrip" href="{{ settings.bf_collection.url }}" data-bf-on aria-label="{{ settings.bf_tagline | escape }}">
+        <span class="cz-bfstrip-mq" aria-hidden="true">
+          {%- for i in (1..8) -%}<span><b>{{ settings.bf_name | upcase }}</b> {{ settings.bf_tagline | remove: settings.bf_name | remove_first: '·' | strip | upcase }}</span><i>●</i><span>{{ settings.bf_offer | upcase }}</span><i>●</i>{%- endfor -%}
+        </span>
+      </a>
+    {%- endif -%}
     {%- if menu.links.size > 0 -%}
       <nav class="cz-cbar" aria-label="Categories">
         {%- if settings.bf_collection != blank -%}<a href="{{ settings.bf_collection.url }}" class="sale" data-bf-on>{{ settings.bf_name | default: 'Black Friday' | upcase }}</a>{%- endif -%}
@@ -121,6 +151,39 @@
 </div>
 
 <script>
+(function () {
+  var p = document.getElementById('CzSearch'); if (!p || p.dataset.ready) return; p.dataset.ready = '1';
+  var input = p.querySelector('[data-cz-search-input]'), grid = p.querySelector('[data-cz-search-grid]'), res = p.querySelector('[data-cz-search-res]'), pop = p.querySelector('[data-cz-search-pop]'), none = p.querySelector('[data-cz-search-none]'), all = p.querySelector('[data-cz-search-all]');
+  var t, ctl, fmt = {{ shop.money_format | json }};
+  var money = function (v) { var n = Number(v); if (isNaN(n)) n = parseFloat(v); return fmt.replace(/\{\{\s*\w+\s*\}\}/, n.toFixed(2)); };
+  function open() { p.hidden = false; document.documentElement.style.overflow = 'hidden'; setTimeout(function () { input.focus(); }, 30); }
+  function close() { p.hidden = true; document.documentElement.style.overflow = ''; }
+  function esc(x) { var d = document.createElement('div'); d.textContent = x == null ? '' : x; return d.innerHTML; }
+  function run(q) {
+    if (ctl) ctl.abort(); ctl = window.AbortController ? new AbortController() : null;
+    if (q.length < 2) { res.hidden = true; none.hidden = true; pop.hidden = false; return; }
+    fetch('{{ routes.predictive_search_url }}.json?q=' + encodeURIComponent(q) + '&resources[type]=product&resources[limit]=6&resources[options][unavailable_products]=last', ctl ? { signal: ctl.signal } : {})
+      .then(function (r) { return r.json(); }).then(function (j) {
+        var ps = (j.resources && j.resources.results && j.resources.results.products) || [];
+        pop.hidden = true; all.href = '{{ routes.search_url }}?q=' + encodeURIComponent(q) + '&options[prefix]=last';
+        if (!ps.length) { res.hidden = true; none.hidden = false; return; }
+        none.hidden = true; res.hidden = false;
+        grid.innerHTML = ps.map(function (x) {
+          var img = x.featured_image && x.featured_image.url ? x.featured_image.url : (x.image || '');
+          if (img) img += (img.indexOf('?') > -1 ? '&' : '?') + 'width=500';
+          var sale = Number(x.compare_at_price_max) > Number(x.price);
+          return '<a class="cz-mini" href="' + x.url + '"><span class="cz-mini-i">' + (img ? '<img loading="lazy" alt="" src="' + img + '">' : '') + '</span><span class="cz-nr"><span class="cz-pn">' + esc(x.title) + '</span><span class="cz-pr">' + (sale ? '<s>' + money(x.compare_at_price_max) + '</s> <b>' + money(x.price) + '</b>' : money(x.price)) + '</span></span></a>';
+        }).join('');
+      }).catch(function () {});
+  }
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-cz-search-open]')) { e.preventDefault(); open(); }
+    else if (e.target.closest('[data-cz-search-close]') || e.target === p) close();
+  });
+  input.addEventListener('input', function () { clearTimeout(t); var q = input.value.trim(); t = setTimeout(function () { run(q); }, 180); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !p.hidden) close(); });
+})();
+
   (function () {
     var m = document.getElementById('CzMenu');
     if (!m || m.dataset.ready) return;

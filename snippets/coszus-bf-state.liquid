@@ -27,7 +27,10 @@
   <script>
     (function () {
       var s = {{ start }} * 1000;
-      if ({{ live }} || (s > 0 && Date.now() >= s)) document.documentElement.setAttribute('data-bf', 'live');
+      var pv = /[?&]bf=preview/.test(location.search) && window.Shopify && Shopify.theme && Shopify.theme.role !== 'main';
+      if (pv) { try { sessionStorage.setItem('czBfPreview', '1'); } catch (e) {} }
+      try { if (sessionStorage.getItem('czBfPreview') === '1' && window.Shopify && Shopify.theme && Shopify.theme.role !== 'main') pv = true; } catch (e) {}
+      if (pv || {{ live }} || (s > 0 && Date.now() >= s)) document.documentElement.setAttribute('data-bf', 'live');
     })();
   </script>
   <style>

@@ -14,7 +14,7 @@
               <span class="cz-bfp" data-bf-off>{{ block.settings.text }}</span>
               <span class="cz-bfp" data-bf-on>{{ block.settings.live_text }}</span>
               {%- if block.settings.ends != blank -%}
-                <span class="cz-cdn" role="timer" data-cz-cd="{{ block.settings.ends }}"><span><b data-d>00</b>DAYS</span><span><b data-h>00</b>HRS</span><span><b data-m>00</b>MINS</span><span><b data-s>00</b>SECS</span></span>
+                <span class="cz-cdn" role="timer" data-bf-off data-cz-cd="{{ block.settings.ends }}"><span><b data-d>00</b>DAYS</span><span><b data-h>00</b>HRS</span><span><b data-m>00</b>MINS</span><span><b data-s>00</b>SECS</span></span>
               {%- endif -%}
               {%- if block.settings.button != blank -%}<span class="cz-bfb" data-bf-off>{{ block.settings.button }}</span>{%- endif -%}
               {%- if block.settings.live_button != blank -%}<span class="cz-bfb" data-bf-on>{{ block.settings.live_button }}</span>{%- endif -%}

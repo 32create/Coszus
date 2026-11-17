@@ -146,6 +146,22 @@
         {%- endcase -%}
       {%- endfor -%}
 
+      {%- if section.settings.show_set -%}
+        {%- assign partners = product.metafields.custom.set_partner.value -%}
+        <div class="cz-set" data-cz-set data-url="{{ routes.product_recommendations_url }}.json?product_id={{ product.id }}&limit=4&intent=complementary"{% if partners == blank %} hidden{% endif %}>
+          <div class="cz-set-h"><span>COMPLETE THE SET</span></div>
+          <div data-cz-set-rows>
+            {%- if partners != blank -%}
+              {%- if partners.first -%}
+                {%- for p in partners limit: 2 -%}{%- render 'coszus-set-row', p: p -%}{%- endfor -%}
+              {%- else -%}
+                {%- render 'coszus-set-row', p: partners -%}
+              {%- endif -%}
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endif -%}
+
       <div class="cz-usps">
         <div class="cz-usp" data-cz-stock>
           {%- if current.available -%}<span class="cz-dot"></span>In stock, ready to ship{%- else -%}<span class="cz-dot off"></span>Sold out in this size{%- endif -%}
@@ -314,6 +330,37 @@
     }).catch(function () {});
   });
 
+  // Complete the set: custom.set_partner if set (rendered above), else Shopify complementary, else related
+  (function () {
+    var box = root.querySelector('[data-cz-set]'); if (!box) return;
+    var rows = box.querySelector('[data-cz-set-rows]');
+    function wire() {
+      rows.querySelectorAll('[data-cz-set-sel]').forEach(function (sel) {
+        var btn = sel.nextElementSibling;
+        sel.addEventListener('change', function () { btn.dataset.czAdd = sel.value; btn.dataset.czSize = sel.value ? sel.options[sel.selectedIndex].text : ''; btn.disabled = !sel.value; });
+      });
+    }
+    if (rows.children.length) { wire(); return; }
+    var esc = function (x) { var d = document.createElement('div'); d.textContent = x; return d.innerHTML; };
+    fetch(box.dataset.url).then(function (r) { return r.json(); })
+      .then(function (j) { return (j.products && j.products.length) ? j : fetch(box.dataset.url.replace('intent=complementary', 'intent=related')).then(function (r) { return r.json(); }); })
+      .then(function (j) {
+        var me = {{ product.title | downcase | json }};
+        var ps = (j.products || []).filter(function (p) { return p.available && p.title.toLowerCase() !== me; }).slice(0, 2);
+        if (!ps.length) return;
+        rows.innerHTML = ps.map(function (p) {
+          var opts = p.variants.filter(function (v) { return v.available; });
+          var one = p.variants.length === 1;
+          var img = p.featured_image ? p.featured_image + (p.featured_image.indexOf('?') > -1 ? '&' : '?') + 'width=200' : '';
+          return '<div class="cz-set-r"><a href="' + p.url + '" class="cz-set-i">' + (img ? '<img alt="" loading="lazy" src="' + img + '">' : '') + '</a>' +
+            '<div class="cz-set-n"><a href="' + p.url + '">' + esc(p.title) + '</a><span>' + money(p.price) + '</span></div>' +
+            (one ? '<button type="button" class="cz-set-b" data-cz-add="' + opts[0].id + '" data-cz-name="' + esc(p.title) + '">ADD</button>'
+                 : '<select class="cz-set-s" aria-label="Size" data-cz-set-sel><option value="">Size</option>' + opts.map(function (v) { return '<option value="' + v.id + '">' + esc(v.title) + '</option>'; }).join('') + '</select><button type="button" class="cz-set-b" data-cz-add="" data-cz-name="' + esc(p.title) + '" disabled>ADD</button>') + '</div>';
+        }).join('');
+        wire(); box.hidden = false;
+      }).catch(function () {});
+  })();
+
   // Recently viewed (saved in this browser)
   (function () {
     var key = 'czRecent', h = root.dataset.handle, list = [];
@@ -346,7 +393,8 @@
     { "type": "text", "id": "usp_returns", "label": "Returns line", "default": "Free exchanges and 14 day returns" },
     { "type": "checkbox", "id": "show_klarna", "label": "Show Klarna pay in 3 line", "default": true },
     { "type": "richtext", "id": "ship_text", "label": "Shipping & returns accordion", "default": "<p>Free UK shipping over £80. Orders before 3pm Monday to Friday leave the same day from our UK warehouse. Free exchanges and 14 day returns.</p>" },
-    { "type": "checkbox", "id": "show_style_with", "label": "Show Style with (complementary products)", "default": true, "info": "Set complementary products in the Search & Discovery app" }
+    { "type": "checkbox", "id": "show_style_with", "label": "Show Style with (complementary products)", "default": true, "info": "Set complementary products in the Search & Discovery app" },
+    { "type": "checkbox", "id": "show_set", "label": "Show Complete the set in the buy panel", "default": true, "info": "Uses the product's custom.set_partner metafield if set, otherwise Search & Discovery complementary products, otherwise related products" }
   ],
   "blocks": [
     { "type": "@app" },
