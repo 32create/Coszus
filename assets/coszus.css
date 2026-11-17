@@ -467,3 +467,18 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-story-i img{object-position:60% 35%}
 
 .cz-sz[data-out][aria-pressed=true]{border-color:var(--cz-ink);color:#8a8580}
+
+/* ---------- Black Friday (only shows when the switch is on and live) ---------- */
+.cz-bf-msg{color:#fff}
+.cz-bfband{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;background:var(--cz-dark);color:var(--cz-cream);padding:clamp(48px,6vw,88px) var(--cz-g) clamp(32px,4vw,48px)}
+.cz-bfband-t{display:flex;flex-direction:column;gap:12px}
+.cz-bfband h1{margin:0;font-size:clamp(44px,6.5vw,96px);line-height:.9;font-weight:700;letter-spacing:-.01em;color:var(--cz-cream)}
+.cz-bfband p{margin:0;font-size:15px;color:#E8DCCD}
+.cz-bfband-c{display:flex;flex-direction:column;gap:8px}
+.cz-bfband-c small{font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--cz-sand)}
+.cz-bfchips{padding-top:14px}
+.cz-bfline{margin-top:10px;display:inline-block;padding:6px 10px;border-radius:2px;background:var(--cz-dark);color:var(--cz-cream);font-size:10px;font-weight:600;letter-spacing:.16em}
+html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
+.cz-bfband .cz-bfk{text-transform:uppercase}
+.cz-chips button.cz-chip{border:0;background:none;padding:0;cursor:pointer;font-family:inherit}
+.cz-chips .cz-chip[hidden]{display:none}

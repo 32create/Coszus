@@ -77,6 +77,10 @@
         {%- endif -%}
       </div>
 
+      {%- if current.compare_at_price > current.price and settings.bf_name != blank -%}
+        {%- assign save = current.compare_at_price | minus: current.price -%}
+        <div class="cz-bfline" data-bf-on>{{ settings.bf_name | upcase }} PRICE · YOU SAVE {{ save | money }}</div>
+      {%- endif -%}
       {%- assign bullets = product.metafields.custom.bullets.value -%}
       {%- if bullets != blank -%}
         <ul class="cz-bul">{%- for b in bullets -%}<li>{{ b }}</li>{%- endfor -%}</ul>

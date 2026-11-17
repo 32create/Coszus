@@ -1465,5 +1465,75 @@
         "default": "scheme-1"
       }
     ]
+  },
+  {
+    "name": "Coszus Black Friday",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "One switch for the Black Friday extras: red Black Friday link in the category bar, Black Friday messages in the scrolling bar, the Black Friday band and category chips on the sale collection, the 'Black Friday price' line on product pages, and the homepage slide flipping to 'Now on'. Nothing shows until this is on AND the start time has passed. Untick to take it all down at once."
+      },
+      {
+        "type": "checkbox",
+        "id": "bf_enabled",
+        "label": "Turn on Black Friday",
+        "default": false
+      },
+      {
+        "type": "text",
+        "id": "bf_start",
+        "label": "Starts (UK time)",
+        "default": "2026-11-22 18:30",
+        "info": "YYYY-MM-DD HH:MM, UK time. Checked in each visitor's browser, so cached pages flip on time too."
+      },
+      {
+        "type": "text",
+        "id": "bf_end",
+        "label": "Ends (UK time, optional)",
+        "info": "Shows an 'ends in' clock on the sale page. Blank hides it."
+      },
+      {
+        "type": "checkbox",
+        "id": "bf_editor_preview",
+        "label": "Preview in the theme editor",
+        "default": false,
+        "info": "Shows it all as if live, in the editor only."
+      },
+      {
+        "type": "header",
+        "content": "Labels"
+      },
+      {
+        "type": "text",
+        "id": "bf_name",
+        "label": "Sale name",
+        "default": "Black Friday"
+      },
+      {
+        "type": "text",
+        "id": "bf_tagline",
+        "label": "Short line",
+        "default": "Black Friday · up to 70% off"
+      },
+      {
+        "type": "text",
+        "id": "bf_offer",
+        "label": "Offer line",
+        "default": "New collection out now, already on sale"
+      },
+      {
+        "type": "collection",
+        "id": "bf_collection",
+        "label": "Black Friday collection",
+        "info": "Where the menu link and homepage slide go. This page gets the Black Friday band and chips."
+      },
+      {
+        "type": "textarea",
+        "id": "bf_chips",
+        "label": "Category chips on the Black Friday page",
+        "default": "Hoodies: hoodie\nKnitwear: knit, zip knit\nOuterwear: puffer, jacket\nPolos: polo, rugby\nT-Shirts: t-shirt, tee, long sleeve\nTrousers: trouser\nShorts: shorts\nCaps: cap, trucker, beanie",
+        "info": "One chip per line: Label: words to match in the product name, comma separated. Chips with nothing to show hide themselves."
+      }
+    ]
   }
 ]

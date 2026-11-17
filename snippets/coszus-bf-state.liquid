@@ -1,0 +1,39 @@
+{%- comment -%}
+  Coszus Black Friday switch (Theme settings > Coszus Black Friday), rendered in <head>.
+  Sets <html data-bf="live"> once the start time has passed (checked in the browser so cached
+  pages flip on time). [data-bf-on] shows only while live, [data-bf-off] hides while live.
+  Switch off: nothing is output and the site is exactly as before.
+{%- endcomment -%}
+{%- liquid
+  assign bf_preview = false
+  if request.design_mode and settings.bf_editor_preview
+    assign bf_preview = true
+  endif
+-%}
+{%- if settings.bf_enabled or bf_preview -%}
+  {%- liquid
+    assign raw = settings.bf_start | strip
+    assign start = raw | date: '%s'
+    if raw == blank or start == raw
+      assign start = 0
+    endif
+    assign start = start | plus: 0
+    assign now_ts = 'now' | date: '%s' | plus: 0
+    assign live = false
+    if bf_preview or start > 0 and now_ts >= start
+      assign live = true
+    endif
+  -%}
+  <script>
+    (function () {
+      var s = {{ start }} * 1000;
+      if ({{ live }} || (s > 0 && Date.now() >= s)) document.documentElement.setAttribute('data-bf', 'live');
+    })();
+  </script>
+  <style>
+    html:not([data-bf='live']) [data-bf-on]{display:none !important}
+    html[data-bf='live'] [data-bf-off]{display:none !important}
+  </style>
+{%- else -%}
+  <style>[data-bf-on]{display:none !important}</style>
+{%- endif -%}

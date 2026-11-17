@@ -9,12 +9,45 @@
 -%}
 {%- paginate collection.products by per_page -%}
 <div class="cz cz-col" id="CzCol-{{ section.id }}">
-  <div class="cz-col-hd">
+  {%- liquid
+    assign is_bf = false
+    if settings.bf_collection != blank and settings.bf_collection.handle == collection.handle
+      if settings.bf_enabled or request.design_mode and settings.bf_editor_preview
+        assign is_bf = true
+      endif
+    endif
+  -%}
+  {%- if is_bf -%}
+    <div class="cz-bfband" data-bf-on>
+      <div class="cz-bfband-t">
+        <span class="cz-bfk">{{ settings.bf_tagline }}</span>
+        <h1>{{ settings.bf_name | upcase }}</h1>
+        {%- if settings.bf_offer != blank -%}<p>{{ settings.bf_offer }}</p>{%- endif -%}
+      </div>
+      {%- if settings.bf_end != blank -%}
+        {%- assign end_raw = settings.bf_end | strip -%}
+        {%- assign end_iso = end_raw | date: '%Y-%m-%dT%H:%M:%S%z' -%}
+        <div class="cz-bfband-c"><small>ENDS IN</small><span class="cz-cdn" role="timer" data-cz-cd="{{ end_iso }}"><span><b data-d>00</b>DAYS</span><span><b data-h>00</b>HRS</span><span><b data-m>00</b>MINS</span><span><b data-s>00</b>SECS</span></span></div>
+      {%- endif -%}
+    </div>
+    {%- assign lines = settings.bf_chips | newline_to_br | split: '<br />' -%}
+    <nav class="cz-chips cz-bfchips" aria-label="Black Friday categories" data-bf-on data-cz-bfchips>
+      <button type="button" class="cz-chip on" data-k="">All</button>
+      {%- for raw in lines -%}
+        {%- assign line = raw | strip -%}
+        {%- if line == blank -%}{%- continue -%}{%- endif -%}
+        {%- assign label = line | split: ':' | first | strip -%}
+        {%- assign words = line | remove_first: label | remove_first: ':' | strip | default: label -%}
+        <button type="button" class="cz-chip" data-k="{{ words | downcase | escape }}">{{ label }}</button>
+      {%- endfor -%}
+    </nav>
+  {%- endif -%}
+  <div class="cz-col-hd"{% if is_bf %} data-bf-off{% endif %}>
     <h1>{{ collection.title }} <span>({{ collection.products_count }})</span></h1>
   </div>
 
   {%- if chips.links.size > 0 -%}
-    <nav class="cz-chips" aria-label="Categories">
+    <nav class="cz-chips" aria-label="Categories"{% if is_bf %} data-bf-off{% endif %}>
       {%- for link in chips.links -%}
         <a class="cz-chip{% if link.active %} on{% endif %}" href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>{{ link.title }}</a>
       {%- endfor -%}
@@ -123,6 +156,19 @@
       if (grid) grid.classList.toggle('one', l === 'one');
       root.querySelectorAll('[data-cz-layout]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.czLayout === l ? 'true' : 'false'); });
       store.set('czLayout', l);
+    }
+    var bfc = root.querySelector('[data-cz-bfchips]');
+    if (bfc && grid) {
+      var cards = function () { return Array.prototype.slice.call(grid.querySelectorAll('.cz-card')); };
+      var title = function (c) { var a = c.querySelector('.cz-pn'); return a ? a.textContent.toLowerCase() : ''; };
+      var match = function (c, k) { if (!k) return true; return k.split(',').some(function (w) { w = w.trim(); return w && title(c).indexOf(w) > -1; }); };
+      bfc.querySelectorAll('[data-k]').forEach(function (b) { if (b.dataset.k && !cards().some(function (c) { return match(c, b.dataset.k); })) b.hidden = true; });
+      bfc.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-k]'); if (!b) return;
+        bfc.querySelectorAll('[data-k]').forEach(function (x) { x.classList.toggle('on', x === b); });
+        cards().forEach(function (c) { c.style.display = match(c, b.dataset.k) ? '' : 'none'; });
+        var camp = grid.querySelector('.cz-camp'); if (camp) camp.style.display = b.dataset.k ? 'none' : '';
+      });
     }
     setModel(store.get('czModel') === '1');
     setLayout(store.get('czLayout') || 'grid');

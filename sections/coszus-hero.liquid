@@ -4,16 +4,20 @@
     {%- for block in section.blocks -%}
       {%- case block.type -%}
         {%- when 'countdown' -%}
-          <a class="cz-sl cz-bfs" href="{{ block.settings.url | default: '#' }}" {{ block.shopify_attributes }} aria-label="{{ block.settings.heading | strip_html | escape }}, slide {{ forloop.index }} of {{ forloop.length }}">
+          {%- assign live_url = block.settings.live_url | default: settings.bf_collection.url | default: block.settings.url -%}
+          <a class="cz-sl cz-bfs" href="{{ block.settings.url | default: '#' }}" data-live-href="{{ live_url }}" {{ block.shopify_attributes }} aria-label="{{ block.settings.heading | strip_html | escape }}, slide {{ forloop.index }} of {{ forloop.length }}">
             {%- render 'coszus-img', image: block.settings.image, asset: block.settings.image_asset, width: 2400, alt: '', loading: 'eager', sizes: '100vw' -%}
             <span class="cz-bfc">
-              <span class="cz-bfk">{{ block.settings.kicker }}</span>
+              <span class="cz-bfk" data-bf-off>{{ block.settings.kicker }}</span>
+              <span class="cz-bfk" data-bf-on>{{ block.settings.live_kicker }}</span>
               <span class="cz-bfh">{{ block.settings.heading | newline_to_br }}</span>
-              <span class="cz-bfp">{{ block.settings.text }}</span>
+              <span class="cz-bfp" data-bf-off>{{ block.settings.text }}</span>
+              <span class="cz-bfp" data-bf-on>{{ block.settings.live_text }}</span>
               {%- if block.settings.ends != blank -%}
                 <span class="cz-cdn" role="timer" data-cz-cd="{{ block.settings.ends }}"><span><b data-d>00</b>DAYS</span><span><b data-h>00</b>HRS</span><span><b data-m>00</b>MINS</span><span><b data-s>00</b>SECS</span></span>
               {%- endif -%}
-              {%- if block.settings.button != blank -%}<span class="cz-bfb">{{ block.settings.button }}</span>{%- endif -%}
+              {%- if block.settings.button != blank -%}<span class="cz-bfb" data-bf-off>{{ block.settings.button }}</span>{%- endif -%}
+              {%- if block.settings.live_button != blank -%}<span class="cz-bfb" data-bf-on>{{ block.settings.live_button }}</span>{%- endif -%}
             </span>
           </a>
         {%- when 'split' -%}
@@ -50,6 +54,7 @@
   function go(i) { i = (i + n) % n; sc.scrollTo({ left: i * sc.clientWidth, behavior: 'smooth' }); }
   function sync() { var i = at(); r.querySelectorAll('[data-cz-hgo]').forEach(function (b, j) { b.setAttribute('aria-current', i === j ? 'true' : 'false'); }); var p = r.querySelector('[data-cz-hprev]'), x = r.querySelector('[data-cz-hnext]'); if (p) p.hidden = i === 0; if (x) x.hidden = i === n - 1; }
   sc.addEventListener('scroll', function () { clearTimeout(sc._t); sc._t = setTimeout(sync, 60); }, { passive: true });
+  if (document.documentElement.getAttribute('data-bf') === 'live') r.querySelectorAll('[data-live-href]').forEach(function (a) { if (a.dataset.liveHref) a.href = a.dataset.liveHref; });
   r.addEventListener('click', function (e) { var b; if (e.target.closest('[data-cz-hnext]')) go(at() + 1); else if (e.target.closest('[data-cz-hprev]')) go(at() - 1); else if ((b = e.target.closest('[data-cz-hgo]'))) go(Number(b.dataset.czHgo)); });
   sync();
 })();
@@ -67,7 +72,12 @@
       { "type": "text", "id": "text", "label": "Text", "default": "Up to 30% off. The community gets in first, so sign up for early access." },
       { "type": "text", "id": "ends", "label": "Count down to", "info": "UK time, like 2026-11-27T00:00:00Z. Leave blank to hide the clock.", "default": "2026-11-27T00:00:00Z" },
       { "type": "text", "id": "button", "label": "Button", "default": "GET EARLY ACCESS" },
-      { "type": "url", "id": "url", "label": "Link" }
+      { "type": "url", "id": "url", "label": "Link" },
+      { "type": "header", "content": "Once Black Friday is live" },
+      { "type": "text", "id": "live_kicker", "label": "Small heading", "default": "NOW ON · NEW COLLECTION INCLUDED" },
+      { "type": "text", "id": "live_text", "label": "Text", "default": "Up to 70% off, and the new collection drops straight into the sale." },
+      { "type": "text", "id": "live_button", "label": "Button", "default": "SHOP BLACK FRIDAY" },
+      { "type": "url", "id": "live_url", "label": "Link", "info": "Defaults to the Black Friday collection in Theme settings" }
     ]},
     { "type": "split", "name": "Two image slide", "settings": [
       { "type": "header", "content": "Left" },
