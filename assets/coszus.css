@@ -621,3 +621,14 @@ html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
 .cz-sw,.cz-sw.on{overflow:hidden}
 .cz-sw.on img{clip-path:none}
 .cz-sw.on::after{bottom:0;height:2px;z-index:1}
+/* product section had a negative bottom gap from the old theme, which pushed the reviews over it */
+.section-coszus-product,.cz-pdp{margin-bottom:0 !important}
+/* creators wearing this product */
+.cz-worn-r{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 18px)/4);gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.cz-worn-r::-webkit-scrollbar{display:none}
+.cz-worn-i{margin:0;position:relative;aspect-ratio:3/4;overflow:hidden;background:#ececea;scroll-snap-align:start;border-radius:2px}
+.cz-worn-i img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .8s ease}
+.cz-worn-i:hover img{transform:scale(1.03)}
+.cz-worn-i figcaption{position:absolute;left:12px;bottom:12px;color:#fff;font-size:12px;font-weight:500;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.cz-worn-i figcaption a{color:#fff}
+@media (max-width:900px){.cz-worn-r{grid-auto-columns:62%}}

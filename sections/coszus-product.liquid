@@ -186,6 +186,48 @@
     </div>
   </div>
 
+  {%- liquid
+    assign worn_count = 0
+    assign mf_imgs = product.metafields.custom.ugc_images.value
+    if mf_imgs != blank
+      assign worn_count = mf_imgs.size
+    endif
+    for block in section.blocks
+      if block.type == 'creator' and block.settings.product != blank and block.settings.product.id == product.id
+        assign worn_count = worn_count | plus: 1
+      endif
+    endfor
+    assign mf_handles = product.metafields.custom.ugc_handles.value
+  -%}
+  {%- if worn_count > 0 -%}
+    <section class="cz-sec cz-worn">
+      <div class="cz-row-hd" style="padding:0 0 22px;">
+        <div><h2 class="cz-h2" style="margin:0;">{{ section.settings.worn_heading }}</h2>{%- if section.settings.worn_sub != blank -%}<div class="cz-row-sub">{{ section.settings.worn_sub }}</div>{%- endif -%}</div>
+      </div>
+      <div class="cz-worn-r">
+        {%- if mf_imgs != blank -%}
+          {%- for img in mf_imgs -%}
+            {%- assign h = '' -%}{%- if mf_handles != blank -%}{%- assign h = mf_handles[forloop.index0] -%}{%- endif -%}
+            <figure class="cz-worn-i">
+              {{ img | image_url: width: 700 | image_tag: alt: 'Worn by a creator', loading: 'lazy', widths: '360,540,700', sizes: '(min-width: 901px) 22vw, 62vw' }}
+              {%- if h != blank -%}<figcaption>{{ h }}</figcaption>{%- endif -%}
+            </figure>
+          {%- endfor -%}
+        {%- endif -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'creator' and block.settings.product != blank and block.settings.product.id == product.id -%}
+            <figure class="cz-worn-i" {{ block.shopify_attributes }}>
+              {%- render 'coszus-img', image: block.settings.image, asset: block.settings.image_asset, width: 700, alt: 'Worn by a creator', sizes: '(min-width: 901px) 22vw, 62vw' -%}
+              {%- if block.settings.handle != blank -%}
+                {%- if block.settings.link != blank -%}<figcaption><a href="{{ block.settings.link }}" target="_blank" rel="noopener">{{ block.settings.handle }}</a></figcaption>{%- else -%}<figcaption>{{ block.settings.handle }}</figcaption>{%- endif -%}
+              {%- endif -%}
+            </figure>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    </section>
+  {%- endif -%}
+
   {%- if section.settings.show_style_with -%}
     <section class="cz-sec" data-cz-recs="complementary" data-url="{{ routes.product_recommendations_url }}?section_id=coszus-recs&product_id={{ product.id }}&limit=4&intent=complementary" hidden>
       <h2 class="cz-h2">STYLE WITH</h2>
@@ -394,11 +436,20 @@
     { "type": "checkbox", "id": "show_klarna", "label": "Show Klarna pay in 3 line", "default": true },
     { "type": "richtext", "id": "ship_text", "label": "Shipping & returns accordion", "default": "<p>Free UK shipping over £80. Orders before 3pm Monday to Friday leave the same day from our UK warehouse. Free exchanges and 14 day returns.</p>" },
     { "type": "checkbox", "id": "show_style_with", "label": "Show Style with (complementary products)", "default": true, "info": "Set complementary products in the Search & Discovery app" },
+    { "type": "text", "id": "worn_heading", "label": "Creators strip heading", "default": "WORN BY THE COSZUS FAMILY" },
+    { "type": "text", "id": "worn_sub", "label": "Creators strip line", "default": "Tag @coszus to be featured." },
     { "type": "checkbox", "id": "show_set", "label": "Show Complete the set in the buy panel", "default": true, "info": "Uses the product's custom.set_partner metafield if set, otherwise Search & Discovery complementary products, otherwise related products" }
   ],
   "blocks": [
     { "type": "@app" },
-    { "type": "liquid", "name": "Custom Liquid", "settings": [ { "type": "liquid", "id": "liquid", "label": "Liquid" } ] }
+    { "type": "liquid", "name": "Custom Liquid", "settings": [ { "type": "liquid", "id": "liquid", "label": "Liquid" } ] },
+    { "type": "creator", "name": "Creator photo", "settings": [
+      { "type": "product", "id": "product", "label": "Product they're wearing", "info": "The photo shows on this product's page only" },
+      { "type": "image_picker", "id": "image", "label": "Photo" },
+      { "type": "text", "id": "image_asset", "label": "Or theme image file" },
+      { "type": "text", "id": "handle", "label": "Their handle", "default": "@handle" },
+      { "type": "url", "id": "link", "label": "Link to their post (optional)" }
+    ]}
   ]
 }
 {% endschema %}
