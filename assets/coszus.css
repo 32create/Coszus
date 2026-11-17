@@ -437,3 +437,13 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
   .cz-cd div{min-width:0;flex:1}.cz-cd b{font-size:28px}
 }
 @media (prefers-reduced-motion:reduce){.cz-ugc{animation:none}.cz-ugcwrap{overflow-x:auto}}
+
+/* ---------- info pages (shipping, returns, contact, our story) on the existing page templates ---------- */
+.main-page-title{font-family:var(--cz-font) !important;font-size:clamp(20px,2vw,26px) !important;font-weight:600 !important;letter-spacing:.06em !important;text-transform:uppercase;margin:clamp(40px,5vw,72px) 0 28px !important}
+.page-width--narrow .rte,.main-page-title + .rte{font-size:14px;line-height:1.7;color:#4a4440}
+.rte h2,.rte h3{font-family:var(--cz-font);font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cz-ink);margin:36px 0 12px}
+.rte table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.rte th,.rte td{padding:11px 8px;border:0;border-bottom:1px solid #eee9e3;text-align:left}
+.rte a{color:var(--cz-brown);text-underline-offset:3px}
+.contact .field__input,.contact .text-area{border-radius:var(--cz-r)}
+.contact .button,.button--primary{background:var(--cz-brown) !important;color:var(--cz-cream) !important;border-radius:var(--cz-r) !important;font-family:var(--cz-font) !important;letter-spacing:.16em !important;font-size:11px !important;font-weight:600 !important}
