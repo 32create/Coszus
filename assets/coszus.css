@@ -632,3 +632,5 @@ html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
 .cz-worn-i figcaption{position:absolute;left:12px;bottom:12px;color:#fff;font-size:12px;font-weight:500;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 .cz-worn-i figcaption a{color:#fff}
 @media (max-width:900px){.cz-worn-r{grid-auto-columns:62%}}
+/* Kiwi size chart's CSS pulls every parent of its chart up by 27px; undo that on our layout */
+div.shopify-section.section-coszus-product,div.cz.cz-pdp,div.cz-pdp .cz-pdp-grid,div.cz-pdp .cz-panel{margin-bottom:0 !important}
