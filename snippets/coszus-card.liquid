@@ -1,0 +1,132 @@
+{%- comment -%}
+  Coszus product card, from the mockup.
+  - Flat lay first, model shot on hover. Picks images by alt text ("flat" / "model"),
+    otherwise first image = flat lay, second = model.
+  - Badges from product tags: new, restock, pre-order (or a pre-order template).
+    LAST FEW when 2 or fewer sizes are left. Sale shows % off.
+  - Quick add sizes slide up on hover (always visible on phone).
+  Usage: render 'coszus-card', product: product
+{%- endcomment -%}
+{%- liquid
+  assign flat = nil
+  assign model = nil
+  for m in product.media
+    if m.media_type != 'image'
+      continue
+    endif
+    assign a = m.alt | downcase
+    if flat == nil and a contains 'flat'
+      assign flat = m
+    elsif model == nil and a contains 'model'
+      assign model = m
+    endif
+  endfor
+  if flat == nil
+    assign flat = product.featured_media
+  endif
+  if model == nil
+    for m in product.media
+      if m.media_type == 'image' and m.id != flat.id
+        assign model = m
+        break
+      endif
+    endfor
+  endif
+
+  assign size_index = nil
+  for o in product.options_with_values
+    assign on = o.name | downcase
+    if on contains 'size'
+      assign size_index = forloop.index0
+    endif
+  endfor
+
+  assign total_sizes = 0
+  assign left_sizes = 0
+  if size_index != nil
+    assign total_sizes = product.options_with_values[size_index].values.size
+    for v in product.options_with_values[size_index].values
+      for variant in product.variants
+        if variant.options[size_index] == v and variant.available
+          assign left_sizes = left_sizes | plus: 1
+          break
+        endif
+      endfor
+    endfor
+  endif
+
+  assign tags = product.tags | join: ',' | downcase
+  assign badge = ''
+  assign badge_cls = 'cz-bdg'
+  if product.template_suffix contains 'pre-order' or tags contains 'pre-order' or tags contains 'preorder'
+    assign badge = 'PRE-ORDER'
+    assign badge_cls = 'cz-bdg pre'
+  elsif tags contains 'restock'
+    assign badge = 'RESTOCK'
+    assign badge_cls = 'cz-bdg re'
+  elsif tags contains 'new'
+    assign badge = 'NEW'
+  endif
+
+  assign on_sale = false
+  if product.compare_at_price > product.price
+    assign on_sale = true
+    assign pct = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price
+  endif
+
+  assign colour = ''
+  for o in product.options_with_values
+    assign on = o.name | downcase
+    if on contains 'colour' or on contains 'color'
+      assign colour = o.selected_value
+    endif
+  endfor
+  if colour == '' and product.metafields.custom.colour != blank
+    assign colour = product.metafields.custom.colour
+  endif
+-%}
+<div class="cz-card">
+  <div class="cz-imgw">
+    <a class="cz-img" href="{{ product.url }}" tabindex="-1" aria-hidden="true">
+      {%- if flat != blank -%}
+        {{ flat | image_url: width: 900 | image_tag: class: 'cz-flt', alt: product.title, loading: 'lazy', widths: '360,540,720,900', sizes: '(min-width: 901px) 25vw, 50vw' }}
+      {%- endif -%}
+      {%- if model != blank -%}
+        {{ model | image_url: width: 900 | image_tag: class: 'cz-mdl', alt: '', loading: 'lazy', widths: '360,540,720,900', sizes: '(min-width: 901px) 25vw, 50vw' }}
+      {%- endif -%}
+      {%- if on_sale -%}
+        <span class="cz-bdg off">{{ pct }}% OFF</span>
+      {%- elsif badge != '' -%}
+        <span class="{{ badge_cls }}">{{ badge }}</span>
+      {%- endif -%}
+      {%- if product.available and total_sizes > 1 and left_sizes <= 2 -%}
+        <span class="cz-lf">LAST FEW</span>
+      {%- endif -%}
+      {%- unless product.available -%}<span class="cz-lf">SOLD OUT</span>{%- endunless -%}
+    </a>
+    {%- if product.available -%}
+      <div class="cz-qa">
+        {%- if size_index != nil -%}
+          {%- for v in product.options_with_values[size_index].values -%}
+            {%- assign vid = nil -%}
+            {%- for variant in product.variants -%}
+              {%- if variant.options[size_index] == v and variant.available -%}{%- assign vid = variant.id -%}{%- break -%}{%- endif -%}
+            {%- endfor -%}
+            <button type="button" data-cz-add="{{ vid }}" data-cz-name="{{ product.title | escape }}" data-cz-size="{{ v | escape }}"{% if vid == nil %} disabled aria-label="{{ v | escape }} sold out"{% else %} aria-label="Quick add {{ product.title | escape }} {{ v | escape }}"{% endif %}>{{ v }}</button>
+          {%- endfor -%}
+        {%- else -%}
+          <button type="button" data-cz-add="{{ product.selected_or_first_available_variant.id }}" data-cz-name="{{ product.title | escape }}" aria-label="Quick add {{ product.title | escape }}">ADD +</button>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+  <div class="cz-nr">
+    <a href="{{ product.url }}" class="cz-pn">{{ product.title }}</a>
+    {%- if on_sale -%}
+      <span class="cz-pr"><s>{{ product.compare_at_price | money_without_trailing_zeros }}</s> <b>{{ product.price | money_without_trailing_zeros }}</b></span>
+    {%- else -%}
+      <span class="cz-pr">{% if product.price_varies %}From {% endif %}{{ product.price | money_without_trailing_zeros }}</span>
+    {%- endif -%}
+  </div>
+  {%- if colour != '' -%}<div class="cz-sub">{{ colour }}</div>{%- endif -%}
+</div>

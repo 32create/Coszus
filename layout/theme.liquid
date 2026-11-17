@@ -931,6 +931,7 @@ div#collection-template--17382342557892__featured-collection {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     {{ 'coszus.css' | asset_url | stylesheet_tag }}
+    <script src="{{ 'coszus.js' | asset_url }}" defer="defer"></script>
   {%- render 'foxify-head' -%}{% include 'pagefly-app-header' %}</head>
 
   <body class="gradient{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}">     {% sections 'foxify-header-group' %} 

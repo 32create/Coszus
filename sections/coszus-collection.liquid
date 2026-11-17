@@ -1,0 +1,166 @@
+{%- comment -%}
+  Coszus collection page, from the mockup: title + count, category chips,
+  sticky tools bar (layout, Model view switch, Filter & sort), grid with a
+  campaign tile, filter drawer using Shopify's own filters, load more.
+{%- endcomment -%}
+{%- liquid
+  assign chips = linklists[section.settings.chips_menu]
+  assign per_page = section.settings.per_page
+-%}
+{%- paginate collection.products by per_page -%}
+<div class="cz cz-col" id="CzCol-{{ section.id }}">
+  <div class="cz-col-hd">
+    <h1>{{ collection.title }} <span>({{ collection.products_count }})</span></h1>
+  </div>
+
+  {%- if chips.links.size > 0 -%}
+    <nav class="cz-chips" aria-label="Categories">
+      {%- for link in chips.links -%}
+        <a class="cz-chip{% if link.active %} on{% endif %}" href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>{{ link.title }}</a>
+      {%- endfor -%}
+    </nav>
+  {%- endif -%}
+
+  {%- liquid
+    assign active_count = 0
+    for f in collection.filters
+      assign active_count = active_count | plus: f.active_values.size
+    endfor
+    if collection.sort_by != blank and collection.sort_by != collection.default_sort_by
+      assign active_count = active_count | plus: 1
+    endif
+  -%}
+  <div class="cz-tools">
+    <div class="cz-tools-l">
+      <button type="button" class="cz-vbtn" data-cz-layout="one" aria-label="Bigger images" aria-pressed="false"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect width="14" height="14" fill="currentColor"/></svg></button>
+      <button type="button" class="cz-vbtn" data-cz-layout="grid" aria-label="Grid view" aria-pressed="true"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect width="6" height="6" fill="currentColor"/><rect x="8" width="6" height="6" fill="currentColor"/><rect y="8" width="6" height="6" fill="currentColor"/><rect x="8" y="8" width="6" height="6" fill="currentColor"/></svg></button>
+      <button type="button" class="cz-tg" role="switch" aria-checked="false" data-cz-model><span class="cz-tlabel">Model view</span><span class="cz-trk"><span class="cz-knb"></span></span></button>
+    </div>
+    <button type="button" class="cz-fsbtn" data-cz-fs-open aria-haspopup="dialog">FILTER &amp; SORT{% if active_count > 0 %} ({{ active_count }}){% endif %} <span aria-hidden="true" style="font-size:15px;font-weight:400;">+</span></button>
+  </div>
+
+  {%- if collection.products.size == 0 -%}
+    <div class="cz-empty">Nothing here with those filters. <a href="{{ collection.url }}" style="text-decoration:underline;">Clear them</a></div>
+  {%- else -%}
+    <div class="cz-grid" data-cz-grid style="padding-top:3px;">
+      {%- for product in collection.products -%}
+        {%- if forloop.index == section.settings.camp_position and paginate.current_page == 1 and section.settings.camp_image != blank and active_count == 0 -%}
+          <a class="cz-camp" href="{{ section.settings.camp_url | default: '#' }}">
+            {{ section.settings.camp_image | image_url: width: 1400 | image_tag: alt: section.settings.camp_title, loading: 'lazy', sizes: '(min-width: 901px) 50vw, 100vw', widths: '700,1000,1400' }}
+            <span><small>{{ section.settings.camp_kicker }}</small><b>{{ section.settings.camp_title }}</b><u>{{ section.settings.camp_link }}</u></span>
+          </a>
+        {%- endif -%}
+        {%- render 'coszus-card', product: product -%}
+      {%- endfor -%}
+    </div>
+    {%- if paginate.next -%}
+      <div class="cz-more"><a href="{{ paginate.next.url }}" data-cz-more>LOAD MORE</a></div>
+    {%- else -%}
+      <div style="height:var(--cz-sec);"></div>
+    {%- endif -%}
+  {%- endif -%}
+
+  <div class="cz-fsov" data-cz-fs-close></div>
+  <aside class="cz-fsp" role="dialog" aria-modal="true" aria-label="Filter and sort">
+    <div class="cz-fsh">FILTER &amp; SORT
+      <button type="button" class="cz-ib" data-cz-fs-close aria-label="Close" style="color:#1d1715;"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 2l12 12M14 2L2 14"/></svg></button>
+    </div>
+    <div class="cz-fsbody">
+      <div class="cz-fsg"><h3>Sort by</h3>
+        {%- assign current_sort = collection.sort_by | default: collection.default_sort_by -%}
+        {%- for option in collection.sort_options -%}
+          {%- if option.value == 'title-ascending' or option.value == 'title-descending' or option.value == 'created-ascending' -%}{%- continue -%}{%- endif -%}
+          <a class="cz-opt{% if option.value == current_sort %} on{% endif %}" href="#" data-cz-sort="{{ option.value }}"><span class="cz-rad"></span>{{ option.name }}</a>
+        {%- endfor -%}
+      </div>
+      {%- for filter in collection.filters -%}
+        {%- if filter.type == 'price_range' -%}{%- continue -%}{%- endif -%}
+        {%- assign fl = filter.label | downcase -%}
+        <div class="cz-fsg"><h3>{{ filter.label }}</h3>
+          {%- if fl contains 'size' -%}
+            <div class="cz-szs">
+              {%- for value in filter.values -%}
+                <a href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}" class="{% if value.active %}on{% elsif value.count == 0 %}dis{% endif %}" aria-pressed="{{ value.active }}">{{ value.label }}</a>
+              {%- endfor -%}
+            </div>
+          {%- else -%}
+            {%- for value in filter.values -%}
+              <a class="cz-opt{% if value.active %} on{% elsif value.count == 0 %} dis{% endif %}" href="{% if value.active %}{{ value.url_to_remove }}{% else %}{{ value.url_to_add }}{% endif %}"><span class="cz-rad sq"></span>{{ value.label }}</a>
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+    <div class="cz-fsf">
+      <a href="{{ collection.url }}">CLEAR</a>
+      <button type="button" data-cz-fs-close>SHOW {{ collection.products_count }} PRODUCTS</button>
+    </div>
+  </aside>
+</div>
+{%- endpaginate -%}
+
+<script>
+  (function () {
+    var root = document.getElementById('CzCol-{{ section.id }}');
+    if (!root) return;
+    var grid = root.querySelector('[data-cz-grid]');
+    var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+    function setModel(on) {
+      root.classList.toggle('cz-model', on);
+      root.querySelector('[data-cz-model]').setAttribute('aria-checked', on ? 'true' : 'false');
+      store.set('czModel', on ? '1' : '0');
+    }
+    function setLayout(l) {
+      if (grid) grid.classList.toggle('one', l === 'one');
+      root.querySelectorAll('[data-cz-layout]').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.czLayout === l ? 'true' : 'false'); });
+      store.set('czLayout', l);
+    }
+    setModel(store.get('czModel') === '1');
+    setLayout(store.get('czLayout') || 'grid');
+
+    function fs(open) { root.classList.toggle('cz-fs-open', open); document.documentElement.style.overflow = open ? 'hidden' : ''; }
+
+    root.addEventListener('click', function (e) {
+      var t;
+      if ((t = e.target.closest('[data-cz-model]'))) setModel(t.getAttribute('aria-checked') !== 'true');
+      else if ((t = e.target.closest('[data-cz-layout]'))) setLayout(t.dataset.czLayout);
+      else if (e.target.closest('[data-cz-fs-open]')) fs(true);
+      else if (e.target.closest('[data-cz-fs-close]')) fs(false);
+      else if ((t = e.target.closest('[data-cz-sort]'))) {
+        e.preventDefault();
+        var u = new URL(window.location.href); u.searchParams.set('sort_by', t.dataset.czSort); u.searchParams.delete('page');
+        window.location.href = u.toString();
+      } else if ((t = e.target.closest('[data-cz-more]'))) {
+        e.preventDefault();
+        t.textContent = 'LOADING…';
+        fetch(t.href).then(function (r) { return r.text(); }).then(function (html) {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var nextGrid = doc.querySelector('#CzCol-{{ section.id }} [data-cz-grid]');
+          if (nextGrid && grid) Array.prototype.forEach.call(nextGrid.querySelectorAll('.cz-card'), function (c) { grid.appendChild(c); });
+          var nextMore = doc.querySelector('#CzCol-{{ section.id }} [data-cz-more]');
+          if (nextMore) { t.href = nextMore.href; t.textContent = 'LOAD MORE'; } else { t.parentNode.remove(); }
+        }).catch(function () { window.location.href = t.href; });
+      }
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fs(false); });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Coszus collection",
+  "class": "section-coszus-collection",
+  "settings": [
+    { "type": "link_list", "id": "chips_menu", "label": "Category links under the title", "info": "e.g. All, Hoodies, Polos, Tops, Trousers, Shorts, Caps & beanies" },
+    { "type": "range", "id": "per_page", "label": "Products per page", "min": 12, "max": 48, "step": 4, "default": 24 },
+    { "type": "header", "content": "Campaign tile" },
+    { "type": "image_picker", "id": "camp_image", "label": "Image", "info": "Takes up 2x2 spots on page 1. Hidden when filters are on." },
+    { "type": "range", "id": "camp_position", "label": "Show before product", "min": 1, "max": 12, "step": 1, "default": 5 },
+    { "type": "text", "id": "camp_kicker", "label": "Small heading", "default": "WORN BY YOU" },
+    { "type": "text", "id": "camp_title", "label": "Title", "default": "THE CONTRAST POLO" },
+    { "type": "text", "id": "camp_link", "label": "Link text", "default": "Shop the polo" },
+    { "type": "url", "id": "camp_url", "label": "Link" }
+  ]
+}
+{% endschema %}
