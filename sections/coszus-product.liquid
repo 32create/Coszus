@@ -63,7 +63,7 @@
     </div>
 
     <div class="cz-panel">
-      <h1>{{ product.title | upcase }}{% if colour != '' %} | {{ colour | upcase }}{% endif %}</h1>
+      <h1>{{ product.title | downcase | capitalize }}</h1>
       <div class="cz-price-row">
         <span class="cz-price" data-cz-price>
           {%- if current.compare_at_price > current.price -%}
@@ -205,7 +205,7 @@
   <div style="height:var(--cz-sec);"></div>
 
   <div class="cz-sticky">
-    <div style="flex:1;min-width:0;"><div class="cz-st-n">{{ product.title | upcase }}</div><div class="cz-st-p" data-cz-st-p>{{ current.price | money }}{% if size_index != nil and product.selected_variant %} · {{ current.options[size_index] }}{% endif %}</div></div>
+    <div style="flex:1;min-width:0;"><div class="cz-st-n">{{ product.title | downcase | capitalize }}</div><div class="cz-st-p" data-cz-st-p>{{ current.price | money }}{% if size_index != nil and product.selected_variant %} · {{ current.options[size_index] }}{% endif %}</div></div>
     <button type="button" class="cz-cta" data-cz-sticky-cta>{% if current.available %}{% if size_index != nil and product.selected_variant == nil %}SELECT SIZE{% else %}ADD TO BAG{% endif %}{% else %}SOLD OUT{% endif %}</button>
   </div>
 
@@ -353,7 +353,7 @@
           var one = p.variants.length === 1;
           var img = p.featured_image ? p.featured_image + (p.featured_image.indexOf('?') > -1 ? '&' : '?') + 'width=200' : '';
           return '<div class="cz-set-r"><a href="' + p.url + '" class="cz-set-i">' + (img ? '<img alt="" loading="lazy" src="' + img + '">' : '') + '</a>' +
-            '<div class="cz-set-n"><a href="' + p.url + '">' + esc(p.title) + '</a><span>' + money(p.price) + '</span></div>' +
+            '<div class="cz-set-n"><a href="' + p.url + '">' + esc(p.title.charAt(0) + p.title.slice(1).toLowerCase()) + '</a><span>' + money(p.price) + '</span></div>' +
             (one ? '<button type="button" class="cz-set-b" data-cz-add="' + opts[0].id + '" data-cz-name="' + esc(p.title) + '">ADD</button>'
                  : '<select class="cz-set-s" aria-label="Size" data-cz-set-sel><option value="">Size</option>' + opts.map(function (v) { return '<option value="' + v.id + '">' + esc(v.title) + '</option>'; }).join('') + '</select><button type="button" class="cz-set-b" data-cz-add="" data-cz-name="' + esc(p.title) + '" disabled>ADD</button>') + '</div>';
         }).join('');
@@ -373,7 +373,7 @@
       ps.filter(Boolean).forEach(function (p) {
         var a = document.createElement('a'); a.href = p.url; a.className = 'cz-mini';
         a.innerHTML = '<span class="cz-mini-i">' + (p.featured_image ? '<img loading="lazy" alt="" src="' + p.featured_image + (p.featured_image.indexOf('?') > -1 ? '&' : '?') + 'width=400">' : '') + '</span><span class="cz-nr"><span class="cz-pn"></span><span>' + money(p.price) + '</span></span>';
-        a.querySelector('.cz-pn').textContent = p.title; tgt.appendChild(a);
+        a.querySelector('.cz-pn').textContent = p.title.charAt(0).toUpperCase() + p.title.slice(1).toLowerCase(); tgt.appendChild(a);
       });
       if (tgt.children.length) sec.hidden = false;
     });

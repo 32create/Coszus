@@ -21,7 +21,7 @@
     <div class="cz-bfband" data-bf-on>
       <div class="cz-bfband-t">
         <span class="cz-bfk">{{ settings.bf_tagline }}</span>
-        <h1>{{ settings.bf_name | upcase }}</h1>
+        <h1>{{ settings.bf_name }}</h1>
         {%- if settings.bf_offer != blank -%}<p>{{ settings.bf_offer }}</p>{%- endif -%}
       </div>
       {%- if settings.bf_end != blank -%}
@@ -43,16 +43,12 @@
     </nav>
   {%- endif -%}
   <div class="cz-col-hd"{% if is_bf %} data-bf-off{% endif %}>
-    <h1>{{ collection.title }} <span>({{ collection.products_count }})</span></h1>
+    <h1>{{ collection.title | downcase | capitalize }} <span>({{ collection.products_count }})</span></h1>
   </div>
 
-  {%- if chips.links.size > 0 -%}
-    <nav class="cz-chips" aria-label="Categories"{% if is_bf %} data-bf-off{% endif %}>
-      {%- for link in chips.links -%}
-        <a class="cz-chip{% if link.active %} on{% endif %}" href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>{{ link.title }}</a>
-      {%- endfor -%}
-    </nav>
-  {%- endif -%}
+  <nav class="cz-chips" aria-label="Categories"{% if is_bf %} data-bf-off{% endif %}>
+    {%- render 'coszus-nav', cls: 'cz-chip', arrow: false, menu: chips -%}
+  </nav>
 
   {%- liquid
     assign active_count = 0

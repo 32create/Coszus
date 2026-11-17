@@ -1,0 +1,22 @@
+{%- comment -%}
+  Category links from Theme settings > Coszus navigation (falls back to the Main menu).
+  render 'coszus-nav', cls: 'cz-ml', arrow: true, menu: linklists['main-menu']
+{%- endcomment -%}
+{%- assign any = false -%}
+{%- for i in (1..8) -%}{%- assign k = 'nav_' | append: i | append: '_label' -%}{%- if settings[k] != blank -%}{%- assign any = true -%}{%- endif -%}{%- endfor -%}
+{%- if any -%}
+  {%- for i in (1..8) -%}
+    {%- assign lk = 'nav_' | append: i | append: '_label' -%}{%- assign uk = 'nav_' | append: i | append: '_url' -%}
+    {%- assign label = settings[lk] -%}
+    {%- if label == blank -%}{%- continue -%}{%- endif -%}
+    {%- assign url = settings[uk] | default: '#' -%}
+    {%- assign t = label | downcase -%}
+    {%- assign here = false -%}{%- if request.path == url -%}{%- assign here = true -%}{%- endif -%}
+    <a href="{{ url }}" class="{{ cls }}{% if t == 'sale' %} sale{% endif %}{% if here %} on{% endif %}"{% if here %} aria-current="page"{% endif %}{% if t == 'sale' %} data-bf-off{% endif %}>{{ label }}{% if arrow %}<span>›</span>{% endif %}</a>
+  {%- endfor -%}
+{%- else -%}
+  {%- for link in menu.links -%}
+    {%- assign t = link.title | downcase -%}
+    <a href="{{ link.url }}" class="{{ cls }}{% if t contains 'sale' %} sale{% endif %}{% if link.active or link.child_active %} on{% endif %}">{{ link.title }}{% if arrow %}<span>›</span>{% endif %}</a>
+  {%- endfor -%}
+{%- endif -%}

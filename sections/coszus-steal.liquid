@@ -23,7 +23,7 @@
         {%- if p == blank -%}{%- continue -%}{%- endif -%}
         <div class="cz-steal-r" data-cz-item="{{ forloop.index0 }}">
           <a href="{{ p.url }}" class="cz-set-i">{%- if p.featured_image -%}{{ p.featured_image | image_url: width: 240 | image_tag: alt: '', loading: 'lazy' }}{%- endif -%}</a>
-          <div class="cz-set-n"><a href="{{ p.url }}">{{ p.title }}</a><span>{{ p.price | money }}</span></div>
+          <div class="cz-set-n"><a href="{{ p.url }}">{{ p.title | downcase | capitalize }}</a><span>{{ p.price | money }}</span></div>
           <a href="{{ p.url }}" class="cz-set-b">SHOP</a>
         </div>
       {%- endfor -%}

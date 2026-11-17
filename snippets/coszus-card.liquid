@@ -61,9 +61,6 @@
   if product.template_suffix contains 'pre-order' or tags contains 'pre-order' or tags contains 'preorder'
     assign badge = 'PRE-ORDER'
     assign badge_cls = 'cz-bdg pre'
-  elsif tags contains 'restock'
-    assign badge = 'RESTOCK'
-    assign badge_cls = 'cz-bdg re'
   elsif tags contains 'new'
     assign badge = 'NEW'
   endif
@@ -99,9 +96,6 @@
       {%- elsif badge != '' -%}
         <span class="{{ badge_cls }}">{{ badge }}</span>
       {%- endif -%}
-      {%- if product.available and total_sizes > 1 and left_sizes <= 2 -%}
-        <span class="cz-lf">LAST FEW</span>
-      {%- endif -%}
       {%- unless product.available -%}<span class="cz-lf">SOLD OUT</span>{%- endunless -%}
     </a>
     {%- if product.available -%}
@@ -121,7 +115,7 @@
     {%- endif -%}
   </div>
   <div class="cz-nr">
-    <a href="{{ product.url }}" class="cz-pn">{{ product.title }}</a>
+    <a href="{{ product.url }}" class="cz-pn">{{ product.title | downcase | capitalize }}</a>
     {%- if on_sale -%}
       <span class="cz-pr"><s>{{ product.compare_at_price | money_without_trailing_zeros }}</s> <b>{{ product.price | money_without_trailing_zeros }}</b></span>
     {%- else -%}

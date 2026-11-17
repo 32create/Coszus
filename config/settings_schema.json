@@ -1535,5 +1535,94 @@
         "info": "One chip per line: Label: words to match in the product name, comma separated. Chips with nothing to show hide themselves."
       }
     ]
+  },
+  {
+    "name": "Coszus navigation",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "The links in the category bar, the mobile menu and the chips on collection pages. Leave a label blank to skip it. If all are blank, the Main menu is used."
+      },
+      {
+        "type": "text",
+        "id": "nav_1_label",
+        "label": "Link 1"
+      },
+      {
+        "type": "url",
+        "id": "nav_1_url",
+        "label": "Link 1 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_2_label",
+        "label": "Link 2"
+      },
+      {
+        "type": "url",
+        "id": "nav_2_url",
+        "label": "Link 2 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_3_label",
+        "label": "Link 3"
+      },
+      {
+        "type": "url",
+        "id": "nav_3_url",
+        "label": "Link 3 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_4_label",
+        "label": "Link 4"
+      },
+      {
+        "type": "url",
+        "id": "nav_4_url",
+        "label": "Link 4 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_5_label",
+        "label": "Link 5"
+      },
+      {
+        "type": "url",
+        "id": "nav_5_url",
+        "label": "Link 5 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_6_label",
+        "label": "Link 6"
+      },
+      {
+        "type": "url",
+        "id": "nav_6_url",
+        "label": "Link 6 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_7_label",
+        "label": "Link 7"
+      },
+      {
+        "type": "url",
+        "id": "nav_7_url",
+        "label": "Link 7 goes to"
+      },
+      {
+        "type": "text",
+        "id": "nav_8_label",
+        "label": "Link 8"
+      },
+      {
+        "type": "url",
+        "id": "nav_8_url",
+        "label": "Link 8 goes to"
+      }
+    ]
   }
 ]

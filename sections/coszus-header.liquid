@@ -11,7 +11,7 @@
 
 <div class="cz">
   {%- if section.blocks.size > 0 -%}
-    <div class="cz-ann" role="region" aria-label="{% for block in section.blocks %}{{ block.settings.text | escape }}{% unless forloop.last %}, {% endunless %}{% endfor %}">
+    <div class="cz-ann" data-bf-off role="region" aria-label="{% for block in section.blocks %}{{ block.settings.text | escape }}{% unless forloop.last %}, {% endunless %}{% endfor %}">
       <div class="cz-mq" aria-hidden="true">
         {%- for i in (1..2) -%}
           {%- if settings.bf_tagline != blank -%}<span data-bf-on class="cz-bf-msg">{{ settings.bf_tagline | upcase }}</span>{%- endif -%}
@@ -45,10 +45,7 @@
     </form>
     <div class="cz-ml-list">
       {%- if settings.bf_collection != blank -%}<a class="cz-ml sale" href="{{ settings.bf_collection.url }}" data-bf-on>{{ settings.bf_name | default: 'Black Friday' }}<span>›</span></a>{%- endif -%}
-      {%- for link in menu.links -%}
-        {%- assign t = link.title | downcase -%}
-        <a class="cz-ml{% if t contains 'sale' %} sale{% endif %}" href="{{ link.url }}">{{ link.title }}<span>›</span></a>
-      {%- endfor -%}
+      {%- render 'coszus-nav', cls: 'cz-ml', arrow: true, menu: menu -%}
     </div>
     {%- if section.settings.promo_title != blank -%}
       <a class="cz-promo" href="{{ section.settings.promo_url | default: '#' }}">
@@ -79,7 +76,7 @@
       <div class="cz-srch-b">
         <div class="cz-srch-pop" data-cz-search-pop>
           <small>POPULAR</small>
-          <div>{%- for link in menu.links limit: 8 -%}<a href="{{ link.url }}">{{ link.title }}</a>{%- endfor -%}</div>
+          <div>{%- render 'coszus-nav', cls: '', arrow: false, menu: menu -%}</div>
         </div>
         <div class="cz-srch-res" data-cz-search-res hidden>
           <div class="cz-grid six" data-cz-search-grid></div>
@@ -138,11 +135,8 @@
     {%- endif -%}
     {%- if menu.links.size > 0 -%}
       <nav class="cz-cbar" aria-label="Categories">
-        {%- if settings.bf_collection != blank -%}<a href="{{ settings.bf_collection.url }}" class="sale" data-bf-on>{{ settings.bf_name | default: 'Black Friday' | upcase }}</a>{%- endif -%}
-        {%- for link in menu.links -%}
-          {%- assign t = link.title | downcase -%}
-          <a href="{{ link.url }}" class="{% if t contains 'sale' %}sale{% elsif link.active or link.child_active %}on{% endif %}"{% if link.active %} aria-current="page"{% endif %}>{{ link.title }}</a>
-        {%- endfor -%}
+        {%- if settings.bf_collection != blank -%}<a href="{{ settings.bf_collection.url }}" class="sale" data-bf-on>{{ settings.bf_name | default: 'Black Friday' }}</a>{%- endif -%}
+        {%- render 'coszus-nav', cls: '', arrow: false, menu: menu -%}
       </nav>
     {%- endif -%}
   </div>

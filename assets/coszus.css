@@ -532,35 +532,6 @@ html[data-bf='live'] .cz-bdg.off{background:var(--cz-red);color:#fff}
 .cz-steal-r.on{background:rgba(255,255,255,.55)}
 @media (max-width:900px){.cz-steal{grid-template-columns:1fr}.cz-steal-img{min-height:0;aspect-ratio:4/5}}
 
-/* ---------- Black Friday takeover (only while live) ---------- */
-.cz-bfstrip{display:block;overflow:hidden;white-space:nowrap;background:var(--cz-brown);color:var(--cz-cream) !important;border-bottom:1px solid rgba(0,0,0,.2)}
-.cz-bfstrip-mq{display:inline-flex;align-items:center;gap:22px;padding:11px 0;animation:cz-mq 26s linear infinite;font-size:12px;font-weight:600;letter-spacing:.16em}
-.cz-bfstrip-mq b{font-weight:800;letter-spacing:.2em}
-.cz-bfstrip-mq i{font-style:normal;font-size:6px;opacity:.7}
-html[data-bf='live'] .cz-ann{background:#000;color:#fff}
-html[data-bf='live'] .cz-bf-msg{font-weight:800}
-html[data-bf='live'] .cz-hbar{background:#0a0a0a}
-html[data-bf='live'] .cz-cbar a.sale{font-weight:800;letter-spacing:.08em}
-html[data-bf='live'] .cz-ft{background:#0a0a0a !important}
-html[data-bf='live'] .cz-ea{background:#000}
-/* cards: loud % off */
-html[data-bf='live'] .cz-bdg.off{background:#000;color:#fff;font-size:10px;font-weight:800;letter-spacing:.1em;padding:5px 8px 4px}
-html[data-bf='live'] .cz-pr b{color:var(--cz-red);font-weight:700}
-/* sale page banner: black, huge */
-html[data-bf='live'] .cz-bfband{background:#000;padding-top:clamp(56px,7vw,110px)}
-html[data-bf='live'] .cz-bfband h1{font-size:clamp(56px,9vw,150px);letter-spacing:-.02em}
-html[data-bf='live'] .cz-bfband .cz-bfk{color:#7fbf9a;font-weight:700}
-html[data-bf='live'] .cz-bfband p{font-size:16px;color:#fff}
-html[data-bf='live'] .cz-bfband .cz-cdn span{background:rgba(255,255,255,.08)}
-/* homepage slide: darker, bigger */
-html[data-bf='live'] .cz-bfs::after{background:linear-gradient(90deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.2) 100%)}
-html[data-bf='live'] .cz-bfh{font-size:clamp(60px,9vw,140px)}
-html[data-bf='live'] .cz-bfs .cz-bfk{color:#7fbf9a;font-weight:700}
-html[data-bf='live'] .cz-bfb{background:#fff;color:#000}
-/* product page */
-html[data-bf='live'] .cz-bfline{background:#000;font-weight:700}
-@media (max-width:900px){.cz-bfstrip-mq{font-size:11px;padding:10px 0}}
-.cz-srch-f input[type=search]::-webkit-search-cancel-button{display:none}
 /* Black Friday strip: static, one line, centred (the top bar is the only moving one) */
 .cz-bfstrip{text-align:center}
 .cz-bfstrip-in{display:inline-flex;align-items:center;justify-content:center;gap:14px;padding:12px 16px;font-size:12px;font-weight:600;letter-spacing:.16em;white-space:normal}
@@ -572,3 +543,53 @@ html[data-bf='live'] .cz-bfline{background:#000;font-weight:700}
 /* bag icon same size as the others */
 #cart-icon-bubble svg{width:22px !important;height:22px !important}
 #cart-icon-bubble{color:var(--cz-cream)}
+
+
+/* ================= Premium layer ================= */
+:root{--cz-serif:"Instrument Serif",Georgia,"Times New Roman",serif;--cz-red:#1E3B2F}
+/* serif display headings */
+.cz-bfh,.cz-bfband h1,.cz-bfhero h1,.cz-lock h1,.cz-story h2,.cz-t,.cz-help-t h2,.cz-steal-t h2,.cz-help-c .cz-t{font-family:var(--cz-serif) !important;font-weight:400 !important;letter-spacing:-.01em !important;text-transform:none}
+.cz-bfh{font-size:clamp(64px,9vw,136px);line-height:.88}
+.cz-bfhero h1,.cz-lock h1{font-size:clamp(64px,8vw,128px);line-height:.88}
+.cz-bfband h1{font-size:clamp(56px,8vw,128px);line-height:.9}
+.cz-story h2,.cz-steal-t h2{font-size:clamp(36px,3.6vw,54px);line-height:1}
+.cz-help-t h2{font-size:clamp(30px,2.6vw,40px)}
+.cz-t{font-size:clamp(28px,2.6vw,40px);letter-spacing:0 !important;margin-bottom:14px}
+.cz-col-hd h1{font-family:var(--cz-serif);font-weight:400;font-size:clamp(34px,3.4vw,52px);letter-spacing:-.005em;text-transform:none}
+.cz-col-hd h1 span{font-family:var(--cz-font);font-size:13px}
+.cz-panel h1{font-family:var(--cz-serif);font-weight:400 !important;font-size:30px !important;letter-spacing:0 !important;line-height:1.1}
+@media (max-width:900px){.cz-t{font-size:22px}.cz-panel h1{font-size:26px !important}}
+
+/* calmer navigation */
+.cz-cbar{gap:clamp(28px,3.4vw,52px)}
+.cz-cbar a{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#3a3330;padding:16px 0}
+.cz-cbar a.sale{color:var(--cz-brown);font-weight:600}
+
+/* product names: normal case, more air */
+.cz-nr{text-transform:none;font-size:12.5px;letter-spacing:.01em;padding-top:16px}
+.cz-pr{font-variant-numeric:tabular-nums}
+.cz-pr s{color:#9a948e;font-weight:400}
+.cz-pr b{color:var(--cz-brown);font-weight:600}
+.cz-set-n a{text-transform:none;letter-spacing:0;font-size:12px}
+.cz-grid{gap:6px}
+.cz-img img{transition:opacity .6s ease}
+.cz-tile img,.cz-half img{transition:transform 1.6s cubic-bezier(.2,.8,.2,1)}
+
+/* quieter badges */
+.cz-bdg,.cz-lf{font-size:8px;letter-spacing:.18em;background:rgba(255,255,255,.88);color:var(--cz-ink)}
+.cz-bdg.off{background:var(--cz-cream);color:var(--cz-brown)}
+.cz-bdg.pre{background:var(--cz-brown);color:var(--cz-cream)}
+
+/* Black Friday, premium version: green and cream, no shouting */
+.cz-bfband{background:var(--cz-brown)}
+.cz-bfband .cz-bfk{color:var(--cz-sand)}
+.cz-bfstrip{background:var(--cz-dark)}
+.cz-bfline{background:var(--cz-cream);color:var(--cz-brown)}
+.cz-bfs::after{background:linear-gradient(90deg,rgba(10,22,16,.85) 0%,rgba(10,22,16,.45) 55%,rgba(10,22,16,.1) 100%)}
+
+/* hide the floating Growave rewards tab (rewards still on the account page) */
+.gw-widget-placeholder-RC-wrapper{display:none !important}
+.cz-bfstrip{display:block;width:100%;overflow:hidden;color:var(--cz-cream) !important;text-decoration:none}
+.cz-bfstrip-in{width:100%;box-sizing:border-box;color:var(--cz-cream)}
+.cz-panel h1,.cz-col-hd h1{font-family:var(--cz-serif) !important}
+.cz-col-hd h1 span{font-family:var(--cz-font) !important}
