@@ -297,7 +297,7 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-btn:hover{background:rgba(30,26,22,.8)}
 
 /* ---------- hero carousel ---------- */
-.cz-hs{position:relative;height:calc(100vh - var(--cz-hd-h,107px));min-height:560px;max-height:920px;background:var(--cz-dark)}
+.cz-hs{position:relative;height:min(68vh,640px);min-height:440px;background:var(--cz-dark)}
 .cz-hsc{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth}
 .cz-hsc::-webkit-scrollbar{display:none}
 .cz-sl{flex:0 0 100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative}
@@ -414,7 +414,7 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-bfhero-i img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 @media (max-width:900px){
-  .cz-hs{height:78vh;min-height:480px}
+  .cz-hs{height:60vh;min-height:400px;max-height:540px}
   .cz-bfs::after{background:linear-gradient(180deg,rgba(10,22,16,.15) 0%,rgba(10,22,16,.55) 45%,rgba(10,22,16,.9) 100%)}
   .cz-bfc{left:16px;right:16px;bottom:48px;gap:12px}
   .cz-bfp{font-size:13px}
@@ -460,7 +460,7 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .cz-mnu-top img{width:120px;height:40px;max-height:none;object-fit:cover}
 @media (max-width:900px){.cz-logo img{width:150px;height:48px}}
 /* photo crops for the shoot images */
-.cz-bfs img{object-position:70% 35%}
+.cz-bfs img{object-position:55% 28%}
 .cz-split .cz-half img{object-position:center 25%}
 .cz-tile img{object-position:center 30%}
 .cz-story-i img{object-position:65% center}
