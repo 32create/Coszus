@@ -927,12 +927,10 @@ div#collection-template--17382342557892__featured-collection {
         document.documentElement.classList.add('shopify-design-mode');
       }
     </script>
-    {% if template == 'index' %}
-<style>
-.header-wrapper { background: transparent; }
-#MainContent { margin-top: -157px !important; }
-</style>
-{% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {{ 'coszus.css' | asset_url | stylesheet_tag }}
   {%- render 'foxify-head' -%}{% include 'pagefly-app-header' %}</head>
 
   <body class="gradient{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}">     {% sections 'foxify-header-group' %} 

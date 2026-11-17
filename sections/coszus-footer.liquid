@@ -1,0 +1,87 @@
+{%- comment -%}
+  Coszus footer, from the mockup. The sign-up uses Shopify's customer form
+  (tagged newsletter), which syncs to Klaviyo through the Shopify integration.
+{%- endcomment -%}
+<footer class="cz cz-ft" style="background: {{ section.settings.bg }};">
+  <div class="cz-ft-top">
+    <div class="cz-ft-join">
+      {%- if section.settings.logo != blank -%}
+        {{ section.settings.logo | image_url: width: 400 | image_tag: alt: shop.name, class: 'cz-ft-logo', loading: 'lazy' }}
+      {%- else -%}
+        <span class="cz-ft-logo-txt">{{ shop.name | upcase }}</span>
+      {%- endif -%}
+      <h2>{{ section.settings.heading }}</h2>
+      <p>{{ section.settings.text }}</p>
+      {%- form 'customer', id: 'CzFooterJoin' -%}
+        <input type="hidden" name="contact[tags]" value="newsletter">
+        <label for="CzFooterEmail" class="cz-vh">Email</label>
+        <input id="CzFooterEmail" type="email" name="contact[email]" placeholder="Email" autocomplete="email" required>
+        <button type="submit">JOIN</button>
+        {%- if form.posted_successfully? -%}
+          <div class="cz-ft-msg" role="status" style="flex-basis:100%;">You're in. Check your inbox.</div>
+        {%- elsif form.errors -%}
+          <div class="cz-ft-msg" role="alert" style="flex-basis:100%;">{{ form.errors.translated_fields.email | capitalize }} {{ form.errors.messages.email }}</div>
+        {%- endif -%}
+      {%- endform -%}
+      {%- if section.settings.whatsapp_url != blank -%}
+        <a class="cz-ft-wa" href="{{ section.settings.whatsapp_url }}" target="_blank" rel="noopener">Or join the WhatsApp community</a>
+      {%- endif -%}
+    </div>
+    <div class="cz-ft-cols">
+      {%- for block in section.blocks -%}
+        {%- assign ml = linklists[block.settings.menu] -%}
+        <div class="cz-ft-col" {{ block.shopify_attributes }}>
+          <strong>{{ block.settings.title | upcase }}</strong>
+          {%- for link in ml.links -%}<a href="{{ link.url }}">{{ link.title }}</a>{%- endfor -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+  <div class="cz-ft-bot">
+    <span>© {{ 'now' | date: '%Y' }} {{ shop.name }}</span>
+    <span class="cz-ft-soc">
+      {%- if settings.social_instagram_link != blank -%}<a href="{{ settings.social_instagram_link }}" target="_blank" rel="noopener">Instagram</a>{%- endif -%}
+      {%- if settings.social_tiktok_link != blank -%}<a href="{{ settings.social_tiktok_link }}" target="_blank" rel="noopener">TikTok</a>{%- endif -%}
+      {%- if settings.social_youtube_link != blank -%}<a href="{{ settings.social_youtube_link }}" target="_blank" rel="noopener">YouTube</a>{%- endif -%}
+    </span>
+    <span>{{ localization.country.iso_code }} / {{ cart.currency.symbol }}</span>
+  </div>
+</footer>
+
+{%- if section.settings.ea_show and section.settings.ea_url != blank -%}
+  <a class="cz-ea" href="{{ section.settings.ea_url }}">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 17l-6.5 4 2-7.5L2 9h7z"/></svg>
+    <span class="cz-eal">BLACK FRIDAY&nbsp;</span>EARLY ACCESS
+  </a>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Coszus footer",
+  "tag": "section",
+  "class": "section-coszus-footer",
+  "settings": [
+    { "type": "image_picker", "id": "logo", "label": "Logo (cream)" },
+    { "type": "color", "id": "bg", "label": "Background", "default": "#45292A" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "JOIN THE COSZUS COMMUNITY" },
+    { "type": "textarea", "id": "text", "label": "Text", "default": "Sign up and get 10% off your first order, plus first look at drops and restocks." },
+    { "type": "url", "id": "whatsapp_url", "label": "WhatsApp community link" },
+    { "type": "header", "content": "Black Friday early access pill" },
+    { "type": "checkbox", "id": "ea_show", "label": "Show the floating early access button", "default": true },
+    { "type": "url", "id": "ea_url", "label": "Early access page" }
+  ],
+  "blocks": [
+    {
+      "type": "menu",
+      "name": "Link column",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "SHOP" },
+        { "type": "link_list", "id": "menu", "label": "Menu" }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "enabled_on": { "groups": ["footer"] },
+  "presets": [ { "name": "Coszus footer", "blocks": [ { "type": "menu", "settings": { "title": "SHOP" } }, { "type": "menu", "settings": { "title": "HELP" } } ] } ]
+}
+{% endschema %}
