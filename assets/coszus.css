@@ -447,3 +447,15 @@ body{color:var(--cz-ink);-webkit-font-smoothing:antialiased;-moz-osx-font-smooth
 .rte a{color:var(--cz-brown);text-underline-offset:3px}
 .contact .field__input,.contact .text-area{border-radius:var(--cz-r)}
 .contact .button,.button--primary{background:var(--cz-brown) !important;color:var(--cz-cream) !important;border-radius:var(--cz-r) !important;font-family:var(--cz-font) !important;letter-spacing:.16em !important;font-size:11px !important;font-weight:600 !important}
+.cz-logo img{height:auto;width:118px;max-height:34px;object-fit:contain}
+.cz-logo img.inv,.cz-ft-logo.inv{filter:brightness(0) invert(.94) sepia(.12)}
+.cz-ft-logo{width:150px;height:auto;max-height:60px;object-fit:contain;object-position:left}
+.cz-mnu-top img{width:100px;height:auto;max-height:28px;object-fit:contain}
+/* sticky header: the section wrapper sticks, the announcement bar scrolls away */
+.section-coszus-header{position:sticky;top:calc(-1 * var(--cz-ann-h,34px));z-index:30}
+.cz-hd{position:relative}
+/* the shop logo file has a lot of empty space around it, so crop into the middle */
+.cz-logo img{width:190px;height:54px;max-height:none;object-fit:cover}
+.cz-ft-logo{width:220px;height:90px;max-height:none;object-fit:cover;object-position:center}
+.cz-mnu-top img{width:120px;height:40px;max-height:none;object-fit:cover}
+@media (max-width:900px){.cz-logo img{width:150px;height:48px}}

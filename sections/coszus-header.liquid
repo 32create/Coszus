@@ -75,7 +75,8 @@
       </div>
       <a class="cz-logo" href="{{ routes.root_url }}" aria-label="{{ shop.name }} home">
         {%- if logo != blank -%}
-          {{ logo | image_url: width: 400 | image_tag: alt: shop.name, preload: true, style: 'height: 26px; width: auto;' }}
+          {%- assign lcls = '' -%}{%- if section.settings.logo_invert -%}{%- assign lcls = 'inv' -%}{%- endif -%}
+          {{ logo | image_url: width: 400 | image_tag: alt: shop.name, preload: true, class: lcls }}
         {%- else -%}
           <span>{{ shop.name }}</span>
         {%- endif -%}
@@ -143,6 +144,7 @@
   "class": "section-coszus-header",
   "settings": [
     { "type": "image_picker", "id": "logo", "label": "Logo (cream, sits on the brown bar)", "info": "Falls back to the logo in Theme settings" },
+    { "type": "checkbox", "id": "logo_invert", "label": "Turn a black logo cream on the brown bar", "default": true },
     { "type": "image_picker", "id": "logo_dark", "label": "Logo (black, for the mobile menu)" },
     { "type": "link_list", "id": "menu", "label": "Category menu", "default": "main-menu", "info": "Shown in the white bar and the mobile menu. Any link called Sale goes red." },
     { "type": "link_list", "id": "help_menu", "label": "Mobile menu small links", "info": "Our story, Shipping, Returns, Contact" },

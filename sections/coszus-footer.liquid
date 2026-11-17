@@ -6,7 +6,7 @@
   <div class="cz-ft-top">
     <div class="cz-ft-join">
       {%- if section.settings.logo != blank -%}
-        {{ section.settings.logo | image_url: width: 400 | image_tag: alt: shop.name, class: 'cz-ft-logo', loading: 'lazy' }}
+        {{ section.settings.logo | image_url: width: 400 | image_tag: alt: shop.name, class: 'cz-ft-logo inv', loading: 'lazy' }}
       {%- else -%}
         <span class="cz-ft-logo-txt">{{ shop.name | upcase }}</span>
       {%- endif -%}

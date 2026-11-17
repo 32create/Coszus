@@ -37,7 +37,9 @@
 
   function setHd() {
     var hd = document.querySelector('.cz-hd');
+    var ann = document.querySelector('.cz-ann');
     if (hd) document.documentElement.style.setProperty('--cz-hd-h', hd.offsetHeight + 'px');
+    if (ann) document.documentElement.style.setProperty('--cz-ann-h', ann.offsetHeight + 'px');
   }
   window.addEventListener('resize', setHd, { passive: true });
   document.addEventListener('DOMContentLoaded', setHd);
