@@ -133,9 +133,7 @@
     </div>
     {%- if settings.bf_collection != blank -%}
       <a class="cz-bfstrip" href="{{ settings.bf_collection.url }}" data-bf-on aria-label="{{ settings.bf_tagline | escape }}">
-        <span class="cz-bfstrip-mq" aria-hidden="true">
-          {%- for i in (1..8) -%}<span><b>{{ settings.bf_name | upcase }}</b> {{ settings.bf_tagline | remove: settings.bf_name | remove_first: '·' | strip | upcase }}</span><i>●</i><span>{{ settings.bf_offer | upcase }}</span><i>●</i>{%- endfor -%}
-        </span>
+        <span class="cz-bfstrip-in"><b>{{ settings.bf_tagline | upcase }}</b>{%- if settings.bf_offer != blank -%}<i>·</i><span>{{ settings.bf_offer | upcase }}</span>{%- endif -%}<u>SHOP NOW →</u></span>
       </a>
     {%- endif -%}
     {%- if menu.links.size > 0 -%}

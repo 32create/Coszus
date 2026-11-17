@@ -561,3 +561,14 @@ html[data-bf='live'] .cz-bfb{background:#fff;color:#000}
 html[data-bf='live'] .cz-bfline{background:#000;font-weight:700}
 @media (max-width:900px){.cz-bfstrip-mq{font-size:11px;padding:10px 0}}
 .cz-srch-f input[type=search]::-webkit-search-cancel-button{display:none}
+/* Black Friday strip: static, one line, centred (the top bar is the only moving one) */
+.cz-bfstrip{text-align:center}
+.cz-bfstrip-in{display:inline-flex;align-items:center;justify-content:center;gap:14px;padding:12px 16px;font-size:12px;font-weight:600;letter-spacing:.16em;white-space:normal}
+.cz-bfstrip-in b{font-weight:800;letter-spacing:.18em}
+.cz-bfstrip-in i{font-style:normal;opacity:.6}
+.cz-bfstrip-in u{text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px;font-weight:700}
+.cz-bfstrip:hover .cz-bfstrip-in u{opacity:.8}
+@media (max-width:900px){.cz-bfstrip-in{gap:8px;font-size:10.5px;letter-spacing:.12em;padding:10px 12px;flex-wrap:wrap}.cz-bfstrip-in i,.cz-bfstrip-in span{display:none}}
+/* bag icon same size as the others */
+#cart-icon-bubble svg{width:22px !important;height:22px !important}
+#cart-icon-bubble{color:var(--cz-cream)}
