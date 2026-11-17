@@ -43,7 +43,8 @@
     </nav>
   {%- endif -%}
   <div class="cz-col-hd"{% if is_bf %} data-bf-off{% endif %}>
-    <h1>{{ collection.title | downcase | capitalize }} <span>({{ collection.products_count }})</span></h1>
+    {%- assign extra = section.settings.merge_collection -%}{%- assign total = collection.products_count -%}{%- if extra != blank -%}{%- assign total = total | plus: extra.products_count -%}{%- endif -%}
+    <h1>{{ section.settings.title_override | default: collection.title }} <span>({{ total }})</span></h1>
   </div>
 
   <nav class="cz-chips" aria-label="Categories"{% if is_bf %} data-bf-off{% endif %}>
@@ -89,6 +90,12 @@
         {%- endif -%}
         {%- render 'coszus-card', product: product -%}
       {%- endfor -%}
+      {%- if extra != blank and paginate.next == nil -%}
+        {%- assign shown = collection.products | map: 'id' -%}
+        {%- for product in extra.products limit: 48 -%}
+          {%- unless shown contains product.id -%}{%- render 'coszus-card', product: product -%}{%- endunless -%}
+        {%- endfor -%}
+      {%- endif -%}
     </div>
     {%- if paginate.next -%}
       <div class="cz-more"><a href="{{ paginate.next.url }}" data-cz-more>LOAD MORE</a></div>
@@ -203,6 +210,8 @@
   "class": "section-coszus-collection",
   "settings": [
     { "type": "link_list", "id": "chips_menu", "label": "Category links under the title", "info": "e.g. All, Hoodies, Polos, Tops, Trousers, Shorts, Caps & beanies" },
+    { "type": "collection", "id": "merge_collection", "label": "Also show this collection's products", "info": "For combined pages like Tops & Polos" },
+    { "type": "text", "id": "title_override", "label": "Page title (optional)" },
     { "type": "range", "id": "per_page", "label": "Products per page", "min": 12, "max": 48, "step": 4, "default": 24 },
     { "type": "header", "content": "Campaign tile" },
     { "type": "image_picker", "id": "camp_image", "label": "Image", "info": "Takes up 2x2 spots on page 1. Hidden when filters are on." },

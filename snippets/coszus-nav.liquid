@@ -11,7 +11,7 @@
     {%- if label == blank -%}{%- continue -%}{%- endif -%}
     {%- assign url = settings[uk] | default: '#' -%}
     {%- assign t = label | downcase -%}
-    {%- assign here = false -%}{%- if request.path == url -%}{%- assign here = true -%}{%- endif -%}
+    {%- assign upath = url | split: '?' | first -%}{%- assign here = false -%}{%- if request.path == upath -%}{%- assign here = true -%}{%- endif -%}{%- if upath == '/collections/t-shirts' and request.path == '/collections/polo-tops' -%}{%- assign here = true -%}{%- endif -%}
     <a href="{{ url }}" class="{{ cls }}{% if t == 'sale' %} sale{% endif %}{% if here %} on{% endif %}"{% if here %} aria-current="page"{% endif %}{% if t == 'sale' %} data-bf-off{% endif %}>{{ label }}{% if arrow %}<span>›</span>{% endif %}</a>
   {%- endfor -%}
 {%- else -%}
