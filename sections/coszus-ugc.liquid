@@ -1,3 +1,5 @@
+{%- assign has_img = false -%}{%- for b in section.blocks -%}{%- if b.settings.image != blank -%}{%- assign has_img = true -%}{%- endif -%}{%- endfor -%}
+{%- if has_img or request.design_mode -%}
 <section class="cz cz-ugcs">
   <h2 class="cz-h2" style="padding:0 var(--cz-g);">{{ section.settings.heading }}</h2>
   {%- if section.settings.sub != blank -%}<p class="cz-row-sub" style="padding:0 var(--cz-g);margin:-18px 0 28px;">{{ section.settings.sub }}</p>{%- endif -%}
@@ -13,6 +15,7 @@
     {%- endfor -%}
   </div></div>
 </section>
+{%- endif -%}
 {% schema %}
 {
   "name": "Coszus styled by you",

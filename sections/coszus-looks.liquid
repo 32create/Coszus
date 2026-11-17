@@ -1,3 +1,5 @@
+{%- assign has_img = false -%}{%- for b in section.blocks -%}{%- if b.settings.image != blank -%}{%- assign has_img = true -%}{%- endif -%}{%- endfor -%}
+{%- if has_img or request.design_mode -%}
 <section class="cz cz-looks">
   <h2 class="cz-h2">{{ section.settings.heading }}</h2>
   <div class="cz-grid5">
@@ -9,6 +11,7 @@
     {%- endfor -%}
   </div>
 </section>
+{%- endif -%}
 {% schema %}
 {
   "name": "Coszus shop the look",

@@ -1,3 +1,4 @@
+{%- if section.settings.collection == blank or section.settings.collection.products_count > 0 -%}
 {%- comment -%} Coszus product row: New in / The sale / Last sizes. {%- endcomment -%}
 {%- assign col = section.settings.collection -%}
 <section class="cz cz-row">
@@ -16,6 +17,7 @@
     {%- endif -%}
   </div>
 </section>
+{%- endif -%}
 {% schema %}
 {
   "name": "Coszus product row",
